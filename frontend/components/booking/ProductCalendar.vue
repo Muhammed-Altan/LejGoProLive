@@ -24,18 +24,26 @@ const props = defineProps<{ cameraId: number; cameraName?: string; productName?:
 const bookings = ref<Array<{ id: number; start: string; end: string; cameraName: string; productName: string }>>([]);
 
 async function fetchBookings() {
-  const { $config } = useNuxtApp();
-  const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-  const res = await fetch(`${base}/bookings/camera/${props.cameraId}`);
-  if (res.ok) {
-    const data = await res.json();
-    bookings.value = data.map((booking: any) => ({
+  try {
+    const supabase = useSupabase();
+    const { data, error } = await supabase
+      .from('Booking')
+      .select('*')
+      .eq('cameraId', props.cameraId)
+      .order('startDate', { ascending: true });
+    
+    if (error) throw error;
+    
+    bookings.value = (data || []).map((booking: any) => ({
       id: booking.id,
       start: new Date(booking.startDate).toLocaleDateString(),
       end: new Date(booking.endDate).toLocaleDateString(),
-      cameraName: booking.cameraName,
-      productName: booking.productName
+      cameraName: booking.cameraName || 'Unknown Camera',
+      productName: booking.productName || 'Unknown Product'
     }));
+  } catch (error) {
+    console.error('Error fetching camera bookings:', error);
+    bookings.value = [];
   }
 }
 

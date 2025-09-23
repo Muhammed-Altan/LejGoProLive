@@ -21,16 +21,24 @@
     
     <!-- Products grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto mt-12 mb-16">
+      <!-- Debug info -->
+      <div v-if="products.length === 0" class="col-span-full text-center text-gray-500">
+        Ingen produkter fundet
+      </div>
+      <div v-else class="col-span-full text-center text-sm text-gray-500 mb-4">
+        {{ products.length }} produkter fundet
+      </div>
+      
       <ProductCard
         v-for="product in products"
         :key="product.id"
         :title="product.name"
-        :description="product.description"
-        :img="product.image_url || placeholderImage"
-        :features="typeof product.features === 'string' ? product.features.split(',') : product.features"
+        :description="''"
+        :img="product.imageUrl || placeholderImage"
+        :features="product.features ? product.features.split(',').map(f => f.trim()) : []"
         :priceDay="product.dailyPrice"
         :priceWeek="product.weeklyPrice"
-        :popular="product.popular || false"
+        :popular="false"
         :productId="product.id"
       />
     </div>
@@ -77,23 +85,18 @@ import Header from '@/components/Header.vue';
 interface Product {
   id: number;
   name: string;
-  description: string;
-  features: string | string[];
+  features: string;
   dailyPrice: number;
   weeklyPrice: number;
-  twoWeekPrice?: number;
-  popular: boolean;
-  image_url?: string;
-  category?: string;
-  quantity?: number;
-  created_at?: string;
+  quantity: number;
+  imageUrl?: string;
 }
 
 // Reactive state
 const products = ref<Product[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
-const placeholderImage = 'https://images.unsplash.com/photo-1519183071298-a2962be56693?auto=format&fit=crop&w=400&q=80';
+const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/blt6ff9ada3eca94bbc/643ee100b1f4db27b0203e9d/pdp-h10-image01-1920-2x.png';
 
 // Get Supabase client
 const supabase = useSupabase();
@@ -107,26 +110,21 @@ const fetchProducts = async () => {
     const { data, error: supabaseError } = await supabase
       .from('Product')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('id', { ascending: true });
     
     if (supabaseError) {
       throw supabaseError;
     }
     
-    // Transform the data from database schema to interface
-    products.value = (data || []).map(p => ({
-      id: p.id,
-      name: p.name,
-      description: '', // No description in your table
-      features: p.features,
-      dailyPrice: p.dailyPrice,
-      weeklyPrice: p.weeklyPrice,
-      twoWeekPrice: p.twoWeekPrice,
-      popular: p.popular,
-      image_url: p.image_url, // May not exist but keeping for future
-      category: p.category, // May not exist but keeping for future
-      quantity: p.quantity
-    }));
+    console.log('Raw products data from Supabase:', data);
+    
+    // Use the data directly as it matches our interface
+    products.value = data || [];
+    
+    console.log('Products:', products.value);
+    console.log('First product dailyPrice:', products.value[0]?.dailyPrice);
+    console.log('First product weeklyPrice:', products.value[0]?.weeklyPrice);
+    console.log('Products length:', products.value.length);
   } catch (err: any) {
     error.value = err.message || 'Der opstod en fejl ved indlæsning af produkter';
     console.error('Error fetching products:', err);

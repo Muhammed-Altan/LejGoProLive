@@ -24,7 +24,7 @@
                         <button class="bg-[#B8082A] text-white px-4 py-2 rounded font-semibold shadow hover:bg-[#a10725] transition" @click="showModal = true">Opret Produkt</button>
                     </div>
                     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                        <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative">
+                        <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative overflow-y-auto" style="max-height: 90vh;">
                             <button @click="showModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold">&times;</button>
                             <h2 class="mb-1 text-xl font-semibold cursor-pointer">Opret Produkt</h2>
                             <form @submit.prevent="createProduct" class="space-y-7">
@@ -33,12 +33,38 @@
                                     <input id="name" v-model="form.name" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
                                 </div>
                                 <div class="flex flex-col">
-                                    <label for="description" class="text-base font-semibold mb-1 text-gray-900">Beskrivelse</label>
-                                    <textarea id="description" v-model="form.description" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
                                     <label for="features" class="text-base font-semibold mb-1 text-gray-900">Features (kommasepareret)</label>
                                     <input id="features" v-model="form.features" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" placeholder="fx: 📷 5K Video, 🖥️ GP2 Processor" />
+                                </div>
+                                <!-- Image Upload Section -->
+                                <div class="flex flex-col">
+                                    <label for="image" class="text-base font-semibold mb-1 text-gray-900">Produktbillede</label>
+                                    <input 
+                                        id="image" 
+                                        ref="imageInput"
+                                        type="file" 
+                                        accept="image/*" 
+                                        @change="handleImageUpload" 
+                                        class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" 
+                                    />
+                                    <!-- Image Preview -->
+                                    <div v-if="imagePreview || form.imageUrl" class="mt-3">
+                                        <img 
+                                            :src="imagePreview || form.imageUrl" 
+                                            alt="Product preview" 
+                                            class="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                                        />
+                                        <button 
+                                            type="button" 
+                                            @click="removeImage" 
+                                            class="mt-2 text-sm text-red-600 hover:text-red-800"
+                                        >
+                                            Fjern billede
+                                        </button>
+                                    </div>
+                                    <div v-if="uploadingImage" class="mt-2 text-sm text-blue-600">
+                                        Uploader billede...
+                                    </div>
                                 </div>
                                 <div class="flex flex-row gap-4">
                                     <div class="flex flex-col">
@@ -78,7 +104,6 @@
                                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                     <div>
                                         <h3 class="text-lg font-bold mb-1">{{ product.name }}</h3>
-                                        <p class="text-gray-600 mb-2">{{ product.description }}</p>
                                         <div class="flex flex-wrap gap-2 mb-2">
                                             <span v-for="feature in (Array.isArray(product.features) ? product.features : product.features.split(','))" :key="feature" class="bg-gray-100 px-2 py-1 rounded text-xs">{{ feature }}</span>
                                         </div>
@@ -119,7 +144,7 @@
                 <button class="bg-[#B8082A] text-white px-4 py-2 rounded font-semibold shadow hover:bg-[#a10725] transition cursor-pointer" @click="showAccessoryModal = true">Opret Tilbehør</button>
             </div>
             <div v-if="showAccessoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative">
+                <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative overflow-y-auto" style="max-height: 90vh;">
                     <button @click="showAccessoryModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold cursor-pointer">&times;</button>
                     <h2 class="mb-1 text-xl font-semibold cursor-pointer">Opret Tilbehør</h2>
                     <form @submit.prevent="createAccessory" class="space-y-7">
@@ -333,6 +358,9 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, computed, reactive } from 'vue';
+import ProductCalendar from '@/components/booking/ProductCalendar.vue';
+
 async function deleteBooking(id: number) {
     await fetch(`http://localhost:3001/bookings/${id}`, {
         method: 'DELETE',
@@ -354,7 +382,6 @@ const selectedProductCameras = computed(() => {
     const selectedProduct = products.value.find(p => p.name === editBookingForm.value.productName);
     return selectedProduct ? selectedProduct.cameras || [] : [];
 });
-import { computed } from 'vue';
 // Aggregate all cameras from all products for select dropdowns
 const allCameras = computed(() => {
     return products.value.flatMap(product => product.cameras || []);
@@ -404,16 +431,14 @@ function closeEditBooking() {
 async function submitEditBooking() {
         const id = editBookingForm.value.id;
         // Build PATCH payload with correct types
-                const patchPayload = {
-                    ...editBookingForm.value,
-                    cameraId: Number(editBookingForm.value.cameraId),
-                    accessoryInstanceIds: editBookingForm.value.accessoryInstanceIds
-                        ? editBookingForm.value.accessoryInstanceIds.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x))
-                        : [],
-                    totalPrice: Number(editBookingForm.value.totalPrice),
-                };
-            delete patchPayload.id;
-            delete patchPayload.status;
+        const { id: _, status: __, ...patchPayload } = {
+            ...editBookingForm.value,
+            cameraId: Number(editBookingForm.value.cameraId),
+            accessoryInstanceIds: editBookingForm.value.accessoryInstanceIds
+                ? editBookingForm.value.accessoryInstanceIds.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x))
+                : [],
+            totalPrice: Number(editBookingForm.value.totalPrice),
+        };
         await fetch(`http://localhost:3001/bookings/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -422,8 +447,6 @@ async function submitEditBooking() {
         showEditBookingModal.value = false;
         await fetchBookings();
 }
-import { ref, onMounted } from 'vue';
-import { reactive } from 'vue';
 const accessoryInstances = reactive<Record<number, any[]>>({});
 const selectedInstance = reactive<Record<number, number>>({});
 const instanceBookings = reactive<Record<number, any[]>>({});
@@ -460,30 +483,36 @@ async function createInstanceBooking(instanceId: number) {
     bookingForm.customerName = '';
     await fetchInstanceBookings(instanceId);
 }
-import ProductCalendar from '@/components/booking/ProductCalendar.vue';
 
 const showModal = ref(false);
 const editingId = ref<number|null>(null);
 const form = ref({
     name: '',
-    description: '',
     features: '',
     dailyPrice: 0,
     weeklyPrice: 0,
     twoWeekPrice: 0,
     popular: false,
-    quantity: 1
+    quantity: 1,
+    imageUrl: ''
 });
+
+// Image upload related variables
+const imageInput = ref<HTMLInputElement>();
+const imagePreview = ref<string>('');
+const uploadingImage = ref(false);
+const selectedImageFile = ref<File | null>(null);
+
 interface Product {
     id: number;
     name: string;
-    description: string;
     features: string;
     dailyPrice: number;
     weeklyPrice: number;
     twoWeekPrice: number;
     popular: boolean;
     quantity: number;
+    imageUrl?: string;
     cameras: Camera[];
 }
 
@@ -553,6 +582,12 @@ async function createProduct() {
     try {
         const supabase = useSupabase();
         
+        // Upload image if a new file is selected
+        let imageUrl = form.value.imageUrl;
+        if (selectedImageFile.value) {
+            imageUrl = await uploadImageToSupabase(selectedImageFile.value);
+        }
+        
         // Prepare the payload for Supabase (matching your actual table structure)
         const payload = {
             name: form.value.name,
@@ -561,7 +596,8 @@ async function createProduct() {
             weeklyPrice: form.value.weeklyPrice,
             twoWeekPrice: form.value.twoWeekPrice,
             popular: form.value.popular,
-            quantity: form.value.quantity || 1 // Ensure it's not null
+            quantity: form.value.quantity || 1, // Ensure it's not null
+            imageUrl: imageUrl
         };
         
         if (editingId.value) {
@@ -607,7 +643,15 @@ async function createProduct() {
         
         showModal.value = false;
         editingId.value = null;
-        form.value = { name: '', description: '', features: '', dailyPrice: 0, weeklyPrice: 0, twoWeekPrice: 0, popular: false, quantity: 1 };
+        form.value = { name: '', features: '', dailyPrice: 0, weeklyPrice: 0, twoWeekPrice: 0, popular: false, quantity: 1, imageUrl: '' };
+        
+        // Reset image upload fields
+        imagePreview.value = '';
+        selectedImageFile.value = null;
+        if (imageInput.value) {
+            imageInput.value.value = '';
+        }
+        
         await fetchProducts();
     } catch (error: any) {
         console.error('Error saving product to Supabase:', error);
@@ -636,15 +680,118 @@ function editProduct(product: any) {
     editingId.value = product.id;
     form.value = {
         name: product.name,
-        description: product.description,
         features: Array.isArray(product.features) ? product.features.join(', ') : product.features,
         dailyPrice: product.dailyPrice,
         weeklyPrice: product.weeklyPrice,
         twoWeekPrice: product.twoWeekPrice || 0,
         popular: product.popular || false,
-        quantity: product.quantity || 1
+        quantity: product.quantity || 1,
+        imageUrl: product.imageUrl || ''
     };
     showModal.value = true;
+}
+
+// Image upload functions
+async function handleImageUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Kun billedfiler er tilladt');
+        return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Billedet må ikke være større end 5MB');
+        return;
+    }
+    
+    selectedImageFile.value = file;
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        imagePreview.value = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+}
+
+async function uploadImageToSupabase(file: File): Promise<string> {
+    const supabase = useSupabase();
+    
+    // Generate unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `products/${fileName}`;
+    
+    console.log('Uploading file:', fileName);
+    console.log('File path:', filePath);
+    console.log('File size:', file.size);
+    console.log('File type:', file.type);
+    
+    uploadingImage.value = true;
+    
+    try {
+        // First check if we can access the bucket
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+        console.log('Available buckets:', buckets);
+        if (bucketError) {
+            console.error('Bucket list error:', bucketError);
+        }
+        
+        // Try uploading with upsert option
+        const { data, error } = await supabase.storage
+            .from('productImage')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: true
+            });
+        
+        if (error) {
+            console.error('Supabase storage error details:', error);
+            throw error;
+        }
+        
+        console.log('Upload successful:', data);
+        
+        // Get public URL
+        const { data: publicData } = supabase.storage
+            .from('productImage')
+            .getPublicUrl(filePath);
+        
+        console.log('Public URL:', publicData.publicUrl);
+        return publicData.publicUrl;
+    } catch (error: any) {
+        console.error('Error uploading image:', error);
+        console.error('Error message:', error.message);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        
+        // Provide more specific error messages
+        if (error.message?.includes('not found') || error.message?.includes('does not exist')) {
+            throw new Error('Storage bucket "productImages" findes ikke. Opret bucket i Supabase Dashboard.');
+        } else if (error.message?.includes('policy') || error.message?.includes('permission')) {
+            throw new Error('Ingen tilladelse til at uploade filer. Kontroller RLS policies i Supabase.');
+        } else if (error.message?.includes('size') || error.message?.includes('too large')) {
+            throw new Error('Filen er for stor. Max størrelse er 50MB.');
+        } else {
+            throw new Error(`Fejl ved upload af billede: ${error.message || 'Ukendt fejl'}`);
+        }
+    } finally {
+        uploadingImage.value = false;
+    }
+}
+
+function removeImage() {
+    imagePreview.value = '';
+    form.value.imageUrl = '';
+    selectedImageFile.value = null;
+    if (imageInput.value) {
+        imageInput.value.value = '';
+    }
 }
 
 const activeTab = ref('products');
@@ -675,11 +822,22 @@ const bookings = ref<Booking[]>([]);
 
 async function fetchBookings() {
     try {
-        const res = await fetch('http://localhost:3001/bookings');
-        const data = await res.json();
-        console.log('Fetched bookings:', data);
-        bookings.value = data;
+        const supabase = useSupabase();
+        const { data, error } = await supabase
+            .from('Booking')
+            .select('*')
+            .order('id', { ascending: false });
+        
+        if (error) {
+            console.error('Error fetching bookings:', error);
+            bookings.value = [];
+            return;
+        }
+        
+        console.log('Fetched bookings from Supabase:', data);
+        bookings.value = data || [];
     } catch (e) {
+        console.error('Error fetching bookings:', e);
         bookings.value = [];
     }
 }
