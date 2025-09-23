@@ -3,8 +3,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxt/ui', '@nuxt/image', '@pinia/nuxt'],
+  ssr: true,
   nitro: {
-    preset: 'vercel-edge'
+    preset: 'vercel'
   },
   runtimeConfig: {
     public: {

@@ -2,9 +2,20 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/nuxt.config.ts",
-      "use": "@nuxtjs/vercel-builder",
-      "config": {}
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": ".output/public"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/.output/server/index.mjs"
     }
   ]
 }
