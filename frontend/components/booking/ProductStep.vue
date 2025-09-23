@@ -234,9 +234,30 @@ interface ProductOption {
   weeklyPrice?: number;
   twoWeekPrice?: number;
 }
+
+interface Camera {
+  id: number;
+  productId: number;
+  dailyPrice: number;
+  weeklyPrice: number;
+  twoWeekPrice: number;
+}
+
+interface SelectedCamera {
+  id: number;
+  productId: number;
+  productName: string;
+  dailyPrice: number;
+  weeklyPrice: number;
+  twoWeekPrice: number;
+}
+
 const models = ref<ProductOption[]>([]);
 const accessories = ref<{ name: string; price: number }[]>([]);
 const availability = ref<Record<number, number>>({});
+const availableCameras = ref<Camera[]>([]);
+const selectedCameras = ref<SelectedCamera[]>([]);
+const selectedCameraId = ref<number | null>(null);
 
 // SSR-safe Pinia usage
 const store = useCheckoutStore();
@@ -302,6 +323,67 @@ function onAddSelectedModel() {
 
 function removeModel(idx: number) {
   selectedModels.value.splice(idx, 1);
+  // Clear cameras when no models are selected
+  if (selectedModels.value.length === 0) {
+    availableCameras.value = [];
+    selectedCameras.value = [];
+  }
+}
+
+// Camera-related functions
+async function fetchCamerasForProduct(productId: number) {
+  try {
+    const supabase = useSupabase();
+    console.log('Fetching cameras for product:', productId);
+    
+    const { data: cameras, error } = await supabase
+      .from('Camera')
+      .select('*')
+      .eq('productId', productId);
+    
+    console.log('Raw camera data:', cameras);
+    console.log('Camera error:', error);
+    
+    if (error) throw error;
+    
+    availableCameras.value = cameras || [];
+    console.log('Available cameras set to:', availableCameras.value);
+    console.log('Selected models length:', selectedModels.value.length);
+    console.log('Should show camera section:', selectedModels.value.length > 0 && availableCameras.value.length > 0);
+  } catch (error) {
+    console.error('Error fetching cameras:', error);
+    availableCameras.value = [];
+  }
+}
+
+function onAddSelectedCamera() {
+  const camera = availableCameras.value.find(c => c.id === selectedCameraId.value);
+  const product = models.value.find(p => p.id === camera?.productId);
+  
+  if (camera && product) {
+    const selectedCamera: SelectedCamera = {
+      id: camera.id,
+      productId: camera.productId,
+      productName: product.name,
+      dailyPrice: camera.dailyPrice,
+      weeklyPrice: camera.weeklyPrice,
+      twoWeekPrice: camera.twoWeekPrice
+    };
+    
+    // Check if camera is already selected
+    const exists = selectedCameras.value.find(c => c.id === camera.id);
+    if (!exists) {
+      selectedCameras.value.push(selectedCamera);
+      // TODO: Add setCameraId to store if needed
+      // store.setCameraId(camera.id);
+    }
+  }
+  
+  selectedCameraId.value = null;
+}
+
+function removeCamera(idx: number) {
+  selectedCameras.value.splice(idx, 1);
 }
 
 function addAccessory(acc: { name: string; price: number }) {
@@ -341,16 +423,20 @@ watch(
   }
 );
 
-// Fetch products and accessories from backend to populate dropdowns
+// Fetch products and accessories from Supabase
 onMounted(async () => {
-  const { $config } = useNuxtApp() as any;
-  const base = $config?.public?.apiBase || "http://localhost:3001";
+  const supabase = useSupabase();
+  
   try {
-    // Products
-    const res = await fetch(`${base}/products`);
-    if (!res.ok) throw new Error("Failed to load products");
-    const data = await res.json();
-    models.value = (Array.isArray(data) ? data : []).map((p: any) => ({
+    // Fetch products from Supabase
+    const { data: productsData, error: productsError } = await supabase
+      .from('Product')
+      .select('*')
+      .order('id', { ascending: false });
+    
+    if (productsError) throw productsError;
+    
+    models.value = (productsData || []).map((p: any) => ({
       id: p.id,
       name: p.name,
       price: typeof p.dailyPrice === "number" ? p.dailyPrice : 0,
@@ -358,59 +444,77 @@ onMounted(async () => {
       twoWeekPrice: p.twoWeekPrice,
     }));
   } catch (e) {
-    console.error("Error fetching products:", e);
+    console.error("Error fetching products from Supabase:", e);
   }
+  
   try {
-    // Accessories
-    const res = await fetch(`${base}/accessory`);
-    if (!res.ok) throw new Error("Failed to load accessories");
-    const data = await res.json();
-    accessories.value = (Array.isArray(data) ? data : []).map((a: any) => ({
+    // Fetch accessories from Supabase
+    const { data: accessoriesData, error: accessoriesError } = await supabase
+      .from('Accessory')
+      .select('*')
+      .order('name', { ascending: true });
+    
+    if (accessoriesError) throw accessoriesError;
+    
+    accessories.value = (accessoriesData || []).map((a: any) => ({
       name: a.name,
       price: typeof a.price === "number" ? a.price : 70,
     }));
   } catch (e) {
-    console.error("Error fetching accessories:", e);
+    console.error("Error fetching accessories from Supabase:", e);
+    // Set some default accessories if table doesn't exist yet
+    accessories.value = [
+      { name: "Grip", price: 70 },
+      { name: "Ekstra batteri", price: 50 },
+      { name: "Headstrap", price: 60 },
+      { name: "Brystmount", price: 80 },
+      { name: "Beskyttelsescase", price: 40 },
+      { name: "Sugekop til ruder", price: 90 }
+    ];
   }
 
-  // Initial availability load if dates already in store
-  if (datesSelected.value) {
-    try {
-      const qs = new URLSearchParams({ start: startDate.value!.toISOString(), end: endDate.value!.toISOString() });
-      const res = await fetch(`${base}/products/availability/range?${qs.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        const map: Record<number, number> = {};
-        (data || []).forEach((p: any) => { map[p.productId] = p.available; });
-        availability.value = map;
-      }
-    } catch (e) {
-      console.error('Error fetching availability:', e);
-    }
-  }
+  // Note: Availability checking would need to be implemented with a bookings table
+  // For now, we'll skip the availability check since we don't have booking data yet
 });
 
 // Refetch availability whenever dates change and both are set
+// Note: This would need to be implemented with a bookings table in Supabase
 watch([startDate, endDate], async () => {
-  const { $config } = useNuxtApp() as any;
-  const base = $config?.public?.apiBase || "http://localhost:3001";
   if (!startDate.value || !endDate.value) {
     availability.value = {};
     return;
   }
-  try {
-    const qs = new URLSearchParams({ start: startDate.value.toISOString(), end: endDate.value.toISOString() });
-    const res = await fetch(`${base}/products/availability/range?${qs.toString()}`);
-    if (!res.ok) throw new Error('Failed to load availability');
-    const data = await res.json();
-    const map: Record<number, number> = {};
-    (data || []).forEach((p: any) => { map[p.productId] = p.available; });
-    availability.value = map;
-  } catch (e) {
-    console.error('Error fetching availability:', e);
-    availability.value = {};
-  }
+  
+  // For now, we'll assume all products have availability of 5
+  // In a real implementation, you'd query the bookings table to check availability
+  const defaultAvailability: Record<number, number> = {};
+  models.value.forEach(model => {
+    defaultAvailability[model.id] = 5; // Assume 5 available
+  });
+  availability.value = defaultAvailability;
+  
+  // TODO: Implement real availability checking with Supabase
+  // const supabase = useSupabase();
+  // const { data: bookings } = await supabase
+  //   .from('bookings')
+  //   .select('product_id, quantity')
+  //   .overlaps('rental_period', `[${startDate.value.toISOString()}, ${endDate.value.toISOString()}]`);
 });
+
+// Fetch cameras when products are selected
+watch(selectedModels, async (newModels) => {
+  if (newModels.length > 0) {
+    // Get the latest selected product
+    const latestProduct = newModels[newModels.length - 1];
+    if (latestProduct.productId) {
+      await fetchCamerasForProduct(latestProduct.productId);
+    }
+  } else {
+    // Clear cameras if no products selected
+    availableCameras.value = [];
+    selectedCameras.value = [];
+  }
+}, { deep: true });
 </script>
 <style scoped>
 * {

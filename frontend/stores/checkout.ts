@@ -26,6 +26,8 @@ export const useCheckoutStore = defineStore('checkout', {
     city: '',
     // Price
     backendTotal: 0,
+    // Booking ID for tracking
+    bookingId: null as string | null,
   }),
   actions: {
     logState() {
@@ -101,6 +103,79 @@ export const useCheckoutStore = defineStore('checkout', {
     setBackendTotal(total: number) {
       this.backendTotal = total;
       this.logState();
+    },
+    
+    // Supabase integration methods
+    async saveBookingToSupabase() {
+      try {
+        const { useSupabase } = await import('@/composables/useSupabase');
+        const supabase = useSupabase();
+        
+        const bookingData = {
+          cameraId: this.productId || 1, // Using productId as cameraId for now
+          cameraName: 'Selected Camera', // Default value, could be improved
+          productName: this.selectedModels[0]?.name || 'Selected Product',
+          startDate: this.startDate,
+          endDate: this.endDate,
+          address: this.address,
+          apartment: this.apartment,
+          email: this.email,
+          fullName: this.fullName,
+          phone: this.phone,
+          totalPrice: this.backendTotal,
+          accessoryInstanceIds: null, // Set to null instead of empty array
+          city: this.city
+          // Note: postalCode is not in the schema, so we'll skip it
+        };
+        
+        const { data, error } = await supabase
+          .from('Booking')
+          .insert([bookingData])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
+        this.bookingId = data.id;
+        return data;
+      } catch (error) {
+        console.error('Error saving booking to Supabase:', error);
+        throw error;
+      }
+    },
+    
+    async loadBookingFromSupabase(bookingId: string) {
+      try {
+        const { useSupabase } = await import('@/composables/useSupabase');
+        const supabase = useSupabase();
+        
+        const { data, error } = await supabase
+          .from('Booking')
+          .select('*')
+          .eq('id', bookingId)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          this.fullName = data.fullName || '';
+          this.email = data.email || '';
+          this.phone = data.phone || '';
+          this.address = data.address || '';
+          this.apartment = data.apartment || '';
+          this.city = data.city || '';
+          this.startDate = data.startDate;
+          this.endDate = data.endDate;
+          this.backendTotal = data.totalPrice || 0;
+          this.bookingId = data.id;
+          // Note: postalCode, insurance, selectedModels, selectedAccessories are not in the schema
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Error loading booking from Supabase:', error);
+        throw error;
+      }
     }
   }
 });

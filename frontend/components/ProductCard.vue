@@ -17,7 +17,7 @@
         <span class="text-gray-500 text-sm">/uge</span>
       </div>
     </div>
-  <NuxtLink to="/products" class="bg-[#B8082A] text-white font-semibold py-2 px-6 rounded-full mt-auto text-center block hover:bg-[#a10725] transition">Lej Nu</NuxtLink>
+  <NuxtLink :to="`/checkout?product=${productId}`" class="bg-[#B8082A] text-white font-semibold py-2 px-6 rounded-full mt-auto text-center block hover:bg-[#a10725] transition">Lej Nu</NuxtLink>
   </div>
 </template>
 
@@ -29,6 +29,7 @@ defineProps({
   features: Array,
   priceDay: [String, Number],
   priceWeek: [String, Number],
-  popular: Boolean
+  popular: Boolean,
+  productId: Number
 })
 </script>

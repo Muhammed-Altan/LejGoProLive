@@ -2,39 +2,36 @@
   <div>
     <Header />
     <h1 class="text-3xl md:text-4xl font-bold text-center mb-8 mt-8">Vores GoPro Produkter</h1>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto mt-12 mb-16">
+    
+    <!-- Loading state -->
+    <div v-if="loading" class="flex justify-center items-center my-12">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B8082A] mx-auto mb-4"></div>
+        <p class="text-gray-600">Indlæser produkter...</p>
+      </div>
+    </div>
+    
+    <!-- Error state -->
+    <div v-else-if="error" class="max-w-2xl mx-auto text-center my-12 p-6 bg-red-50 rounded-lg">
+      <p class="text-red-600 mb-4">{{ error }}</p>
+      <button @click="fetchProducts" class="bg-[#B8082A] text-white px-4 py-2 rounded hover:bg-[#a10725]">
+        Prøv igen
+      </button>
+    </div>
+    
+    <!-- Products grid -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto mt-12 mb-16">
       <ProductCard
-        title="GoPro HERO12 Black"
-        description="Seneste model med avanceret billedkvalitet og forbedret stabilisering."
-        img="https://static.gopro.com/assets/blta2b8522e5372af40/blt86b2d5c67d4f1ed5/64d0e286369276296caf7a71/02-pdp-h12b-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale"
-        :features="['📷 5.3K Video', '⚡ HyperSmooth 6.0', '🕑 Vandtæt', '🔋 Forbedret batteri']"
-        :priceDay="49"
-        :priceWeek="159"
-        :popular="true"
-      />
-      <ProductCard
-        title="GoPro HERO11 Black"
-        description="Fremragende allround kamera med 5.3K video og forbedret natoptagelse."
-        img="https://static.gopro.com/assets/blta2b8522e5372af40/bltb0e158820591a2a1/645147b2d5d03c0794f168cd/pdp-h11b-SA-image02-1920-2x.png?width=3840&quality=80&auto=webp&disable=upscale"
-        :features="['📷 5.3K Video', '🌙 Nightlapse', '⚡ HyperSmooth 5.0', '🕑 Vandtæt til 10m']"
-        :priceDay="39"
-        :priceWeek="129"
-      />
-      <ProductCard
-        title="GoPro HERO10 Black"
-        description="Kraftfuld performance med GP2 processor og glimrende stabilisering."
-        img="https://static.gopro.com/assets/blta2b8522e5372af40/blt2c7d09c3f92e1c63/643ee1005f834b59633e106f/pdp-h10-image02-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale"
-        :features="['📷 5.3K Video', '🖥️ GP2 Processor', '⚡ HyperSmooth 4.0', '🕑 Vandtæt']"
-        :priceDay="29"
-        :priceWeek="109"
-      />
-      <ProductCard
-        title="GoPro HERO9 Black"
-        description="Pålidelig og prisvenlig mulighed med fremskærm og 5K video."
-  img="https://static.gopro.com/assets/blta2b8522e5372af40/blt2c7d09c3f92e1c63/643ee1005f834b59633e106f/pdp-h10-image02-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale"
-        :features="['📷 5K Video', '🖥️ Fremskærm', '⚡ HyperSmooth 3.0', '⏩ TimeWarp 3.0']"
-        :priceDay="25"
-        :priceWeek="89"
+        v-for="product in products"
+        :key="product.id"
+        :title="product.name"
+        :description="product.description"
+        :img="product.image_url || placeholderImage"
+        :features="typeof product.features === 'string' ? product.features.split(',') : product.features"
+        :priceDay="product.dailyPrice"
+        :priceWeek="product.weeklyPrice"
+        :popular="product.popular || false"
+        :productId="product.id"
       />
     </div>
     <div class="flex flex-wrap justify-center gap-8 my-12 max-w-7xl mx-auto">
@@ -75,9 +72,8 @@
 <script setup lang="ts">
 import ProductCard from '@/components/ProductCard.vue';
 import Header from '@/components/Header.vue';
-import { ref, onMounted } from 'vue';
-import { useNuxtApp } from '#app';
 
+// Define the product interface to match Supabase table structure
 interface Product {
   id: number;
   name: string;
@@ -85,19 +81,62 @@ interface Product {
   features: string | string[];
   dailyPrice: number;
   weeklyPrice: number;
-  twoWeekPrice: number;
+  twoWeekPrice?: number;
   popular: boolean;
+  image_url?: string;
+  category?: string;
+  quantity?: number;
+  created_at?: string;
 }
 
+// Reactive state
 const products = ref<Product[]>([]);
+const loading = ref(true);
+const error = ref<string | null>(null);
 const placeholderImage = 'https://images.unsplash.com/photo-1519183071298-a2962be56693?auto=format&fit=crop&w=400&q=80';
 
-onMounted(async () => {
-  const { $config } = useNuxtApp();
-  const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-  const res = await fetch(`${base}/products`);
-  if (res.ok) {
-    products.value = await res.json();
+// Get Supabase client
+const supabase = useSupabase();
+
+// Fetch products from Supabase
+const fetchProducts = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+    
+    const { data, error: supabaseError } = await supabase
+      .from('Product')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (supabaseError) {
+      throw supabaseError;
+    }
+    
+    // Transform the data from database schema to interface
+    products.value = (data || []).map(p => ({
+      id: p.id,
+      name: p.name,
+      description: '', // No description in your table
+      features: p.features,
+      dailyPrice: p.dailyPrice,
+      weeklyPrice: p.weeklyPrice,
+      twoWeekPrice: p.twoWeekPrice,
+      popular: p.popular,
+      image_url: p.image_url, // May not exist but keeping for future
+      category: p.category, // May not exist but keeping for future
+      quantity: p.quantity
+    }));
+  } catch (err: any) {
+    error.value = err.message || 'Der opstod en fejl ved indlæsning af produkter';
+    console.error('Error fetching products:', err);
+  } finally {
+    loading.value = false;
   }
+};
+
+// Fetch products on component mount
+onMounted(() => {
+  fetchProducts();
 });
 </script>

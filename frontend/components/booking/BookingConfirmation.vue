@@ -34,35 +34,14 @@ const canBook = computed(() => !!accepted.value && !!store.startDate && !!store.
 async function bookNow() {
 	if (!store.startDate || !store.endDate) return;
 	try {
-		const productId = (store.getFirstProductId && store.getFirstProductId()) || store.productId || 1;
-		const { $config } = useNuxtApp();
-		const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-		const bookingData = {
-			productId,
-			startDate: store.startDate,
-			endDate: store.endDate,
-			fullName: store.fullName,
-			phone: store.phone,
-			email: store.email,
-			address: store.address,
-			apartment: store.apartment,
-			postalCode: store.postalCode,
-			city: store.city,
-			accessoryIds: store.selectedAccessories ? store.selectedAccessories.map(a => a.instanceId) : [],
-			totalPrice: store.backendTotal || 0
-		};
-		const res = await fetch(`${base}/bookings/by-product`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(bookingData),
-		});
-		if (!res.ok) {
-			const txt = await res.text();
-			throw new Error(txt || 'Booking failed');
-		}
-		const data = await res.json();
-		alert('Booking successful! ID: ' + data.id);
+		// Use the existing Supabase booking method from the store
+		await store.saveBookingToSupabase();
+		alert('Booking successful! ID: ' + store.bookingId);
+		
+		// Optionally redirect to a success page or reset the form
+		// navigateTo('/booking-success');
 	} catch (e) {
+		console.error('Booking error:', e);
 		alert('Booking failed: ' + (e?.message ?? e));
 	}
 }

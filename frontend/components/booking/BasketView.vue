@@ -89,28 +89,75 @@ async function fetchBackendTotal() {
   loading.value = true;
   error.value = null;
   try {
-    const { $config } = useNuxtApp();
-    const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-    const res = await fetch(`${base}/price/quote`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        models: models.value.map(m => ({
-          name: m.name,
-          quantity: m.quantity || 1,
-          config: m.config || { dailyPrice: m.price, weeklyPrice: m.price * 7, twoWeekPrice: m.price * 14 },
-        })),
-        accessories: accessories.value.map(a => ({ name: a.name, quantity: a.quantity || 1, price: a.price })),
+    // Calculate prices locally instead of calling external API
+    let total = 0;
+    const breakdown: any = {
+      models: [],
+      accessories: [],
+      insurance: 0,
+      subtotal: 0,
+      total: 0
+    };
+
+    // Calculate model prices
+    for (const model of models.value) {
+      const quantity = model.quantity || 1;
+      const config = model.config || { 
+        dailyPrice: model.price, 
+        weeklyPrice: model.price * 7, 
+        twoWeekPrice: model.price * 14 
+      };
+      
+      let pricePerDay = config.dailyPrice;
+      
+      // Apply weekly/biweekly discounts if applicable
+      if (rentalDays.value >= 14) {
+        pricePerDay = config.twoWeekPrice / 14;
+      } else if (rentalDays.value >= 7) {
+        pricePerDay = config.weeklyPrice / 7;
+      }
+      
+      const modelTotal = pricePerDay * rentalDays.value * quantity;
+      total += modelTotal;
+      
+      breakdown.models.push({
+        name: model.name,
+        quantity,
+        pricePerDay,
         days: rentalDays.value,
-        insurance: insurance.value,
-      }),
-    });
-    if (!res.ok) throw new Error('Prisforespørgsel fejlede');
-    const data = await res.json();
-    backendTotal.value = typeof data.total === 'number' ? data.total : 0;
-    backendBreakdown.value = data.breakdown || null;
+        total: modelTotal
+      });
+    }
+
+    // Calculate accessory prices
+    for (const accessory of accessories.value) {
+      const quantity = accessory.quantity || 1;
+      const accessoryTotal = accessory.price * rentalDays.value * quantity;
+      total += accessoryTotal;
+      
+      breakdown.accessories.push({
+        name: accessory.name,
+        quantity,
+        pricePerDay: accessory.price,
+        days: rentalDays.value,
+        total: accessoryTotal
+      });
+    }
+
+    // Add insurance if selected (assuming 10% of subtotal)
+    if (insurance.value) {
+      const insuranceAmount = total * 0.1; // 10% insurance
+      breakdown.insurance = insuranceAmount;
+      total += insuranceAmount;
+    }
+
+    breakdown.subtotal = total - breakdown.insurance;
+    breakdown.total = total;
+    
+    backendTotal.value = total;
+    backendBreakdown.value = breakdown;
   } catch (e: any) {
-    error.value = (typeof e === 'object' && e && 'message' in e) ? (e as any).message : 'Ukendt fejl ved prisforespørgsel';
+    error.value = (typeof e === 'object' && e && 'message' in e) ? (e as any).message : 'Ukendt fejl ved prisberegning';
     backendTotal.value = null;
     backendBreakdown.value = null;
   } finally {

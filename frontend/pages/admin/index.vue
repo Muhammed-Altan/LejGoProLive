@@ -67,6 +67,13 @@
                         </div>
                     </div>
                         <div class="space-y-6">
+                            <!-- Debug section -->
+                            <div class="bg-yellow-50 border border-yellow-200 p-4 rounded">
+                                <p><strong>Debug:</strong> Products count: {{ products.length }}</p>
+                                <p v-if="products.length === 0" class="text-red-600">No products found. Check console for errors.</p>
+                                <button @click="fetchProducts" class="bg-blue-500 text-white px-3 py-1 rounded text-sm mt-2">Refresh Products</button>
+                            </div>
+                            
                             <div v-for="product in products" :key="product.id" class="border rounded-xl p-6 bg-white shadow">
                                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                     <div>
@@ -206,6 +213,13 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Debug section for accessories -->
+                <div class="mt-8 p-4 bg-gray-100 rounded">
+                    <h3 class="font-bold mb-2">Debug Info:</h3>
+                    <p>Accessories count: {{ accessory.length }}</p>
+                    <button @click="fetchAccessory()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Refresh Accessories</button>
                 </div>
         </div>
 
@@ -483,58 +497,139 @@ interface Camera {
 const products = ref<Product[]>([]);
 
 async function fetchProducts() {
-    const { $config } = useNuxtApp();
-    const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-    const res = await fetch(`${base}/products`);
-    products.value = await res.json();
+    try {
+        const supabase = useSupabase();
+        console.log('Fetching products...');
+        
+        // First, get the products without the Camera relationship
+        const { data, error } = await supabase
+            .from('Product')
+            .select('*')
+            .order('id', { ascending: false });
+        
+        console.log('Raw data from Supabase:', data);
+        console.log('Error (if any):', error);
+        
+        if (error) throw error;
+        
+        // Transform the data to match the expected interface
+        products.value = (data || []).map(p => ({
+            id: p.id,
+            name: p.name || '',
+            description: '', // No description column in your table
+            features: p.features || '',
+            dailyPrice: p.dailyPrice || 0,
+            weeklyPrice: p.weeklyPrice || 0,
+            twoWeekPrice: p.twoWeekPrice || 0,
+            popular: p.popular || false,
+            quantity: p.quantity || 1,
+            cameras: [] // We'll load cameras separately if needed
+        }));
+        
+        // Optionally, load cameras for each product separately
+        for (const product of products.value) {
+            try {
+                const { data: cameras } = await supabase
+                    .from('Camera')
+                    .select('*')
+                    .eq('productId', product.id);
+                
+                product.cameras = cameras || [];
+            } catch (cameraError) {
+                console.warn(`Could not load cameras for product ${product.id}:`, cameraError);
+                product.cameras = [];
+            }
+        }
+        
+        console.log('Transformed products:', products.value);
+    } catch (error) {
+        console.error('Error fetching products from Supabase:', error);
+    }
 }
 
 fetchProducts();
 
 async function createProduct() {
-    // Log all form data
-    const payload = {
-        name: form.value.name,
-        description: form.value.description,
-        features: form.value.features,
-        dailyPrice: form.value.dailyPrice,
-        weeklyPrice: form.value.weeklyPrice,
-        twoWeekPrice: form.value.twoWeekPrice,
-        popular: form.value.popular,
-        quantity: form.value.quantity
-    };
-    if (editingId.value) {
-        // Update existing product
-    const { $config } = useNuxtApp();
-    const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-    await fetch(`${base}/products/${editingId.value}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-    } else {
-        // Create new product
-    const { $config } = useNuxtApp();
-    const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-    await fetch(`${base}/products`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+    try {
+        const supabase = useSupabase();
+        
+        // Prepare the payload for Supabase (matching your actual table structure)
+        const payload = {
+            name: form.value.name,
+            features: form.value.features || '', // Ensure it's not null
+            dailyPrice: form.value.dailyPrice,
+            weeklyPrice: form.value.weeklyPrice,
+            twoWeekPrice: form.value.twoWeekPrice,
+            popular: form.value.popular,
+            quantity: form.value.quantity || 1 // Ensure it's not null
+        };
+        
+        if (editingId.value) {
+            // Update existing product
+            const { error } = await supabase
+                .from('Product')
+                .update(payload)
+                .eq('id', editingId.value);
+            
+            if (error) throw error;
+        } else {
+            // Create new product
+            const { data: newProduct, error } = await supabase
+                .from('Product')
+                .insert([payload])
+                .select()
+                .single();
+            
+            if (error) throw error;
+            
+            // Create cameras for the new product (assuming you want to create 4 cameras per product)
+            if (newProduct && form.value.quantity > 0) {
+                const cameras = [];
+                for (let i = 1; i <= form.value.quantity; i++) {
+                    cameras.push({
+                        productId: newProduct.id,
+                        dailyPrice: form.value.dailyPrice,
+                        weeklyPrice: form.value.weeklyPrice,
+                        twoWeekPrice: form.value.twoWeekPrice
+                    });
+                }
+                
+                const { error: camerasError } = await supabase
+                    .from('Camera')
+                    .insert(cameras);
+                
+                if (camerasError) {
+                    console.warn('Error creating cameras:', camerasError);
+                    // Don't throw error here, product was created successfully
+                }
+            }
+        }
+        
+        showModal.value = false;
+        editingId.value = null;
+        form.value = { name: '', description: '', features: '', dailyPrice: 0, weeklyPrice: 0, twoWeekPrice: 0, popular: false, quantity: 1 };
+        await fetchProducts();
+    } catch (error: any) {
+        console.error('Error saving product to Supabase:', error);
+        alert('Fejl ved gem af produkt: ' + (error?.message || 'Ukendt fejl'));
     }
-    showModal.value = false;
-    editingId.value = null;
-    form.value = { name: '', description: '', features: '', dailyPrice: 0, weeklyPrice: 0, twoWeekPrice: 0, popular: false, quantity: 1 };
-    await fetchProducts();
 }
 
 async function deleteProduct(product: any) {
-    const { $config } = useNuxtApp();
-    const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-    await fetch(`${base}/products/${product.id}`, {
-        method: 'DELETE'
-    });
-    await fetchProducts();
+    try {
+        const supabase = useSupabase();
+        const { error } = await supabase
+            .from('Product')
+            .delete()
+            .eq('id', product.id);
+        
+        if (error) throw error;
+        
+        await fetchProducts();
+    } catch (error: any) {
+        console.error('Error deleting product from Supabase:', error);
+        alert('Fejl ved sletning af produkt: ' + (error?.message || 'Ukendt fejl'));
+    }
 }
 
 function editProduct(product: any) {
@@ -608,43 +703,94 @@ const accessory = ref<Accessory[]>([]);
 const accessoryForm = ref({ name: '', description: '', price: 0, quantity: 1 });
 
 async function fetchAccessory() {
-    const { $config } = useNuxtApp();
-    const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-    const res = await fetch(`${base}/accessory`);
-    accessory.value = await res.json();
+    try {
+        console.log('Fetching accessories...');
+        const supabase = useSupabase();
+        const { data, error } = await supabase
+            .from('Accessory')
+            .select('*')
+            .order('id', { ascending: false });
+        
+        console.log('Raw accessory data from Supabase:', data);
+        console.log('Accessory error (if any):', error);
+        
+        if (error) {
+            // If accessories table doesn't exist, create some default ones
+            console.warn('Accessory table not found, using defaults:', error);
+            accessory.value = [];
+            return;
+        }
+        
+        // Transform the data to match the expected interface
+        accessory.value = (data || []).map(a => ({
+            id: a.id,
+            name: a.name,
+            description: a.description || '',
+            price: a.price,
+            quantity: a.quantity || 1
+        }));
+        
+        console.log('Transformed accessories:', accessory.value);
+    } catch (error) {
+        console.error('Error fetching accessories from Supabase:', error);
+        accessory.value = [];
+    }
 }
 fetchAccessory();
 
 async function createAccessory() {
-    const payload = { name: accessoryForm.value.name, description: accessoryForm.value.description, price: accessoryForm.value.price, quantity: accessoryForm.value.quantity };
-    if (editingAccessoryId.value) {
-        const { $config } = useNuxtApp();
-        const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-        await fetch(`${base}/accessory/${editingAccessoryId.value}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-    } else {
-        const { $config } = useNuxtApp();
-        const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-        await fetch(`${base}/accessory`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+    try {
+        const supabase = useSupabase();
+        
+        const payload = { 
+            name: accessoryForm.value.name, 
+            description: accessoryForm.value.description, 
+            price: accessoryForm.value.price, 
+            quantity: accessoryForm.value.quantity 
+        };
+        
+        if (editingAccessoryId.value) {
+            // Update existing accessory
+            const { error } = await supabase
+                .from('Accessory')
+                .update(payload)
+                .eq('id', editingAccessoryId.value);
+            
+            if (error) throw error;
+        } else {
+            // Create new accessory
+            const { error } = await supabase
+                .from('Accessory')
+                .insert([payload]);
+            
+            if (error) throw error;
+        }
+        
+        showAccessoryModal.value = false;
+        editingAccessoryId.value = null;
+        accessoryForm.value = { name: '', description: '', price: 0, quantity: 1 };
+        await fetchAccessory();
+    } catch (error: any) {
+        console.error('Error saving accessory to Supabase:', error);
+        alert('Fejl ved gem af tilbehør: ' + (error?.message || 'Ukendt fejl'));
     }
-    showAccessoryModal.value = false;
-    editingAccessoryId.value = null;
-    accessoryForm.value = { name: '', description: '', price: 0, quantity: 1 };
-    await fetchAccessory();
 }
 
 async function deleteAccessory(id: number) {
-    const { $config } = useNuxtApp();
-    const base = ($config?.public?.apiBase) || 'http://localhost:3001';
-    await fetch(`${base}/accessory/${id}`, { method: 'DELETE' });
-    await fetchAccessory();
+    try {
+        const supabase = useSupabase();
+        const { error } = await supabase
+            .from('Accessory')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        await fetchAccessory();
+    } catch (error: any) {
+        console.error('Error deleting accessory from Supabase:', error);
+        alert('Fejl ved sletning af tilbehør: ' + (error?.message || 'Ukendt fejl'));
+    }
 }
 
 function editAccessory(accessory: any) {
