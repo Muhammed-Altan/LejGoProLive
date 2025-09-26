@@ -5,7 +5,7 @@
     <div class="lg:col-span-2 space-y-6 bg-white p-6 rounded-xl shadow-md">
       <ProductStep />
       <DeliveryStep />
-      <PaymentStep />
+      <!-- <PaymentStep /> -->
       <BookingConfirmation />
     </div>
 
@@ -21,7 +21,7 @@
 <script setup lang="ts">
 import ProductStep from '@/components/booking/ProductStep.vue';
 import DeliveryStep from '@/components/booking/DeliveryStep.vue';
-import PaymentStep from '@/components/booking/PaymentStep.vue';
+// import PaymentStep from '@/components/booking/PaymentStep.vue';
 import BookingConfirmation from '@/components/booking/BookingConfirmation.vue';
 import BasketView from '@/components/booking/BasketView.vue';
 import Header from '~/components/Header.vue';

@@ -4,9 +4,9 @@
     <h2 class="text-xl font-semibold mb-6">Din kurv</h2>
     <div v-if="models.length === 0" class="text-[#888] text-base">Ingen produkter valgt endnu.</div>
     <div v-else>
-      <div v-for="(line, idx) in models" :key="idx" class="mb-5 text-lg flex items-center">
+      <div v-for="(line, idx) in backendBreakdown.models" :key="idx" class="mb-5 text-lg flex items-center">
         <span>{{ line.quantity }}x <span class="font-semibold">{{ line.name }}</span></span>
-        <span class="ml-auto">{{ formatCurrency(line.price) }}</span>
+        <span class="ml-auto">{{ formatCurrency(line.total) }}</span>
       </div>
       <div class="text-xs text-[#888] mb-4">Beskyttelsescases medfølger til alle modeller.</div>
       <div v-if="backendBreakdown && backendBreakdown.accessories && backendBreakdown.accessories.length" class="mt-6 mb-4">
