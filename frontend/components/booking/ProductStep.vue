@@ -78,7 +78,7 @@
           {{ item.name }}
         </div>
         <div class="flex items-center justify-center gap-2 group relative">
-          <span>Antal modeller</span>
+          <span>Antal</span>
           <input
             type="number"
             min="1"
@@ -129,23 +129,18 @@
       </div>
     </section>
 
-    <!-- Selected Accessory and Quantity -->
-    <div
-      v-if="selectedAccessories && selectedAccessories.length"
-      class="space-y-2"
-    >
+    <!-- Selected Accessory and Quantity (Unified Style) -->
+    <section v-if="selectedAccessories && selectedAccessories.length" class="space-y-2">
       <div
         v-for="(item, idx) in selectedAccessories"
         :key="item.name"
-        class="flex gap-4 items-center"
+        class="flex items-center gap-4 bg-blue-100 rounded-lg py-2 px-4 font-medium"
       >
-        <div class="flex-1 bg-blue-100 text-center rounded-lg py-2 font-medium">
+        <div class="flex-1 text-center">
           {{ item.name }}
         </div>
-        <div
-          class="flex-1 bg-blue-100 text-center rounded-lg py-2 font-medium flex items-center justify-center gap-2"
-        >
-          <span>Antal modeller</span>
+        <div class="flex items-center justify-center gap-2 group relative">
+          <span>Antal</span>
           <input
             type="number"
             min="1"
@@ -153,20 +148,22 @@
             v-model.number="item.quantity"
             class="w-20 text-center rounded border border-gray-300"
           />
-          <span v-if="item.quantity >= getMaxAccessoryQuantity(item)" class="relative group ml-2">
-            <span class="absolute left-1/2 z-10 -translate-x-1/2 mt-2 w-40 rounded bg-white text-red-600 text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg">
-              Du kan ikke vælge flere end det maksimale antal tilgængelige.
-            </span>
+          <span
+            v-if="item.quantity === getMaxAccessoryQuantity(item)"
+            class="absolute left-1/2 z-10 -translate-x-1/2 -top-14 w-56 rounded bg-white text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg"
+            style="color: #b90c2c; background: #FF8800"
+          >
+            Maksimum antal valgt
           </span>
         </div>
         <button
           @click="removeAccessory(idx)"
-          class="ml-2 text-sm text-gray-500 hover:text-black"
+          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer"
         >
           Fjern
         </button>
       </div>
-    </div>
+    </section>
 
     <!-- Insurance Toggle -->
     <section
