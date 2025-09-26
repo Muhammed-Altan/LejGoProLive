@@ -42,9 +42,17 @@
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">Vælg en model…</option>
-          <option v-for="model in models" :key="model.name" :value="model.name">
+          <option
+            v-for="model in models"
+            :key="model.name"
+            :value="model.name"
+            :disabled="availability[model.id] === 0"
+          >
             {{ model.name }} — {{ model.price.toFixed(2) }} kr./dag
-            <span v-if="datesSelected"> ({{ availability[model.id] ?? '–' }} tilgængelige)</span>
+            <span v-if="datesSelected">
+              <template v-if="availability[model.id] === 0">Udsolgt</template>
+              <template v-else>{{ availability[model.id] }} tilgængelige</template>
+            </span>
           </option>
         </select>
         <button
@@ -74,9 +82,15 @@
           <input
             type="number"
             min="1"
+            :max="getMaxProductQuantity(item)"
             v-model.number="item.quantity"
             class="w-20 text-center rounded border border-gray-300"
           />
+          <span v-if="item.quantity >= getMaxProductQuantity(item)" class="relative group ml-2">
+            <span class="absolute left-1/2 z-10 -translate-x-1/2 mt-2 w-40 rounded bg-white text-red-600 text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg">
+              Du kan ikke vælge flere end det maksimale antal tilgængelige.
+            </span>
+          </span>
         </div>
         <button
           @click="removeModel(idx)"
@@ -133,9 +147,15 @@
           <input
             type="number"
             min="1"
+            :max="getMaxAccessoryQuantity(item)"
             v-model.number="item.quantity"
             class="w-20 text-center rounded border border-gray-300"
           />
+          <span v-if="item.quantity >= getMaxAccessoryQuantity(item)" class="relative group ml-2">
+            <span class="absolute left-1/2 z-10 -translate-x-1/2 mt-2 w-40 rounded bg-white text-red-600 text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg">
+              Du kan ikke vælge flere end det maksimale antal tilgængelige.
+            </span>
+          </span>
         </div>
         <button
           @click="removeAccessory(idx)"
@@ -233,6 +253,18 @@ interface ProductOption {
   price: number;
   weeklyPrice?: number;
   twoWeekPrice?: number;
+}
+
+function getMaxProductQuantity(item: { name: string; productId?: number }) {
+  const arr = models.value as ProductOption[];
+  const id = item.productId ?? arr.find((m: ProductOption) => m.name === item.name)?.id;
+  return id !== undefined ? (availability.value[id] ?? 5) : 5;
+}
+
+function getMaxAccessoryQuantity(item: { name: string }) {
+  const arr = models.value as ProductOption[];
+  const id = arr.find((m: ProductOption) => m.name === item.name)?.id;
+  return id !== undefined ? (availability.value[id] ?? 5) : 5;
 }
 
 interface Camera {
@@ -407,7 +439,57 @@ function removeAccessory(idx: number) {
   selectedAccessories.value.splice(idx, 1);
 }
 
-// --- Optionally, expose totalPrice and getRentalDays for template use ---
+// --- Price calculation helpers with discount logic ---
+function getRentalDays() {
+  if (!startDate.value || !endDate.value) return 0;
+  const msPerDay = 1000 * 60 * 60 * 24;
+  // Add 1 to include both start and end date
+  return Math.max(1, Math.ceil((endDate.value.getTime() - startDate.value.getTime()) / msPerDay) + 1);
+}
+
+function getModelBreakdown() {
+  // Apply 25% discount to all cameras except the first
+  return selectedModels.value.map((item, idx) => {
+    const days = getRentalDays();
+    let pricePerDay = item.price;
+    if (idx > 0) pricePerDay = pricePerDay * 0.75;
+    return {
+      name: item.name,
+      quantity: item.quantity,
+      pricePerDay,
+      total: pricePerDay * item.quantity * days
+    };
+  });
+}
+
+function getAccessoryBreakdown() {
+  const days = getRentalDays();
+  return selectedAccessories.value.map(item => ({
+    name: item.name,
+    quantity: item.quantity,
+    pricePerDay: item.price,
+    total: item.price * item.quantity * days
+  }));
+}
+
+function getTotalPrice() {
+  const days = getRentalDays();
+  // Models: first full price, rest 25% off
+  let modelTotal = 0;
+  selectedModels.value.forEach((item, idx) => {
+    let pricePerDay = item.price;
+    if (idx > 0) pricePerDay = pricePerDay * 0.75;
+    modelTotal += pricePerDay * item.quantity * days;
+  });
+  // Accessories: no discount
+  let accessoryTotal = 0;
+  selectedAccessories.value.forEach(item => {
+    accessoryTotal += item.price * item.quantity * days;
+  });
+  // Insurance: add if selected (example: flat 100 kr)
+  let insuranceTotal = insurance.value ? 100 : 0;
+  return modelTotal + accessoryTotal + insuranceTotal;
+}
 
 // Sync to store
 watch(

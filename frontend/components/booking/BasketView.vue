@@ -3,14 +3,15 @@
     <h2 class="text-2xl font-semibold mb-4">Din kurv</h2>
     <div v-if="models.length === 0" class="text-gray-500">Ingen produkter valgt endnu.</div>
     <div v-else class="space-y-4">
-      <div v-for="(line, idx) in models" :key="idx" class="border rounded-lg p-4">
+      <div v-for="(line, idx) in backendBreakdown.models" :key="idx" class="border rounded-lg p-4">
         <div class="flex justify-between items-center">
           <div>
             <div class="font-semibold">{{ line.name }}</div>
             <div class="text-sm text-gray-500">x{{ line.quantity }}</div>
-			<div class="text-sm text-gray-500">{{ line.price }} kr.</div>
+            <!-- <div class="text-sm text-gray-500">Pris pr. dag: {{ formatCurrency(line.pricePerDay) }}</div> -->
+            <div v-if="line.discount > 0" class="text-xs text-green-600">Rabat: -{{ formatCurrency(line.discount) }} pr. dag</div>
+            <div class="text-sm text-gray-500">Total: {{ formatCurrency(line.total) }}</div>
           </div>
-          <!-- Per-line price calculation is not shown, only grand total from backend is used -->
         </div>
       </div>
       <div v-if="backendBreakdown && backendBreakdown.accessories && backendBreakdown.accessories.length" class="pt-2">
@@ -45,6 +46,9 @@
           </span>
         </div>
         <div class="text-xs text-gray-500 mt-1" v-if="rentalDays > 0">Antal dage: {{ rentalDays }}</div>
+        <div class="text-xs text-green-600 mt-1" v-if="backendBreakdown && backendBreakdown.discountTotal > 0">
+          Rabat i alt: -{{ formatCurrency(backendBreakdown.discountTotal) }}
+        </div>
         <div class="text-xs text-red-500 mt-1" v-if="error">{{ error }}</div>
       </div>
     </div>
@@ -100,34 +104,37 @@ async function fetchBackendTotal() {
     };
 
     // Calculate model prices
-    for (const model of models.value) {
+    models.value.forEach((model, idx) => {
       const quantity = model.quantity || 1;
-      const config = model.config || { 
-        dailyPrice: model.price, 
-        weeklyPrice: model.price * 7, 
-        twoWeekPrice: model.price * 14 
+      const config = model.config || {
+        dailyPrice: model.price,
+        weeklyPrice: model.price * 7,
+        twoWeekPrice: model.price * 14
       };
-      
       let pricePerDay = config.dailyPrice;
-      
-      // Apply weekly/biweekly discounts if applicable
       if (rentalDays.value >= 14) {
         pricePerDay = config.twoWeekPrice / 14;
       } else if (rentalDays.value >= 7) {
         pricePerDay = config.weeklyPrice / 7;
       }
-      
-      const modelTotal = pricePerDay * rentalDays.value * quantity;
+      // Apply 25% discount to all except first
+      let discount = idx > 0 ? pricePerDay * 0.25 : 0;
+      let discountedPricePerDay = pricePerDay - discount;
+      const modelTotal = discountedPricePerDay * rentalDays.value * quantity;
       total += modelTotal;
-      
       breakdown.models.push({
         name: model.name,
         quantity,
         pricePerDay,
+        discountedPricePerDay,
+        discount,
         days: rentalDays.value,
-        total: modelTotal
+        total: modelTotal,
+        originalTotal: pricePerDay * rentalDays.value * quantity
       });
-    }
+    });
+    // Calculate total discount for all models
+  breakdown.discountTotal = breakdown.models.reduce((sum: number, m: any) => sum + ((m.discount || 0) * m.quantity * m.days), 0);
 
     // Calculate accessory prices
     for (const accessory of accessories.value) {
