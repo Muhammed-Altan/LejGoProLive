@@ -6,30 +6,32 @@
         Udfyld formularen nedenfor for at få et tilbud
       </h2>
     </article>
-    <!-- Date Pickers -->
-    <div class="flex items-center justify-between mb-2">
-      <h2 class="font-semibold text-lg">Vælg din booking periode</h2>
-    </div>
-    <div class="flex gap-4">
-      <div class="flex-1">
-        <VueDatePicker
-          v-model="startDate"
-          :enable-time-picker="false"
-          format="dd/MM/yyyy"
-          :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
-          placeholder="Start dato"
-        />
+    <!-- Booking Period Picker (Styled Section) -->
+    <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-semibold text-lg">Vælg din booking periode</h2>
       </div>
-      <div class="flex-1">
-        <VueDatePicker
-          v-model="endDate"
-          :enable-time-picker="false"
-          format="dd/MM/yyyy"
-          :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
-          placeholder="Slut dato"
-        />
+      <div class="flex gap-4">
+        <div class="flex-1">
+          <VueDatePicker
+            v-model="startDate"
+            :enable-time-picker="false"
+            format="dd/MM/yyyy"
+            :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
+            placeholder="Start dato"
+          />
+        </div>
+        <div class="flex-1">
+          <VueDatePicker
+            v-model="endDate"
+            :enable-time-picker="false"
+            format="dd/MM/yyyy"
+            :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
+            placeholder="Slut dato"
+          />
+        </div>
       </div>
-    </div>
+    </section>
     <!-- GoPro Model Selection (Dropdown) -->
     <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
       <div class="flex items-center justify-between mb-2">
