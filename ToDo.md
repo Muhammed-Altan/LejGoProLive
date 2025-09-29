@@ -61,5 +61,10 @@ Opsæt auto capture
 Hæv pengene med det samme
 
 
+AccessoryInstanceIds bliver gemt i et tomt array, ændrer det til at hente info fra pinia store
+
+
+frontend/composables/usePensoPay.ts 
+-- API key is being accessed on the client-side which exposes it to users. PensoPay API calls should only be made from server-side code to protect the API key.
 
  -->
