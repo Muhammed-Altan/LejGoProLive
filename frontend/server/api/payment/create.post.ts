@@ -160,8 +160,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Create a proper payment link to fix fee lookup and payment processing issues
-    console.log('Creating custom payment link to resolve fee lookup issues...')
+    // Create a basic payment link that should work with test cards
+    console.log('Creating basic payment link for test card compatibility...')
     
     try {
       const linkResponse = await fetch(`${PENSOPAY_BASE_URL}/payments/${payment.id}/link`, {
@@ -173,69 +173,27 @@ export default defineEventHandler(async (event) => {
         },
         body: JSON.stringify({
           amount: totalAmount,
-          continueurl: `${baseUrl}/payment/success?orderId=${orderId}`,
-          cancelurl: `${baseUrl}/payment/cancelled?orderId=${orderId}`,
-          callbackurl: `${baseUrl}/api/payment/callback`,
-          payment_methods: paymentMethods,
-          acquirer: 'clearhaus', // Specify acquirer to fix fee lookup
-          auto_capture: true, // Enable auto-capture for simpler flow
-          framed: false,
-          // Disable fee lookup to avoid IIN data errors
-          fee_settings: {
-            enabled: false
-          },
-          // Set language to Danish
+          // Remove complex callback URLs that might cause issues
+          payment_methods: 'creditcard',
+          // Remove acquirer specification - let PensoPay choose
+        //   auto_capture: true,
           language: 'da'
         })
       })
 
-      console.log('Payment link response status:', linkResponse.status)
+      console.log('Basic payment link response status:', linkResponse.status)
 
-      if (!linkResponse.ok) {
-        const linkErrorData = await linkResponse.json().catch(() => ({}))
-        console.error('PensoPay payment link creation failed:', linkErrorData)
-        
-        // Try with different acquirer if clearhaus fails
-        console.log('Trying with nets acquirer...')
-        const linkResponse2 = await fetch(`${PENSOPAY_BASE_URL}/payments/${payment.id}/link`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${PENSOPAY_API_KEY}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            amount: totalAmount,
-            continueurl: `${baseUrl}/payment/success?orderId=${orderId}`,
-            cancelurl: `${baseUrl}/payment/cancelled?orderId=${orderId}`,
-            callbackurl: `${baseUrl}/api/payment/callback`,
-            payment_methods: paymentMethods,
-            acquirer: 'nets', // Try nets acquirer
-            auto_capture: true,
-            framed: false,
-            // Disable fee lookup for nets as well
-            fee_settings: {
-              enabled: false
-            },
-            language: 'da'
-          })
-        })
-        
-        if (linkResponse2.ok) {
-          const linkData2 = await linkResponse2.json()
-          console.log('Nets acquirer payment link created successfully:', linkData2.url)
-          payment.link = linkData2.url
-        } else {
-          console.log('Both acquirers failed, using default payment link')
-        }
-        
-      } else {
+      if (linkResponse.ok) {
         const linkData = await linkResponse.json()
-        console.log('Clearhaus payment link created successfully:', linkData.url)
+        console.log('Basic payment link created successfully:', linkData.url)
         payment.link = linkData.url
+      } else {
+        const linkErrorData = await linkResponse.json().catch(() => ({}))
+        console.error('Basic payment link creation failed:', linkErrorData)
+        console.log('Using default payment link from payment creation')
       }
     } catch (error) {
-      console.error('Error creating payment link:', error)
+      console.error('Error creating basic payment link:', error)
       console.log('Using default payment link due to error')
     }
 
