@@ -6,30 +6,32 @@
         Udfyld formularen nedenfor for at få et tilbud
       </h2>
     </article>
-    <!-- Date Pickers -->
-    <div class="flex items-center justify-between mb-2">
-      <h2 class="font-semibold text-lg">Vælg din booking periode</h2>
-    </div>
-    <div class="flex gap-4">
-      <div class="flex-1">
-        <VueDatePicker
-          v-model="startDate"
-          :enable-time-picker="false"
-          format="dd/MM/yyyy"
-          :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
-          placeholder="Start dato"
-        />
+    <!-- Booking Period Picker (Styled Section) -->
+    <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-semibold text-lg">Vælg din booking periode</h2>
       </div>
-      <div class="flex-1">
-        <VueDatePicker
-          v-model="endDate"
-          :enable-time-picker="false"
-          format="dd/MM/yyyy"
-          :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
-          placeholder="Slut dato"
-        />
+      <div class="flex gap-4">
+        <div class="flex-1">
+          <VueDatePicker
+            v-model="startDate"
+            :enable-time-picker="false"
+            format="dd/MM/yyyy"
+            :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
+            placeholder="Start dato"
+          />
+        </div>
+        <div class="flex-1">
+          <VueDatePicker
+            v-model="endDate"
+            :enable-time-picker="false"
+            format="dd/MM/yyyy"
+            :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
+            placeholder="Slut dato"
+          />
+        </div>
       </div>
-    </div>
+    </section>
     <!-- GoPro Model Selection (Dropdown) -->
     <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
       <div class="flex items-center justify-between mb-2">
@@ -42,9 +44,17 @@
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">Vælg en model…</option>
-          <option v-for="model in models" :key="model.name" :value="model.name">
+          <option
+            v-for="model in models"
+            :key="model.name"
+            :value="model.name"
+            :disabled="availability[model.id] === 0"
+          >
             {{ model.name }} — {{ model.price.toFixed(2) }} kr./dag
-            <span v-if="datesSelected"> ({{ availability[model.id] ?? '–' }} tilgængelige)</span>
+            <span v-if="datesSelected">
+              <template v-if="availability[model.id] === 0">Udsolgt</template>
+              <template v-else>{{ availability[model.id] }} tilgængelige</template>
+            </span>
           </option>
         </select>
         <button
@@ -57,35 +67,41 @@
       </div>
     </section>
 
-    <!-- Selected Model and Quantity -->
-    <div v-if="selectedModels && selectedModels.length" class="space-y-2">
+    <!-- Selected Model and Quantity (Unified) -->
+    <section v-if="selectedModels && selectedModels.length" class="space-y-2">
       <div
         v-for="(item, idx) in selectedModels"
         :key="item.name"
-        class="flex gap-4 items-center"
+        class="flex items-center gap-4 bg-blue-100 rounded-lg py-2 px-4 font-medium"
       >
-        <div class="flex-1 bg-blue-100 text-center rounded-lg py-2 font-medium">
+        <div class="flex-1 text-center">
           {{ item.name }}
         </div>
-        <div
-          class="flex-1 bg-blue-100 text-center rounded-lg py-2 font-medium flex items-center justify-center gap-2"
-        >
-          <span>Antal modeller</span>
+        <div class="flex items-center justify-center gap-2 group relative">
+          <span>Antal</span>
           <input
             type="number"
             min="1"
+            :max="item.productId !== undefined ? availability[item.productId] ?? 1 : 1"
             v-model.number="item.quantity"
             class="w-20 text-center rounded border border-gray-300"
           />
+          <span
+            v-if="item.productId !== undefined && item.quantity === (availability[item.productId] ?? 1)"
+            class="absolute left-1/2 z-10 -translate-x-1/2 -top-14 w-56 rounded bg-white text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg"
+            style="color: #b90c2c; background: #FF8800"
+          >
+            Maksimum antal valgt
+          </span>
         </div>
         <button
           @click="removeModel(idx)"
-          class="ml-2 text-sm text-gray-500 hover:text-black"
+          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer"
         >
           Fjern
         </button>
       </div>
-    </div>
+    </section>
 
     <!-- Accessories Selection (Dropdown) -->
     <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
@@ -113,38 +129,41 @@
       </div>
     </section>
 
-    <!-- Selected Accessory and Quantity -->
-    <div
-      v-if="selectedAccessories && selectedAccessories.length"
-      class="space-y-2"
-    >
+    <!-- Selected Accessory and Quantity (Unified Style) -->
+    <section v-if="selectedAccessories && selectedAccessories.length" class="space-y-2">
       <div
         v-for="(item, idx) in selectedAccessories"
         :key="item.name"
-        class="flex gap-4 items-center"
+        class="flex items-center gap-4 bg-blue-100 rounded-lg py-2 px-4 font-medium"
       >
-        <div class="flex-1 bg-blue-100 text-center rounded-lg py-2 font-medium">
+        <div class="flex-1 text-center">
           {{ item.name }}
         </div>
-        <div
-          class="flex-1 bg-blue-100 text-center rounded-lg py-2 font-medium flex items-center justify-center gap-2"
-        >
-          <span>Antal modeller</span>
+        <div class="flex items-center justify-center gap-2 group relative">
+          <span>Antal</span>
           <input
             type="number"
             min="1"
+            :max="getMaxAccessoryQuantity(item)"
             v-model.number="item.quantity"
             class="w-20 text-center rounded border border-gray-300"
           />
+          <span
+            v-if="item.quantity === getMaxAccessoryQuantity(item)"
+            class="absolute left-1/2 z-10 -translate-x-1/2 -top-14 w-56 rounded bg-white text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg"
+            style="color: #b90c2c; background: #FF8800"
+          >
+            Maksimum antal valgt
+          </span>
         </div>
         <button
           @click="removeAccessory(idx)"
-          class="ml-2 text-sm text-gray-500 hover:text-black"
+          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer"
         >
           Fjern
         </button>
       </div>
-    </div>
+    </section>
 
     <!-- Insurance Toggle -->
     <section
@@ -233,6 +252,18 @@ interface ProductOption {
   price: number;
   weeklyPrice?: number;
   twoWeekPrice?: number;
+}
+
+function getMaxProductQuantity(item: { name: string; productId?: number }) {
+  const arr = models.value as ProductOption[];
+  const id = item.productId ?? arr.find((m: ProductOption) => m.name === item.name)?.id;
+  return id !== undefined ? (availability.value[id] ?? 5) : 5;
+}
+
+function getMaxAccessoryQuantity(item: { name: string }) {
+  const arr = models.value as ProductOption[];
+  const id = arr.find((m: ProductOption) => m.name === item.name)?.id;
+  return id !== undefined ? (availability.value[id] ?? 5) : 5;
 }
 
 interface Camera {
@@ -407,7 +438,57 @@ function removeAccessory(idx: number) {
   selectedAccessories.value.splice(idx, 1);
 }
 
-// --- Optionally, expose totalPrice and getRentalDays for template use ---
+// --- Price calculation helpers with discount logic ---
+function getRentalDays() {
+  if (!startDate.value || !endDate.value) return 0;
+  const msPerDay = 1000 * 60 * 60 * 24;
+  // Add 1 to include both start and end date
+  return Math.max(1, Math.ceil((endDate.value.getTime() - startDate.value.getTime()) / msPerDay) + 1);
+}
+
+function getModelBreakdown() {
+  // Apply 25% discount to all cameras except the first
+  return selectedModels.value.map((item, idx) => {
+    const days = getRentalDays();
+    let pricePerDay = item.price;
+    if (idx > 0) pricePerDay = pricePerDay * 0.75;
+    return {
+      name: item.name,
+      quantity: item.quantity,
+      pricePerDay,
+      total: pricePerDay * item.quantity * days
+    };
+  });
+}
+
+function getAccessoryBreakdown() {
+  const days = getRentalDays();
+  return selectedAccessories.value.map(item => ({
+    name: item.name,
+    quantity: item.quantity,
+    pricePerDay: item.price,
+    total: item.price * item.quantity * days
+  }));
+}
+
+function getTotalPrice() {
+  const days = getRentalDays();
+  // Models: first full price, rest 25% off
+  let modelTotal = 0;
+  selectedModels.value.forEach((item, idx) => {
+    let pricePerDay = item.price;
+    if (idx > 0) pricePerDay = pricePerDay * 0.75;
+    modelTotal += pricePerDay * item.quantity * days;
+  });
+  // Accessories: no discount
+  let accessoryTotal = 0;
+  selectedAccessories.value.forEach(item => {
+    accessoryTotal += item.price * item.quantity * days;
+  });
+  // Insurance: add if selected (example: flat 100 kr)
+  let insuranceTotal = insurance.value ? 100 : 0;
+  return modelTotal + accessoryTotal + insuranceTotal;
+}
 
 // Sync to store
 watch(

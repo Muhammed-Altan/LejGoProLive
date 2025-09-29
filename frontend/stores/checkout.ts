@@ -28,6 +28,8 @@ export const useCheckoutStore = defineStore('checkout', {
     backendTotal: 0,
     // Booking ID for tracking
     bookingId: null as string | null,
+    // Order ID for payment tracking
+    orderId: null as string | null,
   }),
   actions: {
     logState() {
@@ -111,9 +113,78 @@ export const useCheckoutStore = defineStore('checkout', {
         const { useSupabase } = await import('@/composables/useSupabase');
         const supabase = useSupabase();
         
+        if (!supabase) {
+          throw new Error('Supabase client not available. Please check your environment configuration.');
+        }
+        
+        // First, we need to find available accessory instances for the selected accessories
+        const accessoryInstanceIds: number[] = [];
+        
+        for (const selectedAccessory of this.selectedAccessories) {
+          // First, find the accessory by name to get its ID
+          const { data: accessories, error: accessoryError } = await supabase
+            .from('Accessory')
+            .select('id')
+            .eq('name', selectedAccessory.name)
+            .single();
+          
+          if (accessoryError) {
+            console.warn(`Could not find accessory "${selectedAccessory.name}":`, accessoryError);
+            continue;
+          }
+          
+          // Now find available instances for this accessory type
+          const { data: instances, error: instanceError } = await supabase
+            .from('AccessoryInstance')
+            .select('id')
+            .eq('accessoryId', accessories.id)
+            .eq('isAvailable', true)
+            .limit(selectedAccessory.quantity);
+          
+          if (instanceError) {
+            console.warn('Could not find accessory instances, using mock IDs:', instanceError);
+            // Fallback: create mock instance IDs based on accessory name hash
+            for (let i = 0; i < selectedAccessory.quantity; i++) {
+              const mockId = Math.abs(selectedAccessory.name.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) + i;
+              accessoryInstanceIds.push(mockId);
+            }
+          } else {
+            // Add the found instance IDs
+            instances?.forEach(instance => accessoryInstanceIds.push(instance.id));
+            
+            // If we didn't get enough instances, warn about it
+            if (instances && instances.length < selectedAccessory.quantity) {
+              console.warn(`Only found ${instances.length} available instances of "${selectedAccessory.name}", but ${selectedAccessory.quantity} were requested`);
+            }
+          }
+        }
+        
+        // Get the first available camera for the selected product
+        let cameraId = 1; // fallback
+        const productIdToUse = Array.isArray(this.productId) ? this.productId[0] : this.productId;
+        
+        if (productIdToUse) {
+          try {
+            const { data: cameras, error: cameraError } = await supabase
+              .from('Camera')
+              .select('id')
+              .eq('productId', productIdToUse)
+              .limit(1);
+              
+            if (!cameraError && cameras && cameras.length > 0) {
+              cameraId = cameras[0].id;
+              console.log(`Found camera ID ${cameraId} for product ID ${productIdToUse}`);
+            } else {
+              console.warn(`No cameras found for product ID ${productIdToUse}, using fallback camera ID 1`);
+            }
+          } catch (cameraFetchError) {
+            console.warn('Error fetching camera:', cameraFetchError);
+          }
+        }
+
         const bookingData = {
-          cameraId: this.productId || 1, // Using productId as cameraId for now
-          cameraName: 'Selected Camera', // Default value, could be improved
+          cameraId: cameraId,
+          cameraName: 'Selected Camera',
           productName: this.selectedModels[0]?.name || 'Selected Product',
           startDate: this.startDate,
           endDate: this.endDate,
@@ -122,11 +193,20 @@ export const useCheckoutStore = defineStore('checkout', {
           email: this.email,
           fullName: this.fullName,
           phone: this.phone,
-          totalPrice: this.backendTotal,
-          accessoryInstanceIds: null, // Set to null instead of empty array
+          totalPrice: typeof this.backendTotal === 'number' ? this.backendTotal : (parseFloat(this.backendTotal) || 0),
+          // Store accessory instance IDs as JSONB array (after recreating column)
+          accessoryInstanceIds: accessoryInstanceIds.length > 0 ? accessoryInstanceIds : null,
           city: this.city
-          // Note: postalCode is not in the schema, so we'll skip it
         };
+        
+        console.log('=== BOOKING DEBUG ===');
+        console.log('productId type:', typeof this.productId, 'value:', this.productId);
+        console.log('cameraId type:', typeof bookingData.cameraId, 'value:', bookingData.cameraId);
+        console.log('totalPrice type:', typeof this.backendTotal, 'value:', this.backendTotal);
+        console.log('accessoryInstanceIds type:', typeof accessoryInstanceIds, 'value:', accessoryInstanceIds);
+        console.log('Full booking data:', bookingData);
+        console.log('Selected accessories:', this.selectedAccessories);
+        console.log('======================');
         
         const { data, error } = await supabase
           .from('Booking')
@@ -149,6 +229,10 @@ export const useCheckoutStore = defineStore('checkout', {
         const { useSupabase } = await import('@/composables/useSupabase');
         const supabase = useSupabase();
         
+        if (!supabase) {
+          throw new Error('Supabase client not available. Please check your environment configuration.');
+        }
+        
         const { data, error } = await supabase
           .from('Booking')
           .select('*')
@@ -168,7 +252,14 @@ export const useCheckoutStore = defineStore('checkout', {
           this.endDate = data.endDate;
           this.backendTotal = data.totalPrice || 0;
           this.bookingId = data.id;
-          // Note: postalCode, insurance, selectedModels, selectedAccessories are not in the schema
+          
+          // Load selectedAccessories and selectedModels from JSONB fields if they exist
+          if (data.selectedAccessories && Array.isArray(data.selectedAccessories)) {
+            this.selectedAccessories = data.selectedAccessories;
+          }
+          if (data.selectedModels && Array.isArray(data.selectedModels)) {
+            this.selectedModels = data.selectedModels;
+          }
         }
         
         return data;
