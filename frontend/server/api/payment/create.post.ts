@@ -109,8 +109,9 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Determine if we're in test mode
-    const isTestMode = process.env.NODE_ENV !== 'production'
+    // Determine if we're in test mode - FORCE TEST MODE for development
+    // const isTestMode = process.env.NODE_ENV !== 'production'
+    const isTestMode = true // Force test mode until we're ready for production
 
     // Create payment with PensoPay (minimal payload that works)
     const paymentData = {
@@ -120,7 +121,11 @@ export default defineEventHandler(async (event) => {
       testmode: isTestMode
     }
 
-    console.log('Creating PensoPay payment with data:', paymentData)
+    console.log('🔍 DETAILED REQUEST CHECK:')
+    console.log('NODE_ENV:', process.env.NODE_ENV)
+    console.log('isTestMode calculated as:', isTestMode)
+    console.log('testmode value being sent:', paymentData.testmode)
+    console.log('Full payment data being sent to PensoPay:', JSON.stringify(paymentData, null, 2))
     console.log('Payment methods requested:', paymentMethods)
 
     console.log('Creating PensoPay payment:', { ...paymentData, apiKey: PENSOPAY_API_KEY ? '***' : 'missing' })
@@ -149,8 +154,11 @@ export default defineEventHandler(async (event) => {
     }
 
     const payment = await paymentResponse.json()
-    console.log('Full payment response:', payment)
-    console.log('Payment created successfully:', { id: payment.id, state: payment.state })
+    console.log('✅ PensoPay Response - Payment Created:')
+    console.log('Payment ID:', payment.id)
+    console.log('Payment testmode from response:', payment.test_mode)
+    console.log('Payment state:', payment.state)
+    console.log('Full payment response:', JSON.stringify(payment, null, 2))
 
     if (!payment.id) {
       console.error('Payment creation succeeded but no ID returned')
