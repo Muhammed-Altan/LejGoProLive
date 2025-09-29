@@ -110,7 +110,7 @@ export default defineEventHandler(async (event) => {
     // Determine if we're in test mode
     const isTestMode = process.env.NODE_ENV !== 'production'
 
-    // Create payment with PensoPay
+    // Create payment with PensoPay (minimal data first)
     const paymentData = {
       order_id: orderId,
       amount: totalAmount,
@@ -155,16 +155,47 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // PensoPay automatically creates the link, no need for separate API call
-    if (!payment.link) {
-      console.error('Payment created but no payment link provided')
+    // PensoPay automatically creates the link, but we need to update it with proper parameters
+    console.log('Payment created, now creating proper payment link...')
+    
+    // Create/Update payment link with proper configuration
+    const linkData = {
+      amount: totalAmount,
+      continue_url: `${baseUrl}/payment/success?order_id=${orderId}`,
+      cancel_url: `${baseUrl}/payment/cancelled?order_id=${orderId}`,
+      callback_url: `${baseUrl}/api/payment/callback`,
+      payment_methods: paymentMethods,
+      auto_capture: true,
+      language: 'da'
+    }
+
+    console.log('Creating payment link with data:', linkData)
+
+    const linkResponse = await fetch(`${PENSOPAY_BASE_URL}/payments/${payment.id}/link`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${PENSOPAY_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(linkData)
+    })
+
+    if (!linkResponse.ok) {
+      const errorData = await linkResponse.json().catch(() => ({}))
+      console.error('Payment link creation failed:', errorData)
+      console.error('Link response status:', linkResponse.status, 'Status text:', linkResponse.statusText)
       throw createError({
-        statusCode: 500,
-        statusMessage: 'Payment was created but no payment link was provided'
+        statusCode: linkResponse.status,
+        statusMessage: errorData.message || `Payment link creation failed: ${linkResponse.status} ${linkResponse.statusText}`
       })
     }
 
-    console.log('Using payment link from creation response:', payment.link)
+    const paymentWithLink = await linkResponse.json()
+    console.log('Payment link created successfully:', paymentWithLink.url)
+
+    // Use the updated payment link
+    const finalPaymentUrl = paymentWithLink.url || payment.link
 
     // Update booking with payment ID
     await supabase
@@ -176,7 +207,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      paymentUrl: payment.link,
+      paymentUrl: finalPaymentUrl,
       orderId,
       paymentId: payment.id,
       bookingId: booking.id
