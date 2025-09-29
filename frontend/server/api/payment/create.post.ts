@@ -112,7 +112,7 @@ export default defineEventHandler(async (event) => {
     // Determine if we're in test mode
     const isTestMode = process.env.NODE_ENV !== 'production'
 
-    // Create payment with PensoPay (minimal data first)
+    // Create payment with PensoPay (minimal payload that works)
     const paymentData = {
       order_id: orderId,
       amount: totalAmount,
@@ -160,8 +160,46 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Use the payment link as-is from PensoPay
-    // The callbacks should be configured in the PensoPay dashboard
+    // Create a basic payment link that should work with test cards
+    console.log('Creating basic payment link for test card compatibility...')
+    
+    try {
+      const linkResponse = await fetch(`${PENSOPAY_BASE_URL}/payments/${payment.id}/link`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${PENSOPAY_API_KEY}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: totalAmount,
+          // Remove complex callback URLs that might cause issues
+          payment_methods: 'creditcard',
+          // Remove acquirer specification - let PensoPay choose
+        //   auto_capture: true,
+          language: 'da'
+        })
+      })
+
+      console.log('Basic payment link response status:', linkResponse.status)
+
+      if (linkResponse.ok) {
+        const linkData = await linkResponse.json()
+        console.log('Basic payment link created successfully:', linkData.url)
+        payment.link = linkData.url
+      } else {
+        const linkErrorData = await linkResponse.json().catch(() => ({}))
+        console.error('Basic payment link creation failed:', linkErrorData)
+        console.log('Using default payment link from payment creation')
+      }
+    } catch (error) {
+      console.error('Error creating basic payment link:', error)
+      console.log('Using default payment link due to error')
+    }
+
+    const finalPaymentUrl = payment.link
+    
+    // Ensure we have a payment link before proceeding
     if (!payment.link) {
       console.error('Payment created but no payment link provided')
       throw createError({
@@ -169,10 +207,6 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Payment was created but no payment link was provided'
       })
     }
-
-    console.log('Using direct payment link from PensoPay:', payment.link)
-
-    const finalPaymentUrl = payment.link
 
     // Update booking with payment ID
     await supabase
