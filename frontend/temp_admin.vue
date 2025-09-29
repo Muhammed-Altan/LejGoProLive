@@ -139,7 +139,7 @@
                         </div>
         </div>
 
-        <div v-else-if="activeTab === 'accessory'">
+    <div v-else-if="activeTab === 'accessory'">
             <div class="flex justify-end mb-4">
                 <button class="bg-[#B8082A] text-white px-4 py-2 rounded font-semibold shadow hover:bg-[#a10725] transition cursor-pointer" @click="showAccessoryModal = true">Opret Tilbehør</button>
             </div>
@@ -172,78 +172,85 @@
                     </form>
                 </div>
             </div>
-            <!-- Debug section for accessories -->
-            <div class="bg-yellow-50 border border-yellow-200 p-4 rounded mb-4">
-                <h3 class="font-bold mb-2">Debug Info:</h3>
-                <p><strong>Accessories count:</strong> {{ accessory.length }}</p>
-                <p v-if="accessory.length === 0" class="text-red-600">No accessories found. Check console for errors.</p>
-                <p><strong>Accessory instances loaded:</strong> {{ Object.keys(accessoryInstances).length }} types</p>
-                <div v-if="debugError" class="mt-2 p-2 bg-red-100 border border-red-300 rounded">
-                    <p class="text-red-700 font-bold">Error:</p>
-                    <pre class="text-red-600 text-sm whitespace-pre-wrap">{{ debugError }}</pre>
-                </div>
-                <div class="mt-2 space-x-2">
-                    <button @click="fetchAccessory()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Refresh Accessories</button>
-                    <button @click="fetchAllAccessoryInstances()" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Refresh Instances</button>
-                    <button @click="clearDebugError()" class="bg-gray-500 text-white px-3 py-1 rounded text-sm">Clear Error</button>
-                </div>
-            </div>
-
             <div class="space-y-6">
-                <div v-for="accessoryItem in accessory" :key="accessoryItem.id" class="border rounded-xl p-6 bg-white shadow">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div v-for="accessoryItem in accessory" :key="accessoryItem.id" class="border rounded-xl p-6 bg-white shadow flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="flex items-center gap-4">
                         <div>
                             <h3 class="text-lg font-bold mb-1">{{ accessoryItem.name }}</h3>
                             <p class="text-gray-600 mb-2">{{ accessoryItem.description }}</p>
                         </div>
-                        <div class="flex flex-col gap-1 min-w-[150px]">
-                            <span class="font-semibold">Pris: <span class="text-[#B8082A]">{{ accessoryItem.price }} kr</span></span>
-                            <span class="font-semibold">Antal enheder: <span class="text-[#B8082A]">{{ (accessoryInstances[accessoryItem.id] || []).length }} / {{ accessoryItem.quantity || 1 }}</span></span>
-                        </div>
-                        <div class="flex gap-2 mt-2 md:mt-0">
-                            <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="editAccessory(accessoryItem)">Rediger</button>
-                            <button class="bg-red-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="deleteAccessory(accessoryItem.id)">Slet</button>
-                        </div>
                     </div>
-                    <div class="mt-4">
-                        <details>
-                            <summary class="cursor-pointer font-semibold">Enheder ({{ (accessoryInstances[accessoryItem.id] || []).length }})</summary>
-                            <div class="pl-4 pt-2">
-                                <div v-for="(instance, idx) in (accessoryInstances[accessoryItem.id] || [])" :key="instance.id" class="mb-4 p-4 border rounded-lg bg-gray-50">
-                                    <div class="flex justify-between items-center mb-2">
-                                        <div class="font-bold">Enhed #{{ instance.id }} ({{ accessoryItem.name }})</div>
-                                        <div class="text-sm text-gray-600">
-                                            Status: <span :class="instance.isAvailable ? 'text-green-600' : 'text-red-600'">
-                                                {{ instance.isAvailable ? 'Ledig' : 'Optaget' }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="text-sm text-gray-600">
-                                        Serial Number: {{ instance.serialNumber }}
-                                    </div>
-                                </div>
-                                <div v-if="(accessoryInstances[accessoryItem.id] || []).length === 0" 
-                                     class="text-gray-400 p-4 text-center">
-                                    Ingen enheder oprettet for dette tilbehør
-                                </div>
-                            </div>
-                        </details>
+                    <div class="flex flex-col gap-1 min-w-[150px]">
+                        <span class="font-semibold">Pris: <span class="text-[#B8082A]">{{ accessoryItem.price }} kr</span></span>
+                        <span class="font-semibold">Antal: <span class="text-[#B8082A]">{{ accessoryItem.quantity || 1 }}</span></span>
+                    </div>
+                    <div class="flex gap-2 mt-2 md:mt-0">
+                        <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="editAccessory(accessoryItem)">Rediger</button>
+                        <button class="bg-red-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="deleteAccessory(accessoryItem.id)">Slet</button>
+                    </div>
+                    <div class="flex flex-col gap-2 mt-4">
+                        <select v-model="selectedInstance[accessoryItem.id]" @change="fetchInstanceBookings(selectedInstance[accessoryItem.id])" class="p-2 border rounded w-32">
+                            <option v-for="instance in accessoryInstances[accessoryItem.id] || []" :key="instance.id" :value="instance.id">
+                                Enhed #{{ instance.id }}
+                            </option>
+                        </select>
                     </div>
                 </div>
             </div>
+                <div class="space-y-6">
+                    <div v-for="accessoryItem in accessory" :key="accessoryItem.id" class="border rounded-xl p-6 bg-white shadow flex flex-col gap-4">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold mb-1">{{ accessoryItem.name }}</h3>
+                                <p class="text-gray-600 mb-2">{{ accessoryItem.description }}</p>
+                            </div>
+                            <div class="flex flex-col gap-1 min-w-[150px]">
+                                <span class="font-semibold">Pris: <span class="text-[#B8082A]">{{ accessoryItem.price }} kr</span></span>
+                                <span class="font-semibold">Antal: <span class="text-[#B8082A]">{{ accessoryItem.quantity || 1 }}</span></span>
+                            </div>
+                            <div class="flex gap-2 mt-2 md:mt-0">
+                                <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="editAccessory(accessoryItem)">Rediger</button>
+                                <button class="bg-red-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="deleteAccessory(accessoryItem.id)">Slet</button>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="font-semibold mb-2 block">Tilgængelige enheder:</label>
+                            <select v-model="selectedInstance[accessoryItem.id]" @change="fetchInstanceBookings(selectedInstance[accessoryItem.id])" class="p-2 border rounded mb-4">
+                                <option v-for="instance in accessoryInstances[accessoryItem.id] || []" :key="instance.id" :value="instance.id">
+                                    Enhed #{{ instance.id }}
+                                </option>
+                            </select>
+                            <div v-if="selectedInstance[accessoryItem.id]">
+                                <h4 class="font-bold mb-2">Bookingoversigt for enhed #{{ selectedInstance[accessoryItem.id] }}</h4>
+                                <ul class="mb-2">
+                                    <li v-for="booking in instanceBookings[selectedInstance[accessoryItem.id]] || []" :key="booking.id" class="text-sm mb-1">
+                                        <span class="font-semibold text-[#B8082A]">{{ accessoryItem.name }}</span> (Enhed #{{ selectedInstance[accessoryItem.id] }})<br>
+                                        {{ booking.startDate }} - {{ booking.endDate }}: {{ booking.customerName || 'Ukendt' }} ({{ booking.status }})
+                                    </li>
+                                    <li v-if="(instanceBookings[selectedInstance[accessoryItem.id]] || []).length === 0" class="text-gray-400">Ingen bookinger</li>
+                                </ul>
+                                <form @submit.prevent="createInstanceBooking(selectedInstance[accessoryItem.id])" class="flex gap-2 items-center">
+                                    <input type="date" v-model="bookingForm.startDate" required class="border rounded p-1" />
+                                    <input type="date" v-model="bookingForm.endDate" required class="border rounded p-1" />
+                                    <input type="text" v-model="bookingForm.customerName" placeholder="Kundenavn" required class="border rounded p-1" />
+                                    <button type="submit" class="bg-[#B8082A] text-white px-3 py-1 rounded">Book</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Debug section for accessories -->
+                <div class="mt-8 p-4 bg-gray-100 rounded">
+                    <h3 class="font-bold mb-2">Debug Info:</h3>
+                    <p>Accessories count: {{ accessory.length }}</p>
+                    <button @click="fetchAccessory()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Refresh Accessories</button>
+                </div>
         </div>
 
         <div v-else-if="activeTab === 'orders'">
             <div class="max-w-4xl mx-auto py-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-semibold text-center">Ordrer</h2>
-                    <button 
-                        @click="fixBookingCameraIds" 
-                        class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
-                    >
-                        Fix Camera IDs
-                    </button>
-                </div>
+                <h2 class="text-xl font-semibold mb-6 text-center">Ordrer</h2>
                 <div v-if="bookings.length === 0" class="text-center text-gray-500 py-12">
                     <p>Ingen ordrer at vise endnu.</p>
                 </div>
@@ -354,7 +361,7 @@
 import { ref, onMounted, computed, reactive } from 'vue';
 import ProductCalendar from '@/components/booking/ProductCalendar.vue';
 
-const toast = useToast();
+const { showSuccessToast, showErrorToast } = useToastHelper();
 
 async function deleteBooking(id: number) {
     try {
@@ -362,26 +369,10 @@ async function deleteBooking(id: number) {
             method: 'DELETE',
         });
         await fetchBookings();
-        toast.add({
-            title: 'Booking slettet!',
-            description: 'Bookingen blev slettet succesfuldt',
-            color: 'success',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
+        showSuccessToast('Booking slettet!', 'Bookingen blev slettet succesfuldt');
     } catch (error: any) {
         console.error('Error deleting booking:', error);
-        toast.add({
-            title: 'Fejl ved sletning af booking',
-            description: 'Kunne ikke slette bookingen. Prøv igen.',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
+        showErrorToast('Fejl ved sletning af booking', 'Kunne ikke slette bookingen. Prøv igen.');
     }
 }
 function updateCameraId() {
@@ -467,57 +458,65 @@ async function submitEditBooking() {
         toast.add({ 
             title: 'Booking opdateret!',
             description: 'Bookingen blev opdateret succesfuldt',
-            color: 'success',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            color: 'success'
         });
     } catch (error: any) {
         console.error('Error updating booking:', error);
         toast.add({ 
             title: 'Fejl ved opdatering af booking',
             description: 'Kunne ikke opdatere bookingen. Prøv igen.',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            color: 'error'
         });
     }
 }
-const accessoryInstances = reactive<Record<number, AccessoryInstance[]>>({});
-
+const accessoryInstances = reactive<Record<number, any[]>>({});
+const selectedInstance = reactive<Record<number, number>>({});
+const instanceBookings = reactive<Record<number, any[]>>({});
+const bookingForm = reactive({ startDate: '', endDate: '', customerName: '' });
 async function fetchAccessoryInstances(accessoryId: number) {
+    const res = await fetch(`http://localhost:3001/accessory-instance/${accessoryId}`);
+    accessoryInstances[accessoryId] = await res.json();
+    if (accessoryInstances[accessoryId].length > 0) {
+        selectedInstance[accessoryId] = accessoryInstances[accessoryId][0].id;
+        await fetchInstanceBookings(selectedInstance[accessoryId]);
+    }
+}
+
+async function fetchInstanceBookings(instanceId: number) {
+    const res = await fetch(`http://localhost:3001/accessory-booking/${instanceId}`);
+    instanceBookings[instanceId] = await res.json();
+}
+
+async function createInstanceBooking(instanceId: number) {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for accessory instances');
-            accessoryInstances[accessoryId] = [];
-            return;
-        }
-        
-        const { data, error } = await supabase
-            .from('AccessoryInstance')
-            .select('*')
-            .eq('accessoryId', accessoryId)
-            .order('serialNumber');
-        
-        if (error) {
-            console.warn('AccessoryInstance table not found, creating mock instances:', error);
-            // Create mock instances if table doesn't exist
-            accessoryInstances[accessoryId] = Array.from({ length: accessory.value.find(a => a.id === accessoryId)?.quantity || 1 }, (_, i) => ({
-                id: accessoryId * 100 + i + 1,
-                accessoryId,
-                serialNumber: `${accessory.value.find(a => a.id === accessoryId)?.name} #${i + 1}`,
-                isAvailable: true
-            }));
-        } else {
-            accessoryInstances[accessoryId] = data || [];
-        }
-    } catch (error) {
-        console.error('Error fetching accessory instances:', error);
-        accessoryInstances[accessoryId] = [];
+        const payload = {
+            accessoryInstanceId: instanceId,
+            startDate: bookingForm.startDate,
+            endDate: bookingForm.endDate,
+            customerName: bookingForm.customerName,
+            status: 'Booked'
+        };
+        await fetch('http://localhost:3001/accessory-booking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        bookingForm.startDate = '';
+        bookingForm.endDate = '';
+        bookingForm.customerName = '';
+        await fetchInstanceBookings(instanceId);
+        toast.add({ 
+            title: 'Tilbehør booking oprettet!',
+            description: `Booking for ${payload.customerName} blev oprettet succesfuldt`,
+            color: 'success'
+        });
+    } catch (error: any) {
+        console.error('Error creating instance booking:', error);
+        toast.add({ 
+            title: 'Fejl ved oprettelse af booking',
+            description: 'Kunne ikke oprette tilbehør booking. Prøv igen.',
+            color: 'error'
+        });
     }
 }
 
@@ -565,17 +564,16 @@ const products = ref<Product[]>([]);
 async function fetchProducts() {
     try {
         const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            products.value = [];
-            return;
-        }
+        console.log('Fetching products...');
         
         // First, get the products without the Camera relationship
         const { data, error } = await supabase
             .from('Product')
             .select('*')
-            .order('id', { ascending: false});
+            .order('id', { ascending: false });
+        
+        console.log('Raw data from Supabase:', data);
+        console.log('Error (if any):', error);
         
         if (error) throw error;
         
@@ -607,29 +605,18 @@ async function fetchProducts() {
                 product.cameras = [];
             }
         }
+        
+        console.log('Transformed products:', products.value);
     } catch (error) {
         console.error('Error fetching products from Supabase:', error);
-        products.value = [];
     }
 }
 
-// Only fetch data on client side to avoid SSR issues
-if (process.client) {
-    fetchProducts();
-}
+fetchProducts();
 
 async function createProduct() {
     try {
         const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for creating product');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
-        }
         
         // Upload image if a new file is selected
         let imageUrl = form.value.imageUrl;
@@ -710,22 +697,14 @@ async function createProduct() {
         toast.add({ 
             title: isEditing ? 'Produkt opdateret!' : 'Produkt oprettet!',
             description: `${productName} blev ${isEditing ? 'opdateret' : 'oprettet'} succesfuldt`,
-            color: 'success',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            color: 'success'
         });
     } catch (error: any) {
         console.error('Error saving product to Supabase:', error);
         toast.add({ 
             title: 'Fejl ved gem af produkt',
             description: error?.message || 'Ukendt fejl opstod',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            color: 'error'
         });
     }
 }
@@ -733,28 +712,6 @@ async function createProduct() {
 async function deleteProduct(product: any) {
     try {
         const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for deleting product');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
-        }
-        
-        // First, delete all cameras associated with this product
-        const { error: camerasError } = await supabase
-            .from('Camera')
-            .delete()
-            .eq('productId', product.id);
-            
-        if (camerasError) {
-            console.warn('Error deleting cameras for product:', camerasError);
-            // Continue anyway - maybe there were no cameras
-        }
-        
-        // Then delete the product
         const { error } = await supabase
             .from('Product')
             .delete()
@@ -766,22 +723,14 @@ async function deleteProduct(product: any) {
         toast.add({ 
             title: 'Produkt slettet!',
             description: `${product.name} blev slettet succesfuldt`,
-            color: 'success',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            color: 'success'
         });
     } catch (error: any) {
         console.error('Error deleting product from Supabase:', error);
         toast.add({ 
             title: 'Fejl ved sletning af produkt',
             description: error?.message || 'Ukendt fejl opstod',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            color: 'error'
         });
     }
 }
@@ -832,19 +781,27 @@ async function handleImageUpload(event: Event) {
 
 async function uploadImageToSupabase(file: File): Promise<string> {
     const supabase = useSupabase();
-    if (!supabase) {
-        console.error('Supabase client not available for image upload');
-        throw new Error('Kan ikke oprette forbindelse til databasen for billedupload');
-    }
     
     // Generate unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `products/${fileName}`;
     
+    console.log('Uploading file:', fileName);
+    console.log('File path:', filePath);
+    console.log('File size:', file.size);
+    console.log('File type:', file.type);
+    
     uploadingImage.value = true;
     
     try {
+        // First check if we can access the bucket
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+        console.log('Available buckets:', buckets);
+        if (bucketError) {
+            console.error('Bucket list error:', bucketError);
+        }
+        
         // Try uploading with upsert option
         const { data, error } = await supabase.storage
             .from('productImage')
@@ -858,11 +815,14 @@ async function uploadImageToSupabase(file: File): Promise<string> {
             throw error;
         }
         
+        console.log('Upload successful:', data);
+        
         // Get public URL
         const { data: publicData } = supabase.storage
             .from('productImage')
             .getPublicUrl(filePath);
         
+        console.log('Public URL:', publicData.publicUrl);
         return publicData.publicUrl;
     } catch (error: any) {
         console.error('Error uploading image:', error);
@@ -922,12 +882,6 @@ const bookings = ref<Booking[]>([]);
 async function fetchBookings() {
     try {
         const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            bookings.value = [];
-            return;
-        }
-        
         const { data, error } = await supabase
             .from('Booking')
             .select('*')
@@ -939,6 +893,7 @@ async function fetchBookings() {
             return;
         }
         
+        console.log('Fetched bookings from Supabase:', data);
         bookings.value = data || [];
     } catch (e) {
         console.error('Error fetching bookings:', e);
@@ -946,129 +901,35 @@ async function fetchBookings() {
     }
 }
 
-async function fixBookingCameraIds() {
-    try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available');
-            return;
-        }
-        
-        // Get all bookings
-        const { data: allBookings, error: bookingsError } = await supabase
-            .from('Booking')
-            .select('id, cameraId, productName');
-            
-        if (bookingsError) {
-            console.error('Error fetching bookings for fixing:', bookingsError);
-            return;
-        }
-        
-        // Get all products and their cameras
-        const { data: allProducts, error: productsError } = await supabase
-            .from('Product')
-            .select('id, name');
-            
-        if (productsError) {
-            console.error('Error fetching products for fixing:', productsError);
-            return;
-        }
-        
-        // For each booking, try to find the correct camera ID
-        for (const booking of allBookings || []) {
-            // Find the product that matches the booking's productName
-            const matchingProduct = allProducts?.find(p => p.name === booking.productName);
-            
-            if (matchingProduct) {
-                // Get the first camera for this product
-                const { data: cameras, error: camerasError } = await supabase
-                    .from('Camera')
-                    .select('id')
-                    .eq('productId', matchingProduct.id)
-                    .limit(1);
-                
-                if (!camerasError && cameras && cameras.length > 0) {
-                    const correctCameraId = cameras[0].id;
-                    
-                    if (booking.cameraId !== correctCameraId) {
-                        console.log(`Updating booking ${booking.id}: camera ID ${booking.cameraId} → ${correctCameraId}`);
-                        
-                        const { error: updateError } = await supabase
-                            .from('Booking')
-                            .update({ cameraId: correctCameraId })
-                            .eq('id', booking.id);
-                            
-                        if (updateError) {
-                            console.error(`Error updating booking ${booking.id}:`, updateError);
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Refresh bookings after fixing
-        await fetchBookings();
-        
-        toast.add({
-            title: 'Booking camera IDs fixed',
-            description: 'All booking camera IDs have been updated to match existing cameras',
-            color: 'success'
-        });
-        
-    } catch (error) {
-        console.error('Error fixing booking camera IDs:', error);
-        toast.add({
-            title: 'Error fixing bookings',
-            description: 'Could not update booking camera IDs',
-            color: 'error'
-        });
-    }
-}
-
-// Only fetch data on client side to avoid SSR issues
-if (process.client) {
-    onMounted(() => {
-        fetchBookings();
-        // Fetch instances for all accessories
-        accessory.value.forEach(a => fetchAccessoryInstances(a.id));
-    });
-}
+onMounted(() => {
+    fetchBookings();
+    // Fetch instances for all accessories
+    accessory.value.forEach(a => fetchAccessoryInstances(a.id));
+});
 
 const showAccessoryModal = ref(false);
 const editingAccessoryId = ref<number|null>(null);
-
 interface Accessory {
     id: number;
     name: string;
     description: string;
     price: number;
     quantity?: number;
-    instances?: AccessoryInstance[];
 }
-
-interface AccessoryInstance {
-    id: number;
-    accessoryId: number;
-    serialNumber: string; // Like "Mount #1", "Mount #2"
-    isAvailable: boolean;
-}
-
 const accessory = ref<Accessory[]>([]);
 const accessoryForm = ref({ name: '', description: '', price: 0, quantity: 1 });
 
 async function fetchAccessory() {
     try {
+        console.log('Fetching accessories...');
         const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            accessory.value = [];
-            return;
-        }
-        
         const { data, error } = await supabase
             .from('Accessory')
             .select('*')
             .order('id', { ascending: false });
+        
+        console.log('Raw accessory data from Supabase:', data);
+        console.log('Accessory error (if any):', error);
         
         if (error) {
             // If accessories table doesn't exist, create some default ones
@@ -1077,7 +938,7 @@ async function fetchAccessory() {
             return;
         }
         
-        // Transform the data and load instances for each accessory
+        // Transform the data to match the expected interface
         accessory.value = (data || []).map(a => ({
             id: a.id,
             name: a.name,
@@ -1086,36 +947,17 @@ async function fetchAccessory() {
             quantity: a.quantity || 1
         }));
         
-        // Load instances for each accessory
-        for (const acc of accessory.value) {
-            await fetchAccessoryInstances(acc.id);
-        }
+        console.log('Transformed accessories:', accessory.value);
     } catch (error) {
         console.error('Error fetching accessories from Supabase:', error);
         accessory.value = [];
     }
 }
-
-// Only fetch data on client side to avoid SSR issues
-if (process.client) {
-    fetchAccessory();
-}
+fetchAccessory();
 
 async function createAccessory() {
     try {
         const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for creating accessory');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
-        }
-        
-        const isEditing = !!editingAccessoryId.value;
-        const accessoryName = accessoryForm.value.name;
         
         const payload = { 
             name: accessoryForm.value.name, 
@@ -1123,8 +965,6 @@ async function createAccessory() {
             price: accessoryForm.value.price, 
             quantity: accessoryForm.value.quantity 
         };
-        
-        let accessoryId: number;
         
         if (editingAccessoryId.value) {
             // Update existing accessory
@@ -1134,36 +974,13 @@ async function createAccessory() {
                 .eq('id', editingAccessoryId.value);
             
             if (error) throw error;
-            accessoryId = editingAccessoryId.value;
         } else {
             // Create new accessory
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('Accessory')
-                .insert([payload])
-                .select()
-                .single();
+                .insert([payload]);
             
             if (error) throw error;
-            accessoryId = data.id;
-            
-            // Create instances for the new accessory
-            const instances = Array.from({ length: accessoryForm.value.quantity }, (_, i) => ({
-                accessoryId,
-                serialNumber: `${accessoryForm.value.name} #${i + 1}`,
-                isAvailable: true
-            }));
-            
-            try {
-                const { error: instancesError } = await supabase
-                    .from('AccessoryInstance')
-                    .insert(instances);
-                
-                if (instancesError) {
-                    console.warn('Could not create accessory instances:', instancesError);
-                }
-            } catch (instanceError) {
-                console.warn('AccessoryInstance table may not exist:', instanceError);
-            }
         }
         
         showAccessoryModal.value = false;
@@ -1171,24 +988,16 @@ async function createAccessory() {
         accessoryForm.value = { name: '', description: '', price: 0, quantity: 1 };
         await fetchAccessory();
         toast.add({ 
-            title: isEditing ? 'Tilbehør opdateret!' : 'Tilbehør oprettet!',
-            description: `${accessoryName} blev ${isEditing ? 'opdateret' : 'oprettet'} succesfuldt`,
-            color: 'success',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            title: editingAccessoryId.value ? 'Tilbehør opdateret!' : 'Tilbehør oprettet!',
+            description: `${accessoryForm.value.name} blev ${editingAccessoryId.value ? 'opdateret' : 'oprettet'} succesfuldt`,
+            color: 'success'
         });
     } catch (error: any) {
         console.error('Error saving accessory to Supabase:', error);
         toast.add({ 
             title: 'Fejl ved gem af tilbehør',
             description: error?.message || 'Ukendt fejl opstod',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            color: 'error'
         });
     }
 }
@@ -1196,28 +1005,6 @@ async function createAccessory() {
 async function deleteAccessory(id: number) {
     try {
         const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for deleting accessory');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
-        }
-        
-        // First, delete all accessory instances associated with this accessory
-        const { error: instancesError } = await supabase
-            .from('AccessoryInstance')
-            .delete()
-            .eq('accessoryId', id);
-            
-        if (instancesError) {
-            console.warn('Error deleting accessory instances:', instancesError);
-            // Continue anyway - maybe there were no instances
-        }
-        
-        // Then delete the accessory
         const { error } = await supabase
             .from('Accessory')
             .delete()
@@ -1229,84 +1016,27 @@ async function deleteAccessory(id: number) {
         toast.add({ 
             title: 'Tilbehør slettet!',
             description: 'Tilbehøret blev slettet succesfuldt',
-            color: 'success',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            color: 'success'
         });
     } catch (error: any) {
         console.error('Error deleting accessory from Supabase:', error);
         toast.add({ 
             title: 'Fejl ved sletning af tilbehør',
             description: error?.message || 'Ukendt fejl opstod',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
+            color: 'error'
         });
     }
 }
 
-function editAccessory(accessoryItem: any) {
-    editingAccessoryId.value = accessoryItem.id;
+function editAccessory(accessory: any) {
+    editingAccessoryId.value = accessory.id;
     accessoryForm.value = {
-        name: accessoryItem.name,
-        description: accessoryItem.description || '',
-        price: accessoryItem.price,
-        quantity: accessoryItem.quantity || 1
+        name: accessory.name,
+        description: accessory.description,
+        price: accessory.price,
+        quantity: accessory.quantity || 1
     };
     showAccessoryModal.value = true;
-}
-
-// Debug functionality
-const debugError = ref<string>('');
-
-async function fetchAllAccessoryInstances() {
-    try {
-        debugError.value = '';
-        console.log('Fetching all accessory instances...');
-        
-        for (const acc of accessory.value) {
-            await fetchAccessoryInstances(acc.id);
-        }
-        
-        toast.add({
-            title: 'Instances opdateret!',
-            description: 'Alle tilbehør enheder blev hentet succesfuldt',
-            color: 'success',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    } catch (error: any) {
-        console.error('Error fetching all accessory instances:', error);
-        debugError.value = error.message || JSON.stringify(error, null, 2);
-        toast.add({
-            title: 'Fejl ved hentning af enheder',
-            description: 'Kunne ikke hente alle tilbehør enheder',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    }
-}
-
-function clearDebugError() {
-    debugError.value = '';
-    toast.add({
-        title: 'Debug clearet!',
-        description: 'Debug fejl blev ryddet',
-        color: 'success',
-        ui: {
-            title: 'text-gray-900 font-semibold',
-            description: 'text-gray-700'
-        }
-    });
 }
 </script>
 
@@ -1317,7 +1047,6 @@ table {
 th, td {
     border-bottom: 1px solid #e5e7eb;
 }
-
 
 button {
     cursor: pointer;

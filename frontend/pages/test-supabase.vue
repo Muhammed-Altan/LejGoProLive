@@ -20,10 +20,24 @@
       <div class="mt-4">
         <button 
           @click="testConnection" 
-          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
           :disabled="connectionStatus === 'loading'"
         >
           Test Connection
+        </button>
+        
+        <button 
+          @click="testToastSuccess" 
+          class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2"
+        >
+          Test Success Toast
+        </button>
+        
+        <button 
+          @click="testToastError" 
+          class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Test Error Toast
         </button>
       </div>
     </div>
@@ -48,6 +62,43 @@ const supabase = createClient(
   config.public.supabaseUrl as string,
   config.public.supabaseAnonKey as string
 )
+
+// Toast testing - using the exact pattern from working project
+const toast = useToast()
+
+const testToastSuccess = () => {
+  console.log('SUCCESS BUTTON CLICKED!')
+  
+  // Use the exact same pattern as the working project with additional styling options
+  toast.add({ 
+    title: 'Success', 
+    description: 'This is a test success message.', 
+    color: 'success',
+    ui: {
+      title: 'text-gray-900 font-semibold',
+      description: 'text-gray-700'
+    }
+  })
+  
+  console.log('Success toast added')
+}
+
+const testToastError = () => {
+  console.log('ERROR BUTTON CLICKED!')
+  
+  // Use the exact same pattern as the working project with additional styling options
+  toast.add({ 
+    title: 'Error', 
+    description: 'This is a test error message.', 
+    color: 'error',
+    ui: {
+      title: 'text-gray-900 font-semibold',
+      description: 'text-gray-700'
+    }
+  })
+  
+  console.log('Error toast added')
+}
 
 const connectionStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 const errorMessage = ref('')

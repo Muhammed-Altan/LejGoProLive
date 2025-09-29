@@ -16,7 +16,10 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useCheckoutStore } from '@/stores/checkout';
+
 const accepted = ref(false);
+const toast = useToast();
+
 let store;
 if (process.client) {
 	store = useCheckoutStore();
@@ -36,13 +39,29 @@ async function bookNow() {
 	try {
 		// Use the existing Supabase booking method from the store
 		await store.saveBookingToSupabase();
-		alert('Booking successful! ID: ' + store.bookingId);
+		toast.add({ 
+			title: 'Booking succesfuld!', 
+			description: `Din booking ID: ${store.bookingId}`,
+			color: 'success',
+			ui: {
+				title: 'text-gray-900 font-semibold',
+				description: 'text-gray-700'
+			}
+		});
 		
 		// Optionally redirect to a success page or reset the form
 		// navigateTo('/booking-success');
 	} catch (e) {
 		console.error('Booking error:', e);
-		alert('Booking failed: ' + (e?.message ?? e));
+		toast.add({ 
+			title: 'Booking mislykkedes', 
+			description: e?.message ?? 'Der opstod en fejl ved booking. Prøv igen.',
+			color: 'error',
+			ui: {
+				title: 'text-gray-900 font-semibold',
+				description: 'text-gray-700'
+			}
+		});
 	}
 }
 </script>
