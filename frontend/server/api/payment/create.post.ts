@@ -69,7 +69,9 @@ export default defineEventHandler(async (event) => {
 
     // Generate unique order ID
     const orderId = `ORDER-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-    const totalAmount = Math.round(bookingData.totalPrice * 100) // Convert to øre
+    const totalAmount = 100 // Fixed 1 DKK (100 øre) for testing
+    
+    console.log('Using fixed test amount: 1 DKK (100 øre)')
     
     // Get current domain for callback URLs - handle Vercel deployment
     const headers = getHeaders(event)
@@ -118,6 +120,9 @@ export default defineEventHandler(async (event) => {
       testmode: isTestMode
     }
 
+    console.log('Creating PensoPay payment with data:', paymentData)
+    console.log('Payment methods requested:', paymentMethods)
+
     console.log('Creating PensoPay payment:', { ...paymentData, apiKey: PENSOPAY_API_KEY ? '***' : 'missing' })
 
     const paymentResponse = await fetch(`${PENSOPAY_BASE_URL}/payments`, {
@@ -155,47 +160,19 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // PensoPay automatically creates the link, but we need to update it with proper parameters
-    console.log('Payment created, now creating proper payment link...')
-    
-    // Create/Update payment link with proper configuration
-    const linkData = {
-      amount: totalAmount,
-      continue_url: `${baseUrl}/payment/success?order_id=${orderId}`,
-      cancel_url: `${baseUrl}/payment/cancelled?order_id=${orderId}`,
-      callback_url: `${baseUrl}/api/payment/callback`,
-      payment_methods: paymentMethods,
-      auto_capture: true,
-      language: 'da'
-    }
-
-    console.log('Creating payment link with data:', linkData)
-
-    const linkResponse = await fetch(`${PENSOPAY_BASE_URL}/payments/${payment.id}/link`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${PENSOPAY_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(linkData)
-    })
-
-    if (!linkResponse.ok) {
-      const errorData = await linkResponse.json().catch(() => ({}))
-      console.error('Payment link creation failed:', errorData)
-      console.error('Link response status:', linkResponse.status, 'Status text:', linkResponse.statusText)
+    // Use the payment link as-is from PensoPay
+    // The callbacks should be configured in the PensoPay dashboard
+    if (!payment.link) {
+      console.error('Payment created but no payment link provided')
       throw createError({
-        statusCode: linkResponse.status,
-        statusMessage: errorData.message || `Payment link creation failed: ${linkResponse.status} ${linkResponse.statusText}`
+        statusCode: 500,
+        statusMessage: 'Payment was created but no payment link was provided'
       })
     }
 
-    const paymentWithLink = await linkResponse.json()
-    console.log('Payment link created successfully:', paymentWithLink.url)
+    console.log('Using direct payment link from PensoPay:', payment.link)
 
-    // Use the updated payment link
-    const finalPaymentUrl = paymentWithLink.url || payment.link
+    const finalPaymentUrl = payment.link
 
     // Update booking with payment ID
     await supabase
