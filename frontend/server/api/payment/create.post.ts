@@ -160,7 +160,77 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // For debugging 400/404 errors, let's try without custom link creation first
+    // Create a proper payment link to fix fee lookup and payment processing issues
+    console.log('Creating custom payment link to resolve fee lookup issues...')
+    
+    try {
+      const linkResponse = await fetch(`${PENSOPAY_BASE_URL}/payments/${payment.id}/link`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${PENSOPAY_API_KEY}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: totalAmount,
+          continueurl: `${baseUrl}/payment/success?orderId=${orderId}`,
+          cancelurl: `${baseUrl}/payment/cancelled?orderId=${orderId}`,
+          callbackurl: `${baseUrl}/api/payment/callback`,
+          payment_methods: paymentMethods,
+          acquirer: 'clearhaus', // Specify acquirer to fix fee lookup
+          auto_capture: true, // Enable auto-capture for simpler flow
+          framed: false
+        })
+      })
+
+      console.log('Payment link response status:', linkResponse.status)
+
+      if (!linkResponse.ok) {
+        const linkErrorData = await linkResponse.json().catch(() => ({}))
+        console.error('PensoPay payment link creation failed:', linkErrorData)
+        
+        // Try with different acquirer if clearhaus fails
+        console.log('Trying with nets acquirer...')
+        const linkResponse2 = await fetch(`${PENSOPAY_BASE_URL}/payments/${payment.id}/link`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${PENSOPAY_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            amount: totalAmount,
+            continueurl: `${baseUrl}/payment/success?orderId=${orderId}`,
+            cancelurl: `${baseUrl}/payment/cancelled?orderId=${orderId}`,
+            callbackurl: `${baseUrl}/api/payment/callback`,
+            payment_methods: paymentMethods,
+            acquirer: 'nets', // Try nets acquirer
+            auto_capture: true,
+            framed: false
+          })
+        })
+        
+        if (linkResponse2.ok) {
+          const linkData2 = await linkResponse2.json()
+          console.log('Nets acquirer payment link created successfully:', linkData2.url)
+          payment.link = linkData2.url
+        } else {
+          console.log('Both acquirers failed, using default payment link')
+        }
+        
+      } else {
+        const linkData = await linkResponse.json()
+        console.log('Clearhaus payment link created successfully:', linkData.url)
+        payment.link = linkData.url
+      }
+    } catch (error) {
+      console.error('Error creating payment link:', error)
+      console.log('Using default payment link due to error')
+    }
+
+    const finalPaymentUrl = payment.link
+    
+    // Ensure we have a payment link before proceeding
     if (!payment.link) {
       console.error('Payment created but no payment link provided')
       throw createError({
@@ -168,13 +238,6 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Payment was created but no payment link was provided'
       })
     }
-
-    console.log('Using default payment link from PensoPay:', payment.link)
-    
-    // Skip custom link creation for now to test if default link works better
-    const finalPaymentUrl = payment.link
-    
-    console.log('Final payment URL for user:', finalPaymentUrl)
 
     // Update booking with payment ID
     await supabase
