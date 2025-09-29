@@ -179,7 +179,13 @@ export default defineEventHandler(async (event) => {
           payment_methods: paymentMethods,
           acquirer: 'clearhaus', // Specify acquirer to fix fee lookup
           auto_capture: true, // Enable auto-capture for simpler flow
-          framed: false
+          framed: false,
+          // Disable fee lookup to avoid IIN data errors
+          fee_settings: {
+            enabled: false
+          },
+          // Set language to Danish
+          language: 'da'
         })
       })
 
@@ -206,7 +212,12 @@ export default defineEventHandler(async (event) => {
             payment_methods: paymentMethods,
             acquirer: 'nets', // Try nets acquirer
             auto_capture: true,
-            framed: false
+            framed: false,
+            // Disable fee lookup for nets as well
+            fee_settings: {
+              enabled: false
+            },
+            language: 'da'
           })
         })
         
