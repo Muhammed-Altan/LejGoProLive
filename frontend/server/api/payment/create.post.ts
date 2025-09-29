@@ -112,12 +112,30 @@ export default defineEventHandler(async (event) => {
     // Determine if we're in test mode
     const isTestMode = process.env.NODE_ENV !== 'production'
 
-    // Create payment with PensoPay (minimal data first)
+    // Create payment with PensoPay (include all necessary fields for proper processing)
     const paymentData = {
       order_id: orderId,
       amount: totalAmount,
       currency: 'DKK',
-      testmode: isTestMode
+      testmode: isTestMode,
+      // Add required fields for payment processing
+      description: `Booking for ${bookingData.fullName} - ${bookingData.productName}`,
+      invoice_address: {
+        name: bookingData.fullName,
+        street: bookingData.address,
+        city: bookingData.city,
+        zip_code: bookingData.postalCode,
+        country_code: 'DK',
+        email: bookingData.email,
+        phone_number: bookingData.phone
+      },
+      shipping_address: {
+        name: bookingData.fullName,
+        street: bookingData.address,
+        city: bookingData.city,
+        zip_code: bookingData.postalCode,
+        country_code: 'DK'
+      }
     }
 
     console.log('Creating PensoPay payment with data:', paymentData)
@@ -171,6 +189,46 @@ export default defineEventHandler(async (event) => {
     }
 
     console.log('Using direct payment link from PensoPay:', payment.link)
+
+    // Create payment link with proper parameters for card processing
+    const linkResponse = await fetch(`${PENSOPAY_BASE_URL}/payments/${payment.id}/link`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${PENSOPAY_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        amount: totalAmount,
+        continueurl: `${baseUrl}/payment/success?orderId=${orderId}&paymentId=${payment.id}`,
+        cancelurl: `${baseUrl}/payment/cancelled?orderId=${orderId}&paymentId=${payment.id}`,
+        callbackurl: `${baseUrl}/api/payment/callback`,
+        payment_methods: paymentMethods,
+        auto_capture: false, // Manual capture for better control
+        branding_id: null, // Use default branding
+        google_analytics_tracking_id: null,
+        google_analytics_client_id: null,
+        acquirer: null, // Let PensoPay choose the best acquirer
+        deadline: null, // No deadline
+        framed: false, // Not in iframe
+        brandingConfig: {
+          locale: 'da'
+        }
+      })
+    })
+
+    console.log('Payment link response status:', linkResponse.status)
+
+    if (!linkResponse.ok) {
+      const linkErrorData = await linkResponse.json().catch(() => ({}))
+      console.error('PensoPay payment link creation failed:', linkErrorData)
+      // Fall back to the original link if link creation fails
+      console.log('Falling back to original payment link')
+    } else {
+      const linkData = await linkResponse.json()
+      console.log('Payment link created successfully:', linkData.url)
+      payment.link = linkData.url
+    }
 
     const finalPaymentUrl = payment.link
 
