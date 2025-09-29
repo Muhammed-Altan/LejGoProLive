@@ -5,25 +5,29 @@
     <div class="lg:col-span-2 space-y-6 bg-white p-6 rounded-xl shadow-md">
       <ProductStep />
       <DeliveryStep />
-      <!-- <PaymentStep /> -->
-      <BookingConfirmation />
+      <PensoPayment v-if="showPayment" />
+      <BookingConfirmation v-else />
     </div>
 
     <!-- Højre side (1/3 af bredden, sticky kurv) -->
     <aside class="space-y-6">
       <BasketView />
-
     </aside>
   </section>
+  
+  <!-- Test Helper (only shows in development) -->
+  <TestHelper />
+  
   <Footer />
 </template>
 
 <script setup lang="ts">
 import ProductStep from '@/components/booking/ProductStep.vue';
 import DeliveryStep from '@/components/booking/DeliveryStep.vue';
-// import PaymentStep from '@/components/booking/PaymentStep.vue';
+import PensoPayment from '@/components/booking/PensoPayment.vue';
 import BookingConfirmation from '@/components/booking/BookingConfirmation.vue';
 import BasketView from '@/components/booking/BasketView.vue';
+import TestHelper from '@/components/TestHelper.vue';
 import Header from '~/components/Header.vue';
 import Footer from '~/components/Footer.vue';
 import { useCheckoutStore } from '@/stores/checkout';
@@ -32,11 +36,20 @@ import { useCheckoutStore } from '@/stores/checkout';
 const route = useRoute();
 const store = useCheckoutStore();
 
+// Show payment when all required info is filled
+const showPayment = computed(() => {
+  return !!(store.fullName && store.email && store.address && store.city && store.postalCode && store.phone && store.startDate && store.endDate && (store.selectedModels.length > 0 || store.selectedAccessories.length > 0));
+});
+
 onMounted(async () => {
   const productId = route.query.product;
   
   if (productId && typeof productId === 'string') {
     const supabase = useSupabase();
+    if (!supabase) {
+      console.error('Supabase client not available');
+      return;
+    }
     
     try {
       // Fetch the specific product from Supabase
