@@ -158,7 +158,7 @@ const subtotal = computed(() => {
 })
 
 const insurance = computed(() => store.insurance)
-const insurancePrice = computed(() => insurance.value ? 50 : 0) // Assuming 50kr insurance
+const insurancePrice = computed(() => insurance.value ? 1 : 0) // Assuming 1kr insurance
 
 const totalAmount = computed(() => {
   return subtotal.value + insurancePrice.value
