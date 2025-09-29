@@ -71,11 +71,13 @@ export default defineEventHandler(async (event) => {
     const orderId = `ORDER-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     const totalAmount = Math.round(bookingData.totalPrice * 100) // Convert to øre
     
-    // Get current domain for callback URLs
+    // Get current domain for callback URLs - handle Vercel deployment
     const headers = getHeaders(event)
     const host = headers.host || 'localhost:3000'
     const protocol = host.includes('localhost') ? 'http' : 'https'
-    const baseUrl = `${protocol}://${host}`
+    const baseUrl = process.env.NUXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+    
+    console.log('Base URL for callbacks:', baseUrl)
 
     // Create booking in database first
     const bookingPayload = {

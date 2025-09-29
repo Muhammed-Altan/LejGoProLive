@@ -15,6 +15,8 @@ export default defineNuxtConfig({
     public: {
       // Default to local backend; override via NUXT_PUBLIC_API_BASE
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3001',
+      // Base URL for Vercel deployment
+      baseUrl: process.env.NUXT_PUBLIC_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
       // Supabase configuration
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY,

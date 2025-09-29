@@ -244,15 +244,23 @@ const initiatePayment = async () => {
     })
 
     if (!response.success || !response.paymentUrl) {
-      throw new Error('Failed to create payment')
+      throw new Error('Failed to create payment: No payment URL received')
     }
 
-    console.log('Payment created successfully:', response)
+    console.log('Payment created successfully:', {
+      success: response.success,
+      orderId: response.orderId,
+      paymentUrl: response.paymentUrl ? 'URL received' : 'No URL'
+    })
 
     // Store order ID for tracking
     store.orderId = response.orderId
 
-    // Redirect to PensoPay payment page
+    // Add a small delay to ensure state is saved before redirect
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Use direct redirect to PensoPay payment page
+    console.log('Redirecting to payment page...')
     window.location.href = response.paymentUrl
 
   } catch (err: any) {
