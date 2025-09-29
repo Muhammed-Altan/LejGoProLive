@@ -95,11 +95,21 @@ CREATE TABLE "Booking" (
   "selectedAccessories" JSONB, -- Store selected accessories with quantities
   -- Legacy field for backward compatibility
   "accessoryInstanceIds" INTEGER[], -- Array of AccessoryInstance IDs
+  -- Payment tracking
+  "orderId" TEXT UNIQUE,
+  "paymentId" TEXT,
+  "paymentStatus" TEXT DEFAULT 'pending',
+  "paidAt" TIMESTAMPTZ,
   -- Booking status
   status TEXT DEFAULT 'pending', -- pending, confirmed, completed, cancelled
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add indexes for payment tracking
+CREATE INDEX IF NOT EXISTS idx_booking_order_id ON "Booking"("orderId");
+CREATE INDEX IF NOT EXISTS idx_booking_payment_id ON "Booking"("paymentId");
+CREATE INDEX IF NOT EXISTS idx_booking_payment_status ON "Booking"("paymentStatus");
 ```
 
 ## Sample Data

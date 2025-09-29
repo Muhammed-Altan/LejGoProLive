@@ -28,6 +28,8 @@ export const useCheckoutStore = defineStore('checkout', {
     backendTotal: 0,
     // Booking ID for tracking
     bookingId: null as string | null,
+    // Order ID for payment tracking
+    orderId: null as string | null,
   }),
   actions: {
     logState() {
