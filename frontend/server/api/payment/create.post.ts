@@ -118,8 +118,7 @@ export default defineEventHandler(async (event) => {
       amount: totalAmount,
       currency: 'DKK',
       testmode: isTestMode,
-      // Add required fields for payment processing
-      description: `Booking for ${bookingData.fullName} - ${bookingData.productName}`,
+      // Add required fields for payment processing (removed description as it may cause 422)
       invoice_address: {
         name: bookingData.fullName,
         street: bookingData.address,
