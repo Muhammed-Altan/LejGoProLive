@@ -58,9 +58,9 @@
 				autocomplete="address-level2"
 			/>
 		</div>
-		<div class="bg-blue-50 text-center text-gray-800 rounded-lg py-4 px-2 mt-2 text-base font-medium">
+		<!-- <div class="bg-blue-50 text-center text-gray-800 rounded-lg py-4 px-2 mt-2 text-base font-medium">
 			Angiv din leveringsadresse for at se de tilgængelige leveringsmetoder
-		</div>
+		</div> -->
 	</form>
 </template>
 

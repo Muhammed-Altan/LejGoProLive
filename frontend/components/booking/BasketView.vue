@@ -1,28 +1,28 @@
+
 <template>
-  <div class="bg-white rounded-2xl p-8 max-w-lg mx-auto shadow-md" :class="stickyClasses">
-    <h2 class="text-2xl font-semibold mb-4">Din kurv</h2>
-    <div v-if="models.length === 0" class="text-gray-500">Ingen produkter valgt endnu.</div>
-    <div v-else class="space-y-4">
-      <div v-for="(line, idx) in models" :key="idx" class="border rounded-lg p-4">
-        <div class="flex justify-between items-center">
-          <div>
-            <div class="font-semibold">{{ line.name }}</div>
-            <div class="text-sm text-gray-500">x{{ line.quantity }}</div>
-			<div class="text-sm text-gray-500">{{ line.price }} kr.</div>
-          </div>
-          <!-- Per-line price calculation is not shown, only grand total from backend is used -->
-        </div>
+  <div :class="['bg-white rounded-2xl p-10 max-w-[400px] mx-auto text-[#111]', stickyClasses]">
+    <h2 class="text-xl font-semibold mb-6">Din kurv</h2>
+    <div v-if="models.length === 0" class="text-[#888] text-base">Ingen produkter valgt endnu.</div>
+    <div v-else>
+      <div v-for="(line, idx) in backendBreakdown.models" :key="idx" class="mb-5 text-lg flex items-center">
+        <span>{{ line.quantity }}x <span class="font-semibold">{{ line.name }}</span></span>
+        <span class="ml-auto">{{ formatCurrency(line.total) }}</span>
       </div>
-      <div v-if="backendBreakdown && backendBreakdown.accessories && backendBreakdown.accessories.length" class="pt-2">
-        <div class="font-semibold mb-1">Tilbehør</div>
-        <div class="space-y-1">
-          <div v-for="(acc, i) in backendBreakdown.accessories" :key="i" class="flex justify-between text-sm">
+      <div class="text-xs text-[#888] mb-4">Beskyttelsescases medfølger til alle modeller.</div>
+      <div v-if="backendBreakdown && backendBreakdown.accessories && backendBreakdown.accessories.length" class="mt-6 mb-4">
+        <div class="font-semibold mb-2 text-[1.05rem]">Ekstra udstyr:</div>
+        <div>
+          <div v-for="(acc, i) in backendBreakdown.accessories" :key="i" class="text-base mb-1 flex">
             <span>{{ acc.quantity }}x {{ acc.name }}</span>
-            <span>{{ formatCurrency(acc.price) }}</span>
+            <span class="ml-auto">{{ formatCurrency(acc.total) }}</span>
           </div>
         </div>
       </div>
-      <div class="flex justify-between text-base mt-4">
+      <div v-if="backendBreakdown && backendBreakdown.discountTotal > 0" class="flex justify-between text-base mt-5 font-medium">
+        <span class="text-green-700">Du sparer</span>
+        <span class="font-semibold text-green-700">-{{ formatCurrency(backendBreakdown.discountTotal) }}</span>
+      </div>
+      <div v-if="insurance" class="flex justify-between text-base mt-5">
         <span>Forsikring</span>
         <span>
           <template v-if="backendBreakdown && backendBreakdown.insurance !== undefined && backendBreakdown.insurance !== null">
@@ -31,22 +31,20 @@
           <template v-else>—</template>
         </span>
       </div>
-      <div class="flex justify-between text-base mt-1">
+      <div class="flex justify-between text-base mt-2">
         <span>Levering</span>
-        <span class="text-gray-400">Gratis</span>
+        <span class="text-[#888]">Gratis</span>
       </div>
-      <div class="border-t pt-4 mt-4">
-        <div class="flex justify-between items-end">
-          <span class="text-xl font-semibold">I alt</span>
-          <span class="text-xl font-semibold">
-            <span v-if="loading">Beregner…</span>
-            <span v-else-if="error">Fejl</span>
-            <span v-else>{{ formatCurrency(backendTotal) }}</span>
-          </span>
-        </div>
-        <div class="text-xs text-gray-500 mt-1" v-if="rentalDays > 0">Antal dage: {{ rentalDays }}</div>
-        <div class="text-xs text-red-500 mt-1" v-if="error">{{ error }}</div>
+      <div class="flex justify-between items-end mt-8 text-[1.3rem] font-semibold">
+        <span class="text-[1.2rem] font-semibold">I alt:</span>
+        <span class="text-[1.3rem] font-semibold text-[#222]">
+          <span v-if="loading">Beregner…</span>
+          <span v-else-if="error">Fejl</span>
+          <span v-else><span class="text-base text-[#888] mr-1">DKK</span> {{ formatCurrency(backendTotal) }}</span>
+        </span>
       </div>
+      <div class="text-sm text-[#888] mt-2" v-if="rentalDays > 0">Antal dage: {{ rentalDays }}</div>
+      <div class="text-sm text-[#d00] mt-2" v-if="error">{{ error }}</div>
     </div>
   </div>
 </template>
@@ -100,34 +98,37 @@ async function fetchBackendTotal() {
     };
 
     // Calculate model prices
-    for (const model of models.value) {
+    models.value.forEach((model, idx) => {
       const quantity = model.quantity || 1;
-      const config = model.config || { 
-        dailyPrice: model.price, 
-        weeklyPrice: model.price * 7, 
-        twoWeekPrice: model.price * 14 
+      const config = model.config || {
+        dailyPrice: model.price,
+        weeklyPrice: model.price * 7,
+        twoWeekPrice: model.price * 14
       };
-      
       let pricePerDay = config.dailyPrice;
-      
-      // Apply weekly/biweekly discounts if applicable
       if (rentalDays.value >= 14) {
         pricePerDay = config.twoWeekPrice / 14;
       } else if (rentalDays.value >= 7) {
         pricePerDay = config.weeklyPrice / 7;
       }
-      
-      const modelTotal = pricePerDay * rentalDays.value * quantity;
+      // Apply 25% discount to all except first
+      let discount = idx > 0 ? pricePerDay * 0.25 : 0;
+      let discountedPricePerDay = pricePerDay - discount;
+      const modelTotal = discountedPricePerDay * rentalDays.value * quantity;
       total += modelTotal;
-      
       breakdown.models.push({
         name: model.name,
         quantity,
         pricePerDay,
+        discountedPricePerDay,
+        discount,
         days: rentalDays.value,
-        total: modelTotal
+        total: modelTotal,
+        originalTotal: pricePerDay * rentalDays.value * quantity
       });
-    }
+    });
+    // Calculate total discount for all models
+  breakdown.discountTotal = breakdown.models.reduce((sum: number, m: any) => sum + ((m.discount || 0) * m.quantity * m.days), 0);
 
     // Calculate accessory prices
     for (const accessory of accessories.value) {
@@ -175,5 +176,4 @@ function formatCurrency(n: number|null) {
 </script>
 
 <style scoped>
-* { color: black !important; }
 </style>
