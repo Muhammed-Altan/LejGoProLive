@@ -269,7 +269,7 @@
                                     <span class="bg-gray-100 px-2 py-1 rounded text-xs">Kamera: {{ booking.cameraName }}</span>
                                     <span class="bg-gray-100 px-2 py-1 rounded text-xs">Kamera ID: {{ booking.cameraId }}</span>
                                     <span class="bg-gray-100 px-2 py-1 rounded text-xs">Tilbehør enheder: {{ booking.accessoryInstanceIds ? booking.accessoryInstanceIds.join(', ') : 'Ingen' }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Total pris: {{ booking.totalPrice }} kr</span>
+                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Total pris: {{ (booking.totalPrice / 100).toFixed(2) }} kr</span>
                                 </div>
                                 <div class="flex gap-2 mt-2">
                                     <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="openEditBooking(booking)">Rediger</button>
