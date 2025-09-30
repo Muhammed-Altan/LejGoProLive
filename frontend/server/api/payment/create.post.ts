@@ -71,13 +71,21 @@ export default defineEventHandler(async (event) => {
     const orderId = `ORDER-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     
     // Use the actual calculated price from checkout (convert from DKK to øre)
-    let totalAmount = Math.round((bookingData.totalPrice || 0) * 100) // Convert DKK to øre
+    // Ensure we handle both numbers and strings, and always get an integer in øre
+    const priceInDKK = typeof bookingData.totalPrice === 'number' 
+      ? bookingData.totalPrice 
+      : parseFloat(bookingData.totalPrice) || 0
+    
+    // Convert to øre and ensure it's an integer (no decimals)
+    let totalAmount = Math.round(priceInDKK * 100) // Convert DKK to øre and round to integer
     
     console.log('🔍 PRICE CALCULATION DEBUG:')
     console.log('- Raw bookingData.totalPrice:', bookingData.totalPrice)
     console.log('- Type of totalPrice:', typeof bookingData.totalPrice)
-    console.log('- Calculated totalAmount in øre:', totalAmount)
-    console.log('- Final amount in DKK:', totalAmount / 100)
+    console.log('- Parsed price in DKK:', priceInDKK)
+    console.log('- Calculated totalAmount in øre (before Math.round):', priceInDKK * 100)
+    console.log('- Final totalAmount in øre (integer):', totalAmount)
+    console.log('- Final amount back to DKK:', totalAmount / 100)
     
     // Validate amount
     if (totalAmount <= 0) {
@@ -86,6 +94,13 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         statusMessage: 'Invalid total amount. Price must be greater than 0.'
       })
+    }
+    
+    // Ensure the amount is definitely an integer (PensoPay requires this)
+    if (!Number.isInteger(totalAmount)) {
+      console.error('💥 Amount is not an integer!', totalAmount)
+      totalAmount = Math.round(totalAmount)
+      console.log('🔧 Rounded amount to integer:', totalAmount)
     }
     
     // Get current domain for callback URLs - handle Vercel deployment
@@ -102,6 +117,7 @@ export default defineEventHandler(async (event) => {
     // Create booking in database first
     const bookingPayload = {
       ...bookingData,
+      totalPrice: totalAmount, // Store price in øre (integer) to match database schema
       orderId,
       paymentStatus: 'pending'
     }

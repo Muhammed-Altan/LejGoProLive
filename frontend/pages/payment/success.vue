@@ -97,12 +97,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { usePensoPay } from '@/composables/usePensoPay'
+import { useSupabase } from '@/composables/useSupabase'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { getPayment, loading } = usePensoPay()
+const supabase = useSupabase()
 
 const orderDetails = ref<any>(null)
 const error = ref<string | null>(null)
@@ -168,16 +170,51 @@ const printReceipt = () => {
 
 // Load payment details on mount
 onMounted(async () => {
-  const orderId = route.query.order_id as string
+  const orderId = route.query.orderId as string
   
   // If no order ID in URL, that's okay - we'll show a generic success message
   if (orderId) {
     console.log('Order ID found:', orderId)
-    orderDetails.value = {
-      order_id: orderId,
-      amount: 50000, // This should come from your backend
-      state: 'Bekræftet',
-      updated_at: new Date().toISOString()
+    
+    try {
+      // Fetch the actual booking data from the database
+      if (!supabase) {
+        throw new Error('Supabase client not available')
+      }
+      
+      const { data: booking, error } = await supabase
+        .from('Booking')
+        .select('*')
+        .eq('orderId', orderId)
+        .single()
+      
+      if (error) {
+        console.error('Error fetching booking:', error)
+        // Fallback to generic data if booking not found
+        orderDetails.value = {
+          order_id: orderId,
+          amount: 0,
+          state: 'Bekræftet',
+          updated_at: new Date().toISOString()
+        }
+      } else {
+        console.log('Booking data loaded:', booking)
+        orderDetails.value = {
+          order_id: orderId,
+          amount: booking.totalPrice || 0, // Use actual price from database (in øre)
+          state: 'Bekræftet',
+          updated_at: booking.created_at || new Date().toISOString()
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load booking details:', err)
+      // Fallback to generic data
+      orderDetails.value = {
+        order_id: orderId,
+        amount: 0,
+        state: 'Bekræftet',
+        updated_at: new Date().toISOString()
+      }
     }
   } else {
     console.log('No order ID in URL - showing generic success')
