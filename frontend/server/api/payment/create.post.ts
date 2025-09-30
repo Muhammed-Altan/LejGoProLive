@@ -69,9 +69,24 @@ export default defineEventHandler(async (event) => {
 
     // Generate unique order ID
     const orderId = `ORDER-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-    const totalAmount = 100 // Fixed 1 DKK (100 øre) for testing
     
-    console.log('Using fixed test amount: 1 DKK (100 øre)')
+    // Use the actual calculated price from checkout (convert from DKK to øre)
+    let totalAmount = Math.round((bookingData.totalPrice || 0) * 100) // Convert DKK to øre
+    
+    console.log('🔍 PRICE CALCULATION DEBUG:')
+    console.log('- Raw bookingData.totalPrice:', bookingData.totalPrice)
+    console.log('- Type of totalPrice:', typeof bookingData.totalPrice)
+    console.log('- Calculated totalAmount in øre:', totalAmount)
+    console.log('- Final amount in DKK:', totalAmount / 100)
+    
+    // Validate amount
+    if (totalAmount <= 0) {
+      console.error('💥 Invalid amount detected! Full booking data:', JSON.stringify(bookingData, null, 2))
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid total amount. Price must be greater than 0.'
+      })
+    }
     
     // Get current domain for callback URLs - handle Vercel deployment
     const headers = getHeaders(event)
@@ -79,6 +94,9 @@ export default defineEventHandler(async (event) => {
     const protocol = host.includes('localhost') ? 'http' : 'https'
     const baseUrl = process.env.NUXT_PUBLIC_BASE_URL || `${protocol}://${host}`
     
+    console.log('🔗 Callback URL Configuration:')
+    console.log('Host:', host)
+    console.log('Protocol:', protocol)
     console.log('Base URL for callbacks:', baseUrl)
 
     // Create booking in database first
@@ -109,22 +127,27 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Determine if we're in test mode - FORCE TEST MODE for development
-    // const isTestMode = process.env.NODE_ENV !== 'production'
-    const isTestMode = true // Force test mode until we're ready for production
+    const isTestMode = true
 
-    // Create payment with PensoPay (minimal payload that works)
     const paymentData = {
       order_id: orderId,
       amount: totalAmount,
       currency: 'DKK',
-      testmode: isTestMode
+      testmode: isTestMode,
+      callback_url: `${baseUrl}/api/payment/callback`,
+      success_url: `${baseUrl}/payment/success?orderId=${orderId}`,
+      cancel_url: `${baseUrl}/payment/cancelled?orderId=${orderId}`,
+      expires_in: 600
     }
 
     console.log('🔍 DETAILED REQUEST CHECK:')
     console.log('NODE_ENV:', process.env.NODE_ENV)
     console.log('isTestMode calculated as:', isTestMode)
     console.log('testmode value being sent:', paymentData.testmode)
+    console.log('Success URL being sent:', paymentData.success_url)
+    console.log('Cancel URL being sent:', paymentData.cancel_url)
+    console.log('Callback URL being sent:', paymentData.callback_url)
+    console.log('Payment expires in (seconds):', paymentData.expires_in)
     console.log('Full payment data being sent to PensoPay:', JSON.stringify(paymentData, null, 2))
     console.log('Payment methods requested:', paymentMethods)
 
@@ -158,7 +181,7 @@ export default defineEventHandler(async (event) => {
     console.log('Payment ID:', payment.id)
     console.log('Payment testmode from response:', payment.test_mode)
     console.log('Payment state:', payment.state)
-    console.log('Full payment response:', JSON.stringify(payment, null, 2))
+    console.log('Payment link:', payment.link)
 
     if (!payment.id) {
       console.error('Payment creation succeeded but no ID returned')
@@ -168,43 +191,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Create a basic payment link that should work with test cards
-    console.log('Creating basic payment link for test card compatibility...')
-    
-    try {
-      const linkResponse = await fetch(`${PENSOPAY_BASE_URL}/payments/${payment.id}/link`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${PENSOPAY_API_KEY}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          amount: totalAmount,
-          // Remove complex callback URLs that might cause issues
-          payment_methods: 'creditcard',
-          // Remove acquirer specification - let PensoPay choose
-        //   auto_capture: true,
-          language: 'da'
-        })
-      })
-
-      console.log('Basic payment link response status:', linkResponse.status)
-
-      if (linkResponse.ok) {
-        const linkData = await linkResponse.json()
-        console.log('Basic payment link created successfully:', linkData.url)
-        payment.link = linkData.url
-      } else {
-        const linkErrorData = await linkResponse.json().catch(() => ({}))
-        console.error('Basic payment link creation failed:', linkErrorData)
-        console.log('Using default payment link from payment creation')
-      }
-    } catch (error) {
-      console.error('Error creating basic payment link:', error)
-      console.log('Using default payment link due to error')
-    }
-
+    // Use the default payment link (PensoPay doesn't support redirect URLs)
+    console.log('Using default payment link from PensoPay')
     const finalPaymentUrl = payment.link
     
     // Ensure we have a payment link before proceeding

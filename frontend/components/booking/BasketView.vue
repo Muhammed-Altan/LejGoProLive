@@ -157,6 +157,10 @@ async function fetchBackendTotal() {
     
     backendTotal.value = total;
     backendBreakdown.value = breakdown;
+    
+    // Update the store with the calculated total
+    store.setBackendTotal(total);
+    console.log('🛒 BasketView: Updated store backendTotal to:', total);
   } catch (e: any) {
     error.value = (typeof e === 'object' && e && 'message' in e) ? (e as any).message : 'Ukendt fejl ved prisberegning';
     backendTotal.value = null;
