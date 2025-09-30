@@ -6,7 +6,8 @@ ALTER TABLE "Booking"
 ADD COLUMN IF NOT EXISTS "orderId" TEXT UNIQUE,
 ADD COLUMN IF NOT EXISTS "paymentId" TEXT,
 ADD COLUMN IF NOT EXISTS "paymentStatus" TEXT DEFAULT 'pending',
-ADD COLUMN IF NOT EXISTS "paidAt" TIMESTAMPTZ;
+ADD COLUMN IF NOT EXISTS "paidAt" TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS "authorizedAt" TIMESTAMPTZ;
 
 -- Create indexes for better performance on payment-related queries
 CREATE INDEX IF NOT EXISTS idx_booking_order_id ON "Booking"("orderId");
@@ -16,7 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_booking_payment_status ON "Booking"("paymentStatu
 -- Add constraint to ensure paymentStatus has valid values
 ALTER TABLE "Booking" 
 ADD CONSTRAINT check_payment_status 
-CHECK ("paymentStatus" IN ('pending', 'processing', 'paid', 'failed', 'cancelled', 'refunded'));
+CHECK ("paymentStatus" IN ('pending', 'processing', 'authorized', 'paid', 'failed', 'cancelled', 'refunded'));
 
 -- Create a function to automatically update paidAt when paymentStatus changes to 'paid'
 CREATE OR REPLACE FUNCTION update_paid_at()

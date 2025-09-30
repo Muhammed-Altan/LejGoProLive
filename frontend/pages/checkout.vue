@@ -6,7 +6,6 @@
       <ProductStep />
       <DeliveryStep />
       <PensoPayment v-if="showPayment" />
-      <BookingConfirmation v-else />
     </div>
 
     <!-- Højre side (1/3 af bredden, sticky kurv) -->

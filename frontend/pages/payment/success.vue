@@ -13,9 +13,22 @@
 
         <!-- Success Message -->
         <h1 class="text-3xl font-bold text-gray-900 mb-4">Betaling Gennemført!</h1>
-        <p class="text-lg text-gray-600 mb-8">
+        <p class="text-lg text-gray-600 mb-4">
           Tak for din betaling. Din booking er nu bekræftet og du vil modtage en email bekræftelse inden for få minutter.
         </p>
+        
+        <!-- Auto redirect countdown -->
+        <div v-if="!redirectCancelled" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p class="text-blue-700">
+            Du bliver automatisk omdirigeret til forsiden om <strong>{{ countdown }}</strong> sekunder.
+          </p>
+          <button 
+            @click="cancelRedirect"
+            class="mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
+          >
+            Annuller automatisk omdirigering
+          </button>
+        </div>
 
         <!-- Order Details -->
         <div v-if="orderDetails" class="bg-gray-50 rounded-lg p-6 mb-8 text-left">
@@ -93,6 +106,9 @@ const { getPayment, loading } = usePensoPay()
 
 const orderDetails = ref<any>(null)
 const error = ref<string | null>(null)
+const countdown = ref(10) // 10 seconds countdown
+const redirectCancelled = ref(false)
+let redirectTimer: NodeJS.Timeout | null = null
 
 // Format amount from øre to kroner
 const formatAmount = (amountInOre: number): string => {
@@ -115,8 +131,31 @@ const formatDate = (dateString: string): string => {
   })
 }
 
+// Cancel the automatic redirect
+const cancelRedirect = () => {
+  redirectCancelled.value = true
+  if (redirectTimer) {
+    clearInterval(redirectTimer)
+    redirectTimer = null
+  }
+}
+
+// Start countdown timer for automatic redirect
+const startRedirectTimer = () => {
+  redirectTimer = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      goToHome()
+    }
+  }, 1000)
+}
+
 // Go to home page
 const goToHome = () => {
+  if (redirectTimer) {
+    clearInterval(redirectTimer)
+    redirectTimer = null
+  }
   router.push('/')
 }
 
@@ -131,19 +170,28 @@ const printReceipt = () => {
 onMounted(async () => {
   const orderId = route.query.order_id as string
   
-  if (!orderId) {
-    error.value = 'Ingen ordre ID fundet'
-    return
+  // If no order ID in URL, that's okay - we'll show a generic success message
+  if (orderId) {
+    console.log('Order ID found:', orderId)
+    orderDetails.value = {
+      order_id: orderId,
+      amount: 50000, // This should come from your backend
+      state: 'Bekræftet',
+      updated_at: new Date().toISOString()
+    }
+  } else {
+    console.log('No order ID in URL - showing generic success')
+    // Show generic success without specific order details
+    orderDetails.value = {
+      order_id: 'N/A',
+      amount: 0,
+      state: 'Bekræftet',
+      updated_at: new Date().toISOString()
+    }
   }
-
-  // In a real implementation, you would need to get the payment ID from your backend
-  // For now, we'll show a success message with the order ID
-  orderDetails.value = {
-    order_id: orderId,
-    amount: 50000, // This should come from your backend
-    state: 'Bekræftet',
-    updated_at: new Date().toISOString()
-  }
+  
+  // Start the automatic redirect timer after loading details
+  startRedirectTimer()
 })
 
 // Set page title

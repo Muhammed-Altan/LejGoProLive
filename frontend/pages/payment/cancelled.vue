@@ -118,7 +118,7 @@ const contactSupport = () => {
 
 // Load order details on mount
 onMounted(() => {
-  orderId.value = route.query.order_id as string || null
+  orderId.value = route.query.orderId as string || null
 })
 
 // Set page title

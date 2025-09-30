@@ -97,26 +97,12 @@
       </div>
     </div>
 
-    <!-- Payment Summary -->
-    <div class="bg-gray-50 rounded-lg p-4 mb-6">
-      <div class="flex justify-between items-center mb-2">
-        <span class="text-gray-600">Subtotal:</span>
-        <span class="font-medium">{{ formatPrice(subtotal) }} kr</span>
-      </div>
-      <div v-if="insurance" class="flex justify-between items-center mb-2">
-        <span class="text-gray-600">Forsikring:</span>
-        <span class="font-medium">{{ formatPrice(insurancePrice) }} kr</span>
-      </div>
-      <div class="flex justify-between items-center text-lg font-semibold border-t pt-2">
-        <span>Total:</span>
-        <span class="text-[#B90C2C]">{{ formatPrice(totalAmount) }} kr</span>
-      </div>
-    </div>
+    <BookingConfirmation ref="bookingConfirmation" />
 
     <!-- Action Button -->
     <button
       @click="initiatePayment"
-      :disabled="!selectedMethod || loading"
+      :disabled="!selectedMethod || loading || !isTermsAccepted"
       class="w-full bg-[#B90C2C] hover:bg-[#a10a25] text-white text-lg font-semibold py-3 rounded-lg focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <span v-if="loading" class="flex items-center justify-center">
@@ -131,6 +117,11 @@
       </span>
     </button>
 
+    <!-- Terms acceptance reminder -->
+    <div v-if="!isTermsAccepted && selectedMethod" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <p class="text-yellow-800 text-sm">Du skal acceptere lejebetingelserne for at fortsætte til betaling.</p>
+    </div>
+
     <!-- Error Message -->
     <div v-if="error" class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
       <p class="font-medium">Fejl ved betaling:</p>
@@ -142,26 +133,27 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useCheckoutStore } from '@/stores/checkout'
+import BookingConfirmation from './BookingConfirmation.vue'
 
 const store = useCheckoutStore()
 
 const selectedMethod = ref<'googlepay' | 'applepay' | 'creditcard' | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const bookingConfirmation = ref<any>(null)
 
 // Check if we're in test mode
 const isTestMode = computed(() => process.env.NODE_ENV !== 'production')
 
-// Computed properties for pricing
-const subtotal = computed(() => {
-  return store.backendTotal || 0
+// Check if terms are accepted
+const isTermsAccepted = computed(() => {
+  return bookingConfirmation.value?.accepted || false
 })
 
-const insurance = computed(() => store.insurance)
-const insurancePrice = computed(() => insurance.value ? 1 : 0) // Assuming 1kr insurance
-
+// Computed properties for pricing
 const totalAmount = computed(() => {
-  return subtotal.value + insurancePrice.value
+  // Use the backendTotal from store which already includes insurance and all calculations
+  return store.backendTotal || 0
 })
 
 // Format price helper
@@ -227,6 +219,11 @@ const initiatePayment = async () => {
     }
 
     console.log('Initiating payment with booking data:', bookingData)
+    console.log('💳 Payment debugging:')
+    console.log('- Total amount from store.backendTotal:', totalAmount.value)
+    console.log('- Store backendTotal:', store.backendTotal)
+    console.log('- Store selectedModels:', store.selectedModels)
+    console.log('- Store selectedAccessories:', store.selectedAccessories)
 
     // Call our server-side API to create payment
     const response = await $fetch<{
@@ -259,7 +256,7 @@ const initiatePayment = async () => {
     // Add a small delay to ensure state is saved before redirect
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    // Use direct redirect to PensoPay payment page
+    // Redirect to PensoPay payment page (will redirect back to our success page automatically)
     console.log('Redirecting to payment page...')
     window.location.href = response.paymentUrl
 
