@@ -103,21 +103,16 @@ export default defineEventHandler(async (event) => {
       console.log('🔧 Rounded amount to integer:', totalAmount)
     }
     
-    // Get current domain for callback URLs - PensoPay requires HTTPS
+    // Get current domain for callback URLs - handle Vercel deployment
     const headers = getHeaders(event)
     const host = headers.host || 'localhost:3000'
-    const isLocalhost = host.includes('localhost')
-    
-    // PensoPay requires HTTPS URLs, so for localhost development use the Vercel URL
-    // or set up ngrok/local HTTPS if you need to test callbacks locally
-    const baseUrl = isLocalhost 
-      ? (process.env.NUXT_PUBLIC_BASE_URL || 'https://lej-go-pro-live.vercel.app') 
-      : (process.env.NUXT_PUBLIC_BASE_URL || `https://${host}`)
+    const protocol = host.includes('localhost') ? 'http' : 'https'
+    const baseUrl = process.env.NUXT_PUBLIC_BASE_URL || `${protocol}://${host}`
     
     console.log('🔗 Callback URL Configuration:')
     console.log('Host:', host)
-    console.log('Is localhost:', isLocalhost)
-    console.log('Base URL for callbacks (HTTPS required by PensoPay):', baseUrl)
+    console.log('Protocol:', protocol)
+    console.log('Base URL for callbacks:', baseUrl)
 
     // Create booking in database first
     const bookingPayload = {
