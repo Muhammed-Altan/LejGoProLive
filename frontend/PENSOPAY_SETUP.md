@@ -29,7 +29,7 @@ Add these environment variables to your `.env` file:
 ```bash
 # PensoPay Configuration
 PENSOPAY_API_KEY=e71e065806773fc46df58a42a17370ea7fad005673ae79455c8f76fc511f2baa
-PENSOPAY_PRIVATE_KEY=your_private_key_for_webhook_signature_verification
+PENSOPAY_PRIVATE_KEY=your_private_key_for_signature_verification
 
 # Supabase (required for callback handling)
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
