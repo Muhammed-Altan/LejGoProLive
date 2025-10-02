@@ -5,6 +5,12 @@
     <div v-if="models.length === 0" class="text-[#888] text-base">Ingen produkter valgt endnu.</div>
     <div v-else>
       <div v-for="(line, idx) in backendBreakdown.models" :key="idx" class="mb-5 text-lg flex items-center">
+        <img
+            src="/eventyr/GoPro-MountainTop.jpg"
+          alt="{{ line.name }}"
+            class="w-12 h-12 object-cover rounded mr-3 border border-gray-200 bg-white"
+          style="flex-shrink:0;"
+        />
         <span>{{ line.quantity }}x <span class="font-semibold">{{ line.name }}</span></span>
         <span class="ml-auto">{{ formatCurrency(line.total) }}</span>
       </div>
