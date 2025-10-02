@@ -51,20 +51,20 @@ Den smider alle bookinger under hero 11 kamera 1
 
 
 
-Opret read payments til at opdatere database
-Payment status
-Paid at
-
-
-
-Opsæt auto capture
-Hæv pengene med det samme
-
-
 AccessoryInstanceIds bliver gemt i et tomt array, ændrer det til at hente info fra pinia store
 
 
 frontend/composables/usePensoPay.ts 
--- API key is being accessed on the client-side which exposes it to users. PensoPay API calls should only be made from server-side code to protect the API key.
+✅ FIXED: Removed API key exposure. Composable now only makes secure server-side calls via /api/payment/* endpoints.
 
+Opsæt auto capture
+Hæv pengene med det samme
+
+Kvittering / email auto flow
+-- Send booking id med
+
+JSON Web Tokens i cookies
+-- Kig på resten af cookies
+
+Privatlivspolitik
  -->
