@@ -50,7 +50,7 @@
         <div class="px-6 pb-6 pt-2 flex flex-col gap-2">
           <button
             class="w-full bg-[#B90C2C] hover:bg-[#a10a25] text-white font-semibold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm transition-shadow hover:shadow-md"
-            :disabled="!scrolledToBottom && !accepted"
+            :disabled="!scrolledToBottom"
             @click.stop="acceptTerms"
           >
             Jeg har læst og accepterer
@@ -102,7 +102,6 @@ function handleDivClick(event: MouseEvent) {
 
 function closeModal() {
   showModal.value = false
-  // Do not reset accepted or scrolledToBottom here
 }
 
 function handleScroll() {
