@@ -1,22 +1,26 @@
 <template>
-  <div class="flex flex-col items-center justify-center min-h-[80px] bg-white w-full max-w-2xl mx-auto">
+  <div
+    class="flex flex-col items-center justify-center min-h-[80px] bg-white w-full max-w-2xl mx-auto"
+  >
     <div class="flex flex-row items-center w-full px-3 py-2 mb-2">
       <input 
         id="acceptTerms" 
         type="checkbox" 
         v-model="accepted" 
-        class="form-checkbox h-5 w-5 text-[#B90C2C] focus:ring-[#B90C2C] border-gray-300 rounded mr-3"
-        :disabled="true"
+        class="form-checkbox h-5 w-5 text-[#B90C2C] focus:ring-[#B90C2C] border-gray-300 rounded mr-3 cursor-pointer opacity-60"
+        aria-disabled="true"
+        tabindex="0"
+        @click.stop="openModal"
       />
       <label 
         for="acceptTerms" 
         class="text-base text-gray-800 select-none cursor-pointer"
+        @click="openModal"
       >
         Jeg accepterer
-        <span class="text-[#B90C2C] underline hover:text-[#a10a25]" @click.prevent="openModal">lejebetingelserne</span>
+        <span class="text-[#B90C2C] underline hover:text-[#a10a25] cursor-pointer" @click.stop="openModal">lejebetingelserne</span>
       </label>
     </div>
-    
     <!-- Modal -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
       <div class="bg-white rounded-lg shadow-lg w-full max-w-lg flex flex-col max-h-[80vh] relative">
@@ -45,13 +49,13 @@
         </div>
         <div class="px-6 pb-6 pt-2 flex flex-col gap-2">
           <button
-            class="w-full bg-[#B90C2C] hover:bg-[#a10a25] text-white font-semibold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="!scrolledToBottom"
-            @click="acceptTerms"
+            class="w-full bg-[#B90C2C] hover:bg-[#a10a25] text-white font-semibold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm transition-shadow hover:shadow-md"
+            :disabled="!scrolledToBottom && !accepted"
+            @click.stop="acceptTerms"
           >
             Jeg har læst og accepterer
           </button>
-          <button class="w-full text-gray-500 hover:text-gray-700 py-2" @click="closeModal">Luk</button>
+          <button class="w-full text-gray-500 hover:text-gray-700 py-2 cursor-pointer shadow-sm transition-shadow hover:shadow-md" @click.stop="closeModal">Luk</button>
         </div>
       </div>
     </div>
@@ -66,9 +70,13 @@ const showModal = ref(false)
 const scrolledToBottom = ref(false)
 const modalContent = ref<HTMLElement | null>(null)
 
+
 function openModal() {
   showModal.value = true
-  scrolledToBottom.value = false
+  // Only reset scrolledToBottom if not already accepted
+  if (!accepted.value) {
+    scrolledToBottom.value = false
+  }
   nextTick(() => {
     if (modalContent.value) {
       modalContent.value.scrollTop = 0
@@ -82,8 +90,19 @@ function openModal() {
   })
 }
 
+// Make the whole div clickable except for the checkbox
+function handleDivClick(event: MouseEvent) {
+  // If the click is on the checkbox, do nothing
+  const target = event.target as HTMLElement;
+  if (target.tagName === 'INPUT' && target.getAttribute('type') === 'checkbox') {
+    return;
+  }
+  openModal();
+}
+
 function closeModal() {
   showModal.value = false
+  // Do not reset accepted or scrolledToBottom here
 }
 
 function handleScroll() {
