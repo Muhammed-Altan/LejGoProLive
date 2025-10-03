@@ -1,9 +1,4 @@
-import { ref } from 'vue'
-
-interface PensoPayConfig {
-  apiKey: string
-  baseUrl: string
-}
+import { ref, readonly } from 'vue'
 
 interface CreatePaymentRequest {
   order_id: string
@@ -46,10 +41,6 @@ interface CreatePaymentResponse {
 }
 
 export const usePensoPay = () => {
-  const pensoPayConfig: PensoPayConfig = {
-    apiKey: process.env.PENSOPAY_API_KEY || '',
-    baseUrl: 'https://api.pensopay.com/v2'
-  }
 
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -57,45 +48,71 @@ export const usePensoPay = () => {
   // Enable test mode for development
   const isTestMode = process.env.NODE_ENV !== 'production'
 
+  // Note: This function is deprecated - use server-side /api/payment/create instead
   const createPayment = async (paymentData: CreatePaymentRequest): Promise<CreatePaymentResponse | null> => {
+    console.warn('usePensoPay.createPayment is deprecated. Use /api/payment/create endpoint instead.')
     loading.value = true
     error.value = null
 
     try {
-      // Add testmode to payment data if in development
-      const paymentPayload = {
-        ...paymentData,
-        testmode: isTestMode
-      }
-      
-      console.log('Creating PensoPay payment:', { ...paymentPayload, testmode: isTestMode })
-
-      const response = await fetch(`${pensoPayConfig.baseUrl}/payments`, {
+      // Call our server-side payment creation endpoint instead of PensoPay directly
+      const response = await fetch('/api/payment/create', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${pensoPayConfig.apiKey}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(paymentPayload)
+        body: JSON.stringify({
+          bookingData: paymentData, // The server expects bookingData format
+          paymentMethods: 'creditcard,googlepay,applepay'
+        })
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
       }
 
       const result = await response.json()
-      return result
+      
+      // Transform server response to match expected format
+      return {
+        id: result.paymentId,
+        order_id: result.orderId,
+        amount: 0, // Server doesn't return this
+        currency: 'DKK',
+        state: 'initial',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        link: {
+          url: result.paymentUrl,
+          agreement_id: '',
+          language: 'da',
+          amount: 0,
+          continue_url: '',
+          cancel_url: '',
+          callback_url: '',
+          payment_methods: 'creditcard,googlepay,applepay',
+          auto_fee: false,
+          auto_capture: false,
+          branding_id: '',
+          google_analytics_tracking_id: '',
+          google_analytics_client_id: '',
+          acquirer: '',
+          deadline: '',
+          framed: false,
+          branding_config: null
+        }
+      }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error occurred'
-      console.error('PensoPay payment creation error:', err)
+      console.error('Payment creation error:', err)
       return null
     } finally {
       loading.value = false
     }
   }
 
+  // Note: This function is deprecated - payment links are created automatically on server
   const createPaymentLink = async (paymentId: string, linkData: {
     amount: number
     continue_url: string
@@ -105,30 +122,44 @@ export const usePensoPay = () => {
     auto_capture?: boolean
     branding_id?: string
   }): Promise<CreatePaymentResponse | null> => {
+    console.warn('usePensoPay.createPaymentLink is deprecated. Payment links are created automatically by the server.')
     loading.value = true
     error.value = null
 
     try {
-      const response = await fetch(`${pensoPayConfig.baseUrl}/payments/${paymentId}/link`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${pensoPayConfig.apiKey}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(linkData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
+      // This functionality is now handled server-side in /api/payment/create
+      // Return a mock response to maintain compatibility
+      return {
+        id: paymentId,
+        order_id: '',
+        amount: linkData.amount,
+        currency: 'DKK',
+        state: 'initial',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        link: {
+          url: '',
+          agreement_id: '',
+          language: 'da',
+          amount: linkData.amount,
+          continue_url: linkData.continue_url,
+          cancel_url: linkData.cancel_url,
+          callback_url: linkData.callback_url || '',
+          payment_methods: linkData.payment_methods || 'creditcard',
+          auto_fee: false,
+          auto_capture: linkData.auto_capture || false,
+          branding_id: linkData.branding_id || '',
+          google_analytics_tracking_id: '',
+          google_analytics_client_id: '',
+          acquirer: '',
+          deadline: '',
+          framed: false,
+          branding_config: null
+        }
       }
-
-      const result = await response.json()
-      return result
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error occurred'
-      console.error('PensoPay payment link creation error:', err)
+      console.error('Payment link creation error:', err)
       return null
     } finally {
       loading.value = false
@@ -140,24 +171,26 @@ export const usePensoPay = () => {
     error.value = null
 
     try {
-      const response = await fetch(`${pensoPayConfig.baseUrl}/payments/${paymentId}`, {
+      // Use our server-side payment status endpoint instead of direct PensoPay API
+      const response = await fetch(`/api/payment/status?paymentId=${paymentId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${pensoPayConfig.apiKey}`,
           'Accept': 'application/json'
         }
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
       }
 
       const result = await response.json()
-      return result
+      
+      // Return the payment data from our server response
+      return result.paymentData || result
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error occurred'
-      console.error('PensoPay get payment error:', err)
+      console.error('Get payment error:', err)
       return null
     } finally {
       loading.value = false

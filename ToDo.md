@@ -51,20 +51,51 @@ Den smider alle bookinger under hero 11 kamera 1
 
 
 
-Opret read payments til at opdatere database
-Payment status
-Paid at
+AccessoryInstanceIds bliver gemt i et tomt array, ændrer det til at hente info fra pinia store
+
 
 
 
 Opsæt auto capture
 Hæv pengene med det samme
 
+Kvittering / email auto flow
+-- Send booking id med
 
-AccessoryInstanceIds bliver gemt i et tomt array, ændrer det til at hente info fra pinia store
+Sikkerhed
+-- Backend for login
+-- JSON Web Tokens i cookies
+-- Kig på resten af cookies
+-- Order id in URL, gem måske order id i cookies?
+
+Authentication
+-- Ingen adgang til nogen for testing
+
+Betaling
+-- Gør man kan klikke på firkanten for at vælge f.eks. apple pay
+
+Forside
+-- Gør produkter dynamiske
+-- Opdater sadan booker du
+
+Footer
+-- Opdater Tjenester til sociale medier
+Trustpilot
+Faceobok
+insta
+
+Betaling
+-- paymentStatus og paidAt opdater ikke
+
+Camera table i database
+-- Log ændringer efter edit
+
+Admin
+-- Change landing page pic tab
 
 
-frontend/composables/usePensoPay.ts 
--- API key is being accessed on the client-side which exposes it to users. PensoPay API calls should only be made from server-side code to protect the API key.
+Dinero
+-- Push/write to dinero efter hver betaling
 
+Privatlivspolitik
  -->
