@@ -354,6 +354,10 @@
 import { ref, onMounted, computed, reactive } from 'vue';
 import ProductCalendar from '@/components/booking/ProductCalendar.vue';
 
+definePageMeta({
+  middleware: 'admin'
+})
+
 const toast = useToast();
 
 async function deleteBooking(id: number) {

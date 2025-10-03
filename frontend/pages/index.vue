@@ -3,7 +3,7 @@
 
   <!-- Hero Section -->
   <section class="relative flex flex-col items-center justify-center min-h-[90vh] bg-cover bg-center" style="background-image: url('/hero-bg/federico-persiani-XvPuZ2Q71GA-unsplash.jpg');">
-  <div class="absolute inset-0 bg-white/20"></div>
+  <div class="absolute inset-0 bg-white/30"></div>
     <div class="relative z-10 flex flex-col items-center justify-center py-24">
       <h1 class="text-4xl md:text-5xl font-bold text-center text-black mb-8">
   Lej dit <span class="text-[#B8082A]">GoPro</span> til næste eventyr
@@ -48,19 +48,78 @@
 
   <!-- Product Cards Section -->
   <section class="max-w-7xl mx-auto mt-16 mb-16">
-  <h2 class="text-2xl md:text-3xl font-bold text-center mb-8">Vælg Din Perfekte <span class="text-[#B8082A]">GoPro</span></h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <h1 class="text-3xl md:text-4xl font-bold text-center mb-8 mt-8">Vores GoPro Produkter</h1>
+    
+    <!-- Loading state -->
+    <div v-if="loading" class="flex justify-center items-center my-12">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B8082A] mx-auto mb-4"></div>
+        <p class="text-gray-600">Indlæser produkter...</p>
+      </div>
+    </div>
+    
+    <!-- Error state -->
+    <div v-else-if="error" class="max-w-2xl mx-auto text-center my-12 p-6 bg-red-50 rounded-lg">
+      <p class="text-red-600 mb-4">{{ error }}</p>
+      <button @click="fetchProducts" class="bg-[#B8082A] text-white px-4 py-2 rounded hover:bg-[#a10725]">
+        Prøv igen
+      </button>
+    </div>
+    
+    <!-- Products grid -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto mt-12 mb-16">
+      <!-- Debug info -->
+      <div v-if="products.length === 0" class="col-span-full text-center text-gray-500">
+        Ingen produkter fundet
+      </div>
+      <div v-else class="col-span-full text-center text-sm text-gray-500 mb-4">
+        {{ products.length }} produkter fundet
+      </div>
+      
       <ProductCard
         v-for="product in products"
-        :key="product.title"
-        :title="product.title"
-        :description="product.description"
-        :img="product.img"
-        :features="product.features"
-        :priceDay="product.priceDay"
-        :priceWeek="product.priceWeek"
-        :popular="product.popular"
+        :key="product.id"
+        :title="product.name"
+        :description="''"
+        :img="product.imageUrl || placeholderImage"
+        :features="product.features ? product.features.split(',').map(f => f.trim()) : []"
+        :priceDay="product.dailyPrice"
+        :priceWeek="product.weeklyPrice"
+        :popular="false"
+        :productId="product.id"
       />
+    </div>
+    <div class="flex flex-wrap justify-center gap-8 my-12 max-w-7xl mx-auto">
+      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a6b3e1087b3473f/663a841c2a72d93452178ba2/01-pdp-h12b-handler-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Grip" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <h4 class="text-lg font-bold mb-1">Grip</h4>
+        <p class="text-sm text-gray-600 text-center">Stabilt håndtag til actionoptagelser og nem håndtering af kameraet.</p>
+      </div>
+      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a3f356761a12e6d/6465f1c79cb8cadbd353f013/pdp-max-enduro-battery-image01-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Ekstra batteri" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <h4 class="text-lg font-bold mb-1">Ekstra batteri</h4>
+        <p class="text-sm text-gray-600 text-center">Sørger for ekstra strøm, så du kan optage længere tid uden afbrydelser.</p>
+      </div>
+      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt5028e412643854ae/65cbdc3afcd8646428eec8a5/01-pdp-h12b-headstrap-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Headstrap" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <h4 class="text-lg font-bold mb-1">Headstrap</h4>
+        <p class="text-sm text-gray-600 text-center">Monter kameraet på hovedet for hands-free POV-optagelser.</p>
+      </div>
+      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/bltbc6b778286c13383/64ccd3c131eb6a3cbbd4c86f/01-pdp-h12b-chesty-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Brystmount" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <h4 class="text-lg font-bold mb-1">Brystmount</h4>
+        <p class="text-sm text-gray-600 text-center">Perfekt til sport og aktiviteter, hvor du vil have kameraet tæt på kroppen.</p>
+      </div>
+      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt412da0ad3ddaa0f6/64835bbbcc30bb258ab04e57/pdp-protective-housing-image03-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Beskyttelsescase" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <h4 class="text-lg font-bold mb-1">Beskyttelsescase</h4>
+        <p class="text-sm text-gray-600 text-center">Robust etui der beskytter kameraet mod stød, vand og snavs.</p>
+      </div>
+      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt865a9a20edc4b79b/663a899c8447cbcee89cb5a8/01-pdp-h12b-suction-cup-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Sugekop til ruder" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <h4 class="text-lg font-bold mb-1">Sugekop til ruder</h4>
+        <p class="text-sm text-gray-600 text-center">Fastgør kameraet sikkert til bilruder og glatte overflader for unikke vinkler.</p>
+      </div>
     </div>
   </section>
 
@@ -111,45 +170,68 @@
 </template>
 <script setup lang="ts">
 import { ref } from 'vue';
-// ...existing code...
-
-const products = ref([
-  {
-    title: 'GoPro HERO12 Black',
-    description: 'Seneste model med avanceret billedkvalitet og forbedret stabilisering.',
-    img: 'https://static.gopro.com/assets/blta2b8522e5372af40/blt86b2d5c67d4f1ed5/64d0e286369276296caf7a71/02-pdp-h12b-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale',
-    features: ['📷 5.3K Video', '⚡ HyperSmooth 6.0', '🕑 Vandtæt', '🔋 Forbedret batteri'],
-    priceDay: 49,
-    priceWeek: 159,
-    popular: true
-  },
-  {
-    title: 'GoPro HERO11 Black',
-    description: 'Fremragende allround kamera med 5.3K video og forbedret natoptagelse.',
-    img: 'https://static.gopro.com/assets/blta2b8522e5372af40/bltb0e158820591a2a1/645147b2d5d03c0794f168cd/pdp-h11b-SA-image02-1920-2x.png?width=3840&quality=80&auto=webp&disable=upscale',
-    features: ['📷 5.3K Video', '🌙 Nightlapse', '⚡ HyperSmooth 5.0', '🕑 Vandtæt til 10m'],
-    priceDay: 39,
-    priceWeek: 129
-  },
-  {
-    title: 'GoPro HERO10 Black',
-    description: 'Kraftfuld performance med GP2 processor og glimrende stabilisering.',
-    img: 'https://static.gopro.com/assets/blta2b8522e5372af40/blt2c7d09c3f92e1c63/643ee1005f834b59633e106f/pdp-h10-image02-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale',
-    features: ['📷 5.3K Video', '🖥️ GP2 Processor', '⚡ HyperSmooth 4.0', '🕑 Vandtæt'],
-    priceDay: 29,
-    priceWeek: 109
-  },
-  {
-    title: 'GoPro HERO9 Black',
-    description: 'Pålidelig og prisvenlig mulighed med fremskærm og 5K video.',
-    img: 'https://static.gopro.com/assets/blta2b8522e5372af40/blt2c7d09c3f92e1c63/643ee1005f834b59633e106f/pdp-h10-image02-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale',
-    features: ['📷 5K Video', '🖥️ Fremskærm', '⚡ HyperSmooth 3.0', '⏩ TimeWarp 3.0'],
-    priceDay: 25,
-    priceWeek: 89
-  }
-]);
-
 import ProductCard from '../components/ProductCard.vue';
+
+// Define the product interface to match Supabase table structure
+interface Product {
+  id: number;
+  name: string;
+  features: string;
+  dailyPrice: number;
+  weeklyPrice: number;
+  quantity: number;
+  imageUrl?: string;
+}
+
+// Reactive state
+const products = ref<Product[]>([]);
+const loading = ref(true);
+const error = ref<string | null>(null);
+const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/blt6ff9ada3eca94bbc/643ee100b1f4db27b0203e9d/pdp-h10-image01-1920-2x.png';
+
+// Get Supabase client
+const supabase = useSupabase();
+
+// Fetch products from Supabase
+const fetchProducts = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+    
+    if (!supabase) {
+      throw new Error('Supabase client ikke tilgængelig');
+    }
+    
+    const { data, error: supabaseError } = await supabase
+      .from('Product')
+      .select('*')
+      .order('id', { ascending: true });
+    
+    if (supabaseError) {
+      throw supabaseError;
+    }
+    
+    console.log('Raw products data from Supabase:', data);
+    
+    // Use the data directly as it matches our interface
+    products.value = data || [];
+    
+    console.log('Products:', products.value);
+    console.log('First product dailyPrice:', products.value[0]?.dailyPrice);
+    console.log('First product weeklyPrice:', products.value[0]?.weeklyPrice);
+    console.log('Products length:', products.value.length);
+  } catch (err: any) {
+    error.value = err.message || 'Der opstod en fejl ved indlæsning af produkter';
+    console.error('Error fetching products:', err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Fetch products on component mount
+onMounted(() => {
+  fetchProducts();
+});
 
 import type { AccordionItem } from '@nuxt/ui'
 
