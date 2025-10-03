@@ -68,31 +68,14 @@ Sikkerhed
 -- Kig på resten af cookies
 -- Order id in URL, gem måske order id i cookies?
 
-Authentication
--- Ingen adgang til nogen for testing
-
-Betaling
--- Gør man kan klikke på firkanten for at vælge f.eks. apple pay
-
 Forside
--- Gør produkter dynamiske
 -- Opdater sadan booker du
-
-Footer
--- Opdater Tjenester til sociale medier
-Trustpilot
-Faceobok
-insta
-
-Betaling
--- paymentStatus og paidAt opdater ikke
 
 Camera table i database
 -- Log ændringer efter edit
 
 Admin
 -- Change landing page pic tab
-
 
 Dinero
 -- Push/write to dinero efter hver betaling
