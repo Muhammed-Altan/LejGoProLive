@@ -61,7 +61,7 @@ import { useCheckoutStore } from '@/stores/checkout';
 import { useNuxtApp } from '#app';
 
 const store = useCheckoutStore();
-const stickyClasses = computed(() => 'lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-auto');
+const stickyClasses = computed(() => 'lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:overflow-auto');
 const models = computed(() => store.selectedModels || []);
 const accessories = computed(() => store.selectedAccessories || []);
 const insurance = computed(() => !!store.insurance);
@@ -103,7 +103,7 @@ async function fetchBackendTotal() {
       total: 0
     };
 
-    // Calculate model prices
+    // Calculate model prices with new logic
     models.value.forEach((model, idx) => {
       const quantity = model.quantity || 1;
       const config = model.config || {
@@ -111,16 +111,42 @@ async function fetchBackendTotal() {
         weeklyPrice: model.price * 7,
         twoWeekPrice: model.price * 14
       };
+      let modelTotal = 0;
       let pricePerDay = config.dailyPrice;
-      if (rentalDays.value >= 14) {
-        pricePerDay = config.twoWeekPrice / 14;
-      } else if (rentalDays.value >= 7) {
+      let priceType = 'daily';
+      if (rentalDays.value <= 6) {
+        // 1–6 dage: dagspris × antal dage
+        modelTotal = config.dailyPrice * rentalDays.value * quantity;
+        pricePerDay = config.dailyPrice;
+        priceType = 'daily';
+      } else if (rentalDays.value === 7) {
+        // 7 dage: ugepris
+        modelTotal = config.weeklyPrice * quantity;
         pricePerDay = config.weeklyPrice / 7;
+        priceType = 'weekly';
+      } else if (rentalDays.value >= 8 && rentalDays.value <= 13) {
+        // 8–13 dage: (ugepris / 7) × antal dage
+        modelTotal = (config.weeklyPrice / 7) * rentalDays.value * quantity;
+        pricePerDay = config.weeklyPrice / 7;
+        priceType = 'weekly-pro-rata';
+      } else if (rentalDays.value === 14) {
+        // 14 dage: 2-ugers pris
+        modelTotal = config.twoWeekPrice * quantity;
+        pricePerDay = config.twoWeekPrice / 14;
+        priceType = 'two-week';
+      } else if (rentalDays.value > 14) {
+        // 15+ dage: (2-ugers pris / 14) × antal dage
+        modelTotal = (config.twoWeekPrice / 14) * rentalDays.value * quantity;
+        pricePerDay = config.twoWeekPrice / 14;
+        priceType = 'two-week-pro-rata';
       }
       // Apply 25% discount to all except first
       let discount = idx > 0 ? pricePerDay * 0.25 : 0;
       let discountedPricePerDay = pricePerDay - discount;
-      const modelTotal = discountedPricePerDay * rentalDays.value * quantity;
+      // If discount applies, recalculate total
+      if (discount > 0) {
+        modelTotal = discountedPricePerDay * rentalDays.value * quantity;
+      }
       total += modelTotal;
       breakdown.models.push({
         name: model.name,
@@ -130,7 +156,8 @@ async function fetchBackendTotal() {
         discount,
         days: rentalDays.value,
         total: modelTotal,
-        originalTotal: pricePerDay * rentalDays.value * quantity
+        originalTotal: pricePerDay * rentalDays.value * quantity,
+        priceType
       });
     });
     // Calculate total discount for all models
@@ -139,14 +166,14 @@ async function fetchBackendTotal() {
     // Calculate accessory prices
     for (const accessory of accessories.value) {
       const quantity = accessory.quantity || 1;
-      const accessoryTotal = accessory.price * rentalDays.value * quantity;
+      // Accessory price is for the entire booking, not per day
+      const accessoryTotal = accessory.price * quantity;
       total += accessoryTotal;
       
       breakdown.accessories.push({
         name: accessory.name,
         quantity,
-        pricePerDay: accessory.price,
-        days: rentalDays.value,
+        priceTotal: accessory.price,
         total: accessoryTotal
       });
     }

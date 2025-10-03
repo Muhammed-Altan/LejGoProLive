@@ -41,6 +41,10 @@
       <div class="flex items-center justify-between mb-2">
         <h2 class="font-semibold text-lg">Vælg en GoPro Model</h2>
       </div>
+      <div v-if="!datesSelected" class="mb-3 p-3 rounded bg-yellow-100 border border-yellow-300 text-yellow-900 flex items-center gap-2 animate-pulse">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
+        <span>Vælg venligst bookingperiode først for at vælge model.</span>
+      </div>
       <div class="flex items-center gap-3">
         <select
           v-model="selectedModelName"
@@ -54,10 +58,10 @@
             :value="model.name"
             :disabled="availability[model.id] === 0"
           >
-            {{ model.name }} — {{ model.price.toFixed(2) }} kr./dag
+            {{ model.name }} — {{ (model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)).toFixed(2) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="availability[model.id] === 0">Udsolgt</template>
-              <template v-else>{{ availability[model.id] }} tilgængelige</template>
+              <template v-else>Tilgængelige</template>
             </span>
           </option>
         </select>
@@ -111,6 +115,10 @@
     <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
       <div class="flex items-center justify-between mb-2">
         <h2 class="font-semibold text-lg">Vælg tilbehør</h2>
+      </div>
+      <div v-if="!datesSelected" class="mb-3 p-3 rounded bg-yellow-100 border border-yellow-300 text-yellow-900 flex items-center gap-2 animate-pulse">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
+        <span>Vælg venligst bookingperiode først for at vælge tilbehør.</span>
       </div>
       <div class="flex items-center gap-3">
         <select
