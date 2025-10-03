@@ -139,14 +139,14 @@ async function fetchBackendTotal() {
     // Calculate accessory prices
     for (const accessory of accessories.value) {
       const quantity = accessory.quantity || 1;
-      const accessoryTotal = accessory.price * rentalDays.value * quantity;
+      // Accessory price is for the entire booking, not per day
+      const accessoryTotal = accessory.price * quantity;
       total += accessoryTotal;
       
       breakdown.accessories.push({
         name: accessory.name,
         quantity,
-        pricePerDay: accessory.price,
-        days: rentalDays.value,
+        priceTotal: accessory.price,
         total: accessoryTotal
       });
     }
