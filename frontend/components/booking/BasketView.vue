@@ -61,7 +61,7 @@ import { useCheckoutStore } from '@/stores/checkout';
 import { useNuxtApp } from '#app';
 
 const store = useCheckoutStore();
-const stickyClasses = computed(() => 'lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-auto');
+const stickyClasses = computed(() => 'lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:overflow-auto');
 const models = computed(() => store.selectedModels || []);
 const accessories = computed(() => store.selectedAccessories || []);
 const insurance = computed(() => !!store.insurance);
