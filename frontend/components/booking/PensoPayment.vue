@@ -133,7 +133,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useCheckoutStore } from '@/stores/checkout'
-import BookingConfirmation from './BookingConfirmation.vue'
+import BookingConfirmation from './RentalConditions.vue'
 
 const store = useCheckoutStore()
 

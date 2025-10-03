@@ -19,6 +19,8 @@
             format="dd/MM/yyyy"
             :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
             placeholder="Start dato"
+            :auto-apply="true"
+            :min-date="minStartDate"
           />
         </div>
         <div class="flex-1">
@@ -28,6 +30,8 @@
             format="dd/MM/yyyy"
             :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
             placeholder="Slut dato"
+            :auto-apply="true"
+            :min-date="minEndDate"
           />
         </div>
       </div>
@@ -317,6 +321,25 @@ const endDate = ref<Date | null>(
 
 // Computed: are dates selected?
 const datesSelected = computed(() => !!startDate.value && !!endDate.value);
+
+// Minimum selectable start date: 3 days from today
+const minStartDate = computed(() => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3);
+  return date;
+});
+
+// Minimum selectable end date: at least 3 days after the selected start date (or minStartDate if not set)
+const minEndDate = computed(() => {
+  let baseDate = minStartDate.value;
+  if (startDate.value && startDate.value > minStartDate.value) {
+    baseDate = startDate.value;
+  }
+  const date = new Date(baseDate);
+  date.setDate(date.getDate() + 3);
+  return date;
+});
 
 function selectModel(model: {
   name: string;
