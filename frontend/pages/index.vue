@@ -67,7 +67,7 @@
     </div>
     
     <!-- Products grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto mt-12 mb-16">
+    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto mt-12 mb-16">
       <!-- Debug info -->
       <div v-if="products.length === 0" class="col-span-full text-center text-gray-500">
         Ingen produkter fundet
