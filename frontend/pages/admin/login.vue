@@ -111,6 +111,11 @@ import { ref } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 
+definePageMeta({
+  middleware: 'admin'
+})
+
+
 // Form data
 const email = ref('')
 const password = ref('')

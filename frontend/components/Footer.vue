@@ -27,16 +27,27 @@
           <li><NuxtLink to="/faq" class="hover:text-white">FAQ</NuxtLink></li>
         </ul>
       </div>
-      <!-- Services -->
+      <!-- Social Media & Reviews -->
       <div>
-        <h3 class="font-bold mb-4">Tjenester</h3>
-        <ul class="space-y-2 text-gray-300">
-          <li><NuxtLink to="/" class="hover:text-white">LejGoPro</NuxtLink></li>
-          <li><NuxtLink to="#" class="hover:text-white">Tilbehør Pakker</NuxtLink></li>
-          <li><NuxtLink to="#" class="hover:text-white">Express Levering</NuxtLink></li>
-          <li><NuxtLink to="#" class="hover:text-white">Video Redigering</NuxtLink></li>
-          <li><NuxtLink to="#" class="hover:text-white">Support & Vejledning</NuxtLink></li>
-        </ul>
+        <h3 class="font-bold mb-4">Sociale Medier</h3>
+        <div class="space-y-4">
+          <!-- Social Media Links -->
+          <div class="flex flex-col space-y-2">
+            <a href="https://www.facebook.com" target="_blank" rel="noopener" class="text-gray-300 hover:text-white transition-colors">
+              <span>Facebook</span>
+            </a>
+            <a href="https://www.instagram.com" target="_blank" rel="noopener" class="text-gray-300 hover:text-white transition-colors">
+              <span>Instagram</span>
+            </a>
+          </div>
+          
+          <!-- Trustpilot Widget -->
+          <div class="mt-4">
+            <div class="trustpilot-widget" data-locale="da-DK" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="62240c648bfea00299062db0" data-style-height="52px" data-style-width="100%" data-token="a92258cd-5460-4ed9-be3b-a6d11ed9b1d9">
+              <a href="https://dk.trustpilot.com/review/lejgopro.dk" target="_blank" rel="noopener">Trustpilot</a>
+            </div>
+          </div>
+        </div>
       </div>
       <!-- Contact -->
       <div>

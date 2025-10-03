@@ -171,23 +171,17 @@ const printReceipt = () => {
 // Update payment status from PensoPay
 const updatePaymentStatus = async (orderId: string) => {
   try {
-    console.log('🔄 Calling payment status API for orderId:', orderId)
     const response = await fetch(`/api/payment/status?orderId=${orderId}`)
     
-    console.log('📡 Payment status API response status:', response.status, response.statusText)
-    
     if (!response.ok) {
-      console.error('❌ Failed to update payment status:', response.statusText)
-      const errorText = await response.text()
-      console.error('❌ Error response body:', errorText)
+      console.error('Failed to update payment status:', response.statusText)
       return false
     }
     
     const result = await response.json()
-    console.log('✅ Payment status API result:', result)
     return result.success
   } catch (error) {
-    console.error('❌ Error updating payment status:', error)
+    console.error('Error updating payment status:', error)
     return false
   }
 }
@@ -196,14 +190,10 @@ const updatePaymentStatus = async (orderId: string) => {
 onMounted(async () => {
   const orderId = route.query.orderId as string
   
-  console.log('🚀 Success page mounted with orderId:', orderId)
-  
   // If no order ID in URL, that's okay - we'll show a generic success message
   if (orderId) {
-    console.log('🔄 Starting payment status update for orderId:', orderId)
     // First, update payment status from PensoPay
-    const updateSuccess = await updatePaymentStatus(orderId)
-    console.log('📊 Payment status update result:', updateSuccess)
+    await updatePaymentStatus(orderId)
     
     try {
       // Fetch the actual booking data from the database

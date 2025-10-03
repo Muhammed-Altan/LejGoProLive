@@ -54,8 +54,7 @@ Den smider alle bookinger under hero 11 kamera 1
 AccessoryInstanceIds bliver gemt i et tomt array, ændrer det til at hente info fra pinia store
 
 
-frontend/composables/usePensoPay.ts 
-✅ FIXED: Removed API key exposure. Composable now only makes secure server-side calls via /api/payment/* endpoints.
+
 
 Opsæt auto capture
 Hæv pengene med det samme
@@ -63,8 +62,40 @@ Hæv pengene med det samme
 Kvittering / email auto flow
 -- Send booking id med
 
-JSON Web Tokens i cookies
+Sikkerhed
+-- Backend for login
+-- JSON Web Tokens i cookies
 -- Kig på resten af cookies
+-- Order id in URL, gem måske order id i cookies?
+
+Authentication
+-- Ingen adgang til nogen for testing
+
+Betaling
+-- Gør man kan klikke på firkanten for at vælge f.eks. apple pay
+
+Forside
+-- Gør produkter dynamiske
+-- Opdater sadan booker du
+
+Footer
+-- Opdater Tjenester til sociale medier
+Trustpilot
+Faceobok
+insta
+
+Betaling
+-- paymentStatus og paidAt opdater ikke
+
+Camera table i database
+-- Log ændringer efter edit
+
+Admin
+-- Change landing page pic tab
+
+
+Dinero
+-- Push/write to dinero efter hver betaling
 
 Privatlivspolitik
  -->
