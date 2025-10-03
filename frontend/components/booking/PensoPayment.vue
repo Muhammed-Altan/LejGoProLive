@@ -22,7 +22,7 @@
     <!-- Payment Options -->
     <div class="space-y-4 mb-6">
       <!-- Google Pay Option -->
-      <div class="border rounded-lg p-4">
+      <div class="border rounded-lg p-4 cursor-pointer hover:border-[#B90C2C] transition-colors" @click="selectedMethod = 'googlepay'">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
@@ -43,13 +43,13 @@
             name="payment-method" 
             value="googlepay" 
             v-model="selectedMethod"
-            class="w-4 h-4 text-[#B90C2C] focus:ring-[#B90C2C]"
+            class="w-4 h-4 text-[#B90C2C] focus:ring-[#B90C2C] pointer-events-none"
           >
         </div>
       </div>
 
       <!-- Apple Pay Option -->
-      <div class="border rounded-lg p-4">
+      <div class="border rounded-lg p-4 cursor-pointer hover:border-[#B90C2C] transition-colors" @click="selectedMethod = 'applepay'">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-black rounded flex items-center justify-center">
@@ -67,13 +67,13 @@
             name="payment-method" 
             value="applepay" 
             v-model="selectedMethod"
-            class="w-4 h-4 text-[#B90C2C] focus:ring-[#B90C2C]"
+            class="w-4 h-4 text-[#B90C2C] focus:ring-[#B90C2C] pointer-events-none"
           >
         </div>
       </div>
 
       <!-- Credit Card Option -->
-      <div class="border rounded-lg p-4">
+      <div class="border rounded-lg p-4 cursor-pointer hover:border-[#B90C2C] transition-colors" @click="selectedMethod = 'creditcard'">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-gray-500 rounded flex items-center justify-center">
@@ -91,7 +91,7 @@
             name="payment-method" 
             value="creditcard" 
             v-model="selectedMethod"
-            class="w-4 h-4 text-[#B90C2C] focus:ring-[#B90C2C]"
+            class="w-4 h-4 text-[#B90C2C] focus:ring-[#B90C2C] pointer-events-none"
           >
         </div>
       </div>
@@ -133,7 +133,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useCheckoutStore } from '@/stores/checkout'
-import BookingConfirmation from './BookingConfirmation.vue'
+import BookingConfirmation from './RentalConditions.vue'
 
 const store = useCheckoutStore()
 

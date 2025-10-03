@@ -168,13 +168,32 @@ const printReceipt = () => {
   }
 }
 
+// Update payment status from PensoPay
+const updatePaymentStatus = async (orderId: string) => {
+  try {
+    const response = await fetch(`/api/payment/status?orderId=${orderId}`)
+    
+    if (!response.ok) {
+      console.error('Failed to update payment status:', response.statusText)
+      return false
+    }
+    
+    const result = await response.json()
+    return result.success
+  } catch (error) {
+    console.error('Error updating payment status:', error)
+    return false
+  }
+}
+
 // Load payment details on mount
 onMounted(async () => {
   const orderId = route.query.orderId as string
   
   // If no order ID in URL, that's okay - we'll show a generic success message
   if (orderId) {
-    console.log('Order ID found:', orderId)
+    // First, update payment status from PensoPay
+    await updatePaymentStatus(orderId)
     
     try {
       // Fetch the actual booking data from the database
@@ -189,7 +208,7 @@ onMounted(async () => {
         .single()
       
       if (error) {
-        console.error('Error fetching booking:', error)
+        console.error('Error fetching booking from Supabase:', error)
         // Fallback to generic data if booking not found
         orderDetails.value = {
           order_id: orderId,
@@ -198,12 +217,11 @@ onMounted(async () => {
           updated_at: new Date().toISOString()
         }
       } else {
-        console.log('Booking data loaded:', booking)
         orderDetails.value = {
           order_id: orderId,
           amount: booking.totalPrice || 0, // Use actual price from database (in øre)
-          state: 'Bekræftet',
-          updated_at: booking.created_at || new Date().toISOString()
+          state: booking.paymentStatus === 'paid' ? 'Betalt' : 'Bekræftet',
+          updated_at: booking.paidAt || booking.created_at || new Date().toISOString()
         }
       }
     } catch (err) {
