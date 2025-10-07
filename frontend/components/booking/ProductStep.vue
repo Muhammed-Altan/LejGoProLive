@@ -264,6 +264,7 @@ interface ProductOption {
   price: number;
   weeklyPrice?: number;
   twoWeekPrice?: number;
+  quantity?: number;
 }
 
 function getMaxProductQuantity(item: { name: string; productId?: number }) {
@@ -561,6 +562,7 @@ onMounted(async () => {
       price: typeof p.dailyPrice === "number" ? p.dailyPrice : 0,
       weeklyPrice: p.weeklyPrice,
       twoWeekPrice: p.twoWeekPrice,
+      quantity: typeof p.quantity === "number" ? p.quantity : 5,
     }));
   } catch (e) {
     console.error("Error fetching products from Supabase:", e);
@@ -603,21 +605,49 @@ watch([startDate, endDate], async () => {
     availability.value = {};
     return;
   }
-  
-  // For now, we'll assume all products have availability of 5
-  // In a real implementation, you'd query the bookings table to check availability
-  const defaultAvailability: Record<number, number> = {};
+
+  // Real implementation: check bookings and subtract from product quantity
+  const supabase = useSupabase();
+  if (!supabase) {
+    availability.value = {};
+    return;
+  }
+  // Get all bookings that overlap with the selected period
+  // Assuming Booking table has: productId, quantity, startDate, endDate
+  const { data: bookings, error } = await supabase
+    .from('Booking')
+    .select('productId, quantity, startDate, endDate');
+
+  // Build a map of booked quantities per product for the selected period
+  const bookedMap: Record<number, number> = {};
+  if (!error && bookings && startDate.value && endDate.value) {
+    const start = startDate.value as Date;
+    const end = endDate.value as Date;
+    bookings.forEach((booking: any) => {
+      const bookingStart = new Date(booking.startDate);
+      const bookingEnd = new Date(booking.endDate);
+      // Check for overlap
+      if (
+        start <= bookingEnd &&
+        end >= bookingStart
+      ) {
+        bookedMap[booking.productId] = (bookedMap[booking.productId] || 0) + (booking.quantity || 1);
+      }
+    });
+  }
+
+  // Set availability based on product quantity minus booked quantity
+  const newAvailability: Record<number, number> = {};
   models.value.forEach(model => {
-    defaultAvailability[model.id] = 5; // Assume 5 available
+    // Use model.quantity from Product table, fallback to 5 only if undefined/null
+    let totalQty = 5;
+    if (typeof model.quantity === 'number' && !isNaN(model.quantity)) {
+      totalQty = model.quantity;
+    }
+    const bookedQty = bookedMap[model.id] || 0;
+    newAvailability[model.id] = Math.max(0, totalQty - bookedQty);
   });
-  availability.value = defaultAvailability;
-  
-  // TODO: Implement real availability checking with Supabase
-  // const supabase = useSupabase();
-  // const { data: bookings } = await supabase
-  //   .from('bookings')
-  //   .select('product_id, quantity')
-  //   .overlaps('rental_period', `[${startDate.value.toISOString()}, ${endDate.value.toISOString()}]`);
+  availability.value = newAvailability;
 });
 
 // Fetch cameras when products are selected
