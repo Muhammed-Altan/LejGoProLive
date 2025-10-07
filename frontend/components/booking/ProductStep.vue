@@ -66,7 +66,7 @@
           </option>
         </select>
         <button
-          :disabled="!selectedModelName || !datesSelected"
+          :disabled="!selectedModelName || !datesSelected || selectedModels.length >= 2"
           @click="onAddSelectedModel"
           class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
         >
@@ -178,7 +178,7 @@
     </section>
 
     <!-- Insurance Toggle -->
-    <section
+    <!-- <section
       class="bg-gray-50 rounded-xl p-6 shadow flex items-center justify-between"
     >
       <div class="flex items-center gap-3">
@@ -246,7 +246,7 @@
           class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow peer-checked:translate-x-6 transition-transform"
         ></div>
       </label>
-    </section>
+    </section> -->
   </div>
 </template>
 
@@ -356,28 +356,35 @@ function selectModel(model: {
   config?: { dailyPrice: number; weeklyPrice: number; twoWeekPrice: number };
 }) {
   const found = selectedModels.value.find((m) => m.name === model.name);
-  if (found) {
-    found.quantity++;
-  } else {
+  if (!found) {
     selectedModels.value.push({ ...model, quantity: 1 });
   }
 }
 
 function onAddSelectedModel() {
+  if (selectedModels.value.length >= 2) {
+    // Hardcap: do not add more than 2 model types
+    selectedModelName.value = "";
+    return;
+  }
   const model = models.value.find((m) => m.name === selectedModelName.value);
   if (model) {
-    selectModel({
-      name: model.name,
-      price: model.price,
-      productId: model.id,
-      config: {
-        dailyPrice: model.price,
-        weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
-        twoWeekPrice: (model as any).twoWeekPrice ?? model.price * 14,
-      },
-    });
-    // also keep legacy field updated with first product id for compatibility
-    if (!store.productId) store.setProductId(model.id);
+    // Only add if not already selected
+    const alreadySelected = selectedModels.value.some(m => m.name === model.name);
+    if (!alreadySelected) {
+      selectModel({
+        name: model.name,
+        price: model.price,
+        productId: model.id,
+        config: {
+          dailyPrice: model.price,
+          weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
+          twoWeekPrice: (model as any).twoWeekPrice ?? model.price * 14,
+        },
+      });
+      // also keep legacy field updated with first product id for compatibility
+      if (!store.productId) store.setProductId(model.id);
+    }
   }
   // reset selection to allow adding the same again
   selectedModelName.value = "";
