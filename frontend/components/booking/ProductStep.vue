@@ -110,7 +110,7 @@
         </div>
         <button
           @click="removeModel(idx)"
-          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer"
+          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer tilfoej-btn"
         >
           Fjern
         </button>
