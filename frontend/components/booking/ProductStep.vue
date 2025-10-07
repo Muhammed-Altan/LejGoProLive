@@ -24,15 +24,16 @@
           />
         </div>
         <div class="flex-1">
-          <VueDatePicker
-            v-model="endDate"
-            :enable-time-picker="false"
-            format="dd/MM/yyyy"
-            :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
-            placeholder="Slut dato"
-            :auto-apply="true"
-            :min-date="minEndDate"
-          />
+              <VueDatePicker
+                v-model="endDate"
+                :enable-time-picker="false"
+                format="dd/MM/yyyy"
+                :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
+                placeholder="Slut dato"
+                :auto-apply="true"
+                :min-date="minEndDate"
+                :disabled="!startDate"
+              />
         </div>
       </div>
     </section>
@@ -327,6 +328,13 @@ const startDate = ref<Date | null>(
 const endDate = ref<Date | null>(
   store.endDate ? new Date(store.endDate) : null
 );
+
+// Watch startDate: hvis den ændres, nulstil endDate
+watch(startDate, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    endDate.value = null;
+  }
+});
 
 // Computed: are dates selected?
 const datesSelected = computed(() => !!startDate.value && !!endDate.value);
