@@ -21,6 +21,7 @@
             placeholder="Start dato"
             :auto-apply="true"
             :min-date="minStartDate"
+            :disabled-dates="disableWeekends"
           />
         </div>
         <div class="flex-1">
@@ -262,6 +263,11 @@ import { useCheckoutStore } from "@/stores/checkout";
 import { useNuxtApp } from "#app";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
+// Function to disable weekends in date picker
+function disableWeekends(date: Date) {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+}
 
 // Models are now fetched from the backend Product table
 interface ProductOption {
