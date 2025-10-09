@@ -60,7 +60,7 @@
             :value="model.name"
             :disabled="availability[model.id] === 0"
           >
-            {{ model.name }} — {{ (model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)).toFixed(2) }} kr./dag
+            {{ model.name }} — {{ Math.round(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="availability[model.id] === 0">Udsolgt</template>
               <template v-else>Tilgængelige</template>
@@ -82,15 +82,16 @@
       <div
         v-for="(item, idx) in selectedModels"
         :key="item.name"
-        class="flex items-center gap-4 bg-gray-100 rounded-lg py-2 px-4 font-medium"
+        class="flex items-center gap-4 bg-gray-100 rounded-lg py-2 px-4"
       >
       <img 
         src="C:\GithubProjekter\LejGoProLive\frontend\public\eventyr\GoPro-MountainTop.jpg" 
         alt="" 
-        class="w-12 h-12 object-cover rounded mr-3 border border-gray-200 bg-white">
+        class="w-20 h-20 object-cover rounded mr-3 border border-gray-200 bg-white">
 
         <div class="flex-1">
-          {{ item.name }} <p>Features:</p>
+          <p class="font-semibold">{{ item.name }}</p>
+          <p class="text-sm text-[#888] mt-2">Inkluderet tilbehør: Beskyttelsescase, ekstra batteri, rejsetaske</p>
         </div>
         <div class="flex items-center justify-center gap-2 group relative">
           <span>Antal</span>
