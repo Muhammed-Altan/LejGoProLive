@@ -21,18 +21,20 @@
             placeholder="Start dato"
             :auto-apply="true"
             :min-date="minStartDate"
+            :disabled-dates="disableWeekends"
           />
         </div>
         <div class="flex-1">
-          <VueDatePicker
-            v-model="endDate"
-            :enable-time-picker="false"
-            format="dd/MM/yyyy"
-            :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
-            placeholder="Slut dato"
-            :auto-apply="true"
-            :min-date="minEndDate"
-          />
+              <VueDatePicker
+                v-model="endDate"
+                :enable-time-picker="false"
+                format="dd/MM/yyyy"
+                :input-class="'w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400'"
+                placeholder="Slut dato"
+                :auto-apply="true"
+                :min-date="minEndDate"
+                :disabled="!startDate"
+              />
         </div>
       </div>
     </section>
@@ -58,7 +60,7 @@
             :value="model.name"
             :disabled="availability[model.id] === 0"
           >
-            {{ model.name }} — {{ (model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)).toFixed(2) }} kr./dag
+            {{ model.name }} — {{ Math.round(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="availability[model.id] === 0">Udsolgt</template>
               <template v-else>Tilgængelige</template>
@@ -66,7 +68,7 @@
           </option>
         </select>
         <button
-          :disabled="!selectedModelName || !datesSelected"
+          :disabled="!selectedModelName || !datesSelected || selectedModels.length >= 2"
           @click="onAddSelectedModel"
           class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
         >
@@ -80,10 +82,16 @@
       <div
         v-for="(item, idx) in selectedModels"
         :key="item.name"
-        class="flex items-center gap-4 bg-blue-100 rounded-lg py-2 px-4 font-medium"
+        class="flex items-center gap-4 bg-gray-100 rounded-lg py-2 px-4"
       >
-        <div class="flex-1 text-center">
-          {{ item.name }}
+      <img 
+        src="/eventyr/GoPro-MountainTop.jpg" 
+        alt="" 
+        class="w-20 h-20 object-cover rounded mr-3 border border-gray-200 bg-white">
+
+        <div class="flex-1">
+          <p class="font-semibold">{{ item.name }}</p>
+          <p class="text-sm text-[#888] mt-2">Inkluderet tilbehør: Beskyttelsescase, ekstra batteri, rejsetaske</p>
         </div>
         <div class="flex items-center justify-center gap-2 group relative">
           <span>Antal</span>
@@ -104,7 +112,7 @@
         </div>
         <button
           @click="removeModel(idx)"
-          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer"
+          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer tilfoej-btn"
         >
           Fjern
         </button>
@@ -178,7 +186,7 @@
     </section>
 
     <!-- Insurance Toggle -->
-    <section
+    <!-- <section
       class="bg-gray-50 rounded-xl p-6 shadow flex items-center justify-between"
     >
       <div class="flex items-center gap-3">
@@ -246,7 +254,7 @@
           class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow peer-checked:translate-x-6 transition-transform"
         ></div>
       </label>
-    </section>
+    </section> -->
   </div>
 </template>
 
@@ -256,6 +264,11 @@ import { useCheckoutStore } from "@/stores/checkout";
 import { useNuxtApp } from "#app";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
+// Function to disable weekends in date picker
+function disableWeekends(date: Date) {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+}
 
 // Models are now fetched from the backend Product table
 interface ProductOption {
@@ -264,6 +277,7 @@ interface ProductOption {
   price: number;
   weeklyPrice?: number;
   twoWeekPrice?: number;
+  quantity?: number;
 }
 
 function getMaxProductQuantity(item: { name: string; productId?: number }) {
@@ -327,6 +341,13 @@ const endDate = ref<Date | null>(
   store.endDate ? new Date(store.endDate) : null
 );
 
+// Watch startDate: if it changes, reset endDate
+watch(startDate, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    endDate.value = null;
+  }
+});
+
 // Computed: are dates selected?
 const datesSelected = computed(() => !!startDate.value && !!endDate.value);
 
@@ -356,28 +377,37 @@ function selectModel(model: {
   config?: { dailyPrice: number; weeklyPrice: number; twoWeekPrice: number };
 }) {
   const found = selectedModels.value.find((m) => m.name === model.name);
-  if (found) {
-    found.quantity++;
-  } else {
+  if (!found) {
     selectedModels.value.push({ ...model, quantity: 1 });
+  } else {
+    found.quantity = (found.quantity ?? 1) + 1;
   }
 }
 
 function onAddSelectedModel() {
+  if (selectedModels.value.length >= 2) {
+    // Hardcap: do not add more than 2 model types
+    selectedModelName.value = "";
+    return;
+  }
   const model = models.value.find((m) => m.name === selectedModelName.value);
   if (model) {
-    selectModel({
-      name: model.name,
-      price: model.price,
-      productId: model.id,
-      config: {
-        dailyPrice: model.price,
-        weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
-        twoWeekPrice: (model as any).twoWeekPrice ?? model.price * 14,
-      },
-    });
-    // also keep legacy field updated with first product id for compatibility
-    if (!store.productId) store.setProductId(model.id);
+    // Only add if not already selected
+    const alreadySelected = selectedModels.value.some(m => m.name === model.name);
+    if (!alreadySelected) {
+      selectModel({
+        name: model.name,
+        price: model.price,
+        productId: model.id,
+        config: {
+          dailyPrice: model.price,
+          weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
+          twoWeekPrice: (model as any).twoWeekPrice ?? model.price * 14,
+        },
+      });
+      // also keep legacy field updated with first product id for compatibility
+      if (!store.productId) store.setProductId(model.id);
+    }
   }
   // reset selection to allow adding the same again
   selectedModelName.value = "";
@@ -554,6 +584,7 @@ onMounted(async () => {
       price: typeof p.dailyPrice === "number" ? p.dailyPrice : 0,
       weeklyPrice: p.weeklyPrice,
       twoWeekPrice: p.twoWeekPrice,
+      quantity: typeof p.quantity === "number" ? p.quantity : 5,
     }));
   } catch (e) {
     console.error("Error fetching products from Supabase:", e);
@@ -575,14 +606,14 @@ onMounted(async () => {
   } catch (e) {
     console.error("Error fetching accessories from Supabase:", e);
     // Set some default accessories if table doesn't exist yet
-    accessories.value = [
-      { name: "Grip", price: 70 },
-      { name: "Ekstra batteri", price: 50 },
-      { name: "Headstrap", price: 60 },
-      { name: "Brystmount", price: 80 },
-      { name: "Beskyttelsescase", price: 40 },
-      { name: "Sugekop til ruder", price: 90 }
-    ];
+    // accessories.value = [
+    //   { name: "Grip", price: 70 },
+    //   { name: "Ekstra batteri", price: 50 },
+    //   { name: "Headstrap", price: 60 },
+    //   { name: "Brystmount", price: 80 },
+    //   { name: "Beskyttelsescase", price: 40 },
+    //   { name: "Sugekop til ruder", price: 90 }
+    // ];
   }
 
   // Note: Availability checking would need to be implemented with a bookings table
@@ -596,21 +627,49 @@ watch([startDate, endDate], async () => {
     availability.value = {};
     return;
   }
-  
-  // For now, we'll assume all products have availability of 5
-  // In a real implementation, you'd query the bookings table to check availability
-  const defaultAvailability: Record<number, number> = {};
+
+  // Real implementation: check bookings and subtract from product quantity
+  const supabase = useSupabase();
+  if (!supabase) {
+    availability.value = {};
+    return;
+  }
+  // Get all bookings that overlap with the selected period
+  // Assuming Booking table has: productId, quantity, startDate, endDate
+  const { data: bookings, error } = await supabase
+    .from('Booking')
+    .select('productId, quantity, startDate, endDate');
+
+  // Build a map of booked quantities per product for the selected period
+  const bookedMap: Record<number, number> = {};
+  if (!error && bookings && startDate.value && endDate.value) {
+    const start = startDate.value as Date;
+    const end = endDate.value as Date;
+    bookings.forEach((booking: any) => {
+      const bookingStart = new Date(booking.startDate);
+      const bookingEnd = new Date(booking.endDate);
+      // Check for overlap
+      if (
+        start <= bookingEnd &&
+        end >= bookingStart
+      ) {
+        bookedMap[booking.productId] = (bookedMap[booking.productId] || 0) + (booking.quantity || 1);
+      }
+    });
+  }
+
+  // Set availability based on product quantity minus booked quantity
+  const newAvailability: Record<number, number> = {};
   models.value.forEach(model => {
-    defaultAvailability[model.id] = 5; // Assume 5 available
+    // Use model.quantity from Product table, fallback to 5 only if undefined/null
+    let totalQty = 5;
+    if (typeof model.quantity === 'number' && !isNaN(model.quantity)) {
+      totalQty = model.quantity;
+    }
+    const bookedQty = bookedMap[model.id] || 0;
+    newAvailability[model.id] = Math.max(0, totalQty - bookedQty);
   });
-  availability.value = defaultAvailability;
-  
-  // TODO: Implement real availability checking with Supabase
-  // const supabase = useSupabase();
-  // const { data: bookings } = await supabase
-  //   .from('bookings')
-  //   .select('product_id, quantity')
-  //   .overlaps('rental_period', `[${startDate.value.toISOString()}, ${endDate.value.toISOString()}]`);
+  availability.value = newAvailability;
 });
 
 // Fetch cameras when products are selected
