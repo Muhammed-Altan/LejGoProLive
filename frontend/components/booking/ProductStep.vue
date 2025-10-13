@@ -379,6 +379,8 @@ function selectModel(model: {
   const found = selectedModels.value.find((m) => m.name === model.name);
   if (!found) {
     selectedModels.value.push({ ...model, quantity: 1 });
+  } else {
+    found.quantity = (found.quantity ?? 1) + 1;
   }
 }
 
