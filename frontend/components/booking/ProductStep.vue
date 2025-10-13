@@ -85,7 +85,7 @@
         class="flex items-center gap-4 bg-gray-100 rounded-lg py-2 px-4"
       >
       <img 
-        src="C:\GithubProjekter\LejGoProLive\frontend\public\eventyr\GoPro-MountainTop.jpg" 
+        src="/eventyr/GoPro-MountainTop.jpg" 
         alt="" 
         class="w-20 h-20 object-cover rounded mr-3 border border-gray-200 bg-white">
 
