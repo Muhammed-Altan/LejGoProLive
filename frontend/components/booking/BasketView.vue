@@ -6,9 +6,9 @@
     <div v-else>
       <div v-for="(line, idx) in backendBreakdown.models" :key="idx" class="mb-5 text-lg flex items-center">
         <img
-            src="/eventyr/GoPro-MountainTop.jpg"
-          alt="{{ line.name }}"
-            class="w-12 h-12 object-cover rounded mr-3 border border-gray-200 bg-white"
+          :src="line.image || '/eventyr/GoPro-MountainTop.jpg'"
+          :alt="line.name"
+          class="w-12 h-12 object-cover rounded mr-3 border border-gray-200 bg-white"
           style="flex-shrink:0;"
         />
         <span>{{ line.quantity }}x <span class="font-semibold">{{ line.name }}</span></span>
@@ -50,12 +50,26 @@
         </span>
       </div>
       <div class="text-sm text-[#888] mt-2" v-if="rentalDays > 0">Antal dage: {{ rentalDays }}</div>
+      <div v-if="discountTip" class="text-sm text-blue-700 mt-2 font-semibold">
+        {{ discountTip }}
+      </div>
       <div class="text-sm text-[#d00] mt-2" v-if="error">{{ error }}</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+// Computed tip for discount threshold
+const discountTip = computed(() => {
+  if (!rentalDays.value) return null;
+  if (rentalDays.value === 6) {
+    return 'Tip: Book én dag mere og få ugepris!';
+  }
+  if (rentalDays.value === 13) {
+    return 'Tip: Book én dag mere og få 2-ugers pris!';
+  }
+  return null;
+});
 import { computed, ref, watch } from 'vue';
 import { useCheckoutStore } from '@/stores/checkout';
 import { useNuxtApp } from '#app';
@@ -210,6 +224,7 @@ function formatCurrency(n: number|null) {
   if (n == null) return '—';
   return new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', minimumFractionDigits: 0 }).format(n);
 }
+
 </script>
 
 <style scoped>
