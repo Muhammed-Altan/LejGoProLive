@@ -552,6 +552,7 @@ function getTotalPrice() {
 }
 
 // Sync to store
+import { z } from "zod";
 watch(
   [selectedModels, selectedAccessories, insurance, startDate, endDate],
   () => {
@@ -570,7 +571,44 @@ onMounted(async () => {
   const supabase = useSupabase();
   
   try {
+const bookingSchema = z.object({
+  startDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
+  endDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
+  models: z.array(z.object({
+    name: z.string(),
+    quantity: z.number().int().min(1),
+    productId: z.number().int(),
+  })),
+  accessories: z.array(z.object({
+    name: z.string(),
+    quantity: z.number().int().min(1),
+  })),
+  insurance: z.boolean(),
+});
     // Fetch products from Supabase
+function validateBooking() {
+  const formData = {
+    startDate: startDate.value?.toISOString() ?? "",
+    endDate: endDate.value?.toISOString() ?? "",
+    models: selectedModels.value.map(m => ({
+      name: m.name,
+      quantity: m.quantity,
+      productId: m.productId ?? 0,
+    })),
+    accessories: selectedAccessories.value.map(a => ({
+      name: a.name,
+      quantity: a.quantity,
+    })),
+    insurance: !!insurance.value,
+  };
+  const result = bookingSchema.safeParse(formData);
+  if (!result.success) {
+    // Handle validation errors (show to user, log, etc.)
+    console.log("Validation errors:", result.error.issues);
+    return false;
+  }
+  return true;
+}
     const { data: productsData, error: productsError } = await supabase
       .from('Product')
       .select('*')
@@ -605,15 +643,6 @@ onMounted(async () => {
     }));
   } catch (e) {
     console.error("Error fetching accessories from Supabase:", e);
-    // Set some default accessories if table doesn't exist yet
-    // accessories.value = [
-    //   { name: "Grip", price: 70 },
-    //   { name: "Ekstra batteri", price: 50 },
-    //   { name: "Headstrap", price: 60 },
-    //   { name: "Brystmount", price: 80 },
-    //   { name: "Beskyttelsescase", price: 40 },
-    //   { name: "Sugekop til ruder", price: 90 }
-    // ];
   }
 
   // Note: Availability checking would need to be implemented with a bookings table
