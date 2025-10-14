@@ -5,7 +5,9 @@
     <div class="lg:col-span-2 space-y-6 bg-white p-6 rounded-xl shadow-md">
       <ProductStep />
       <DeliveryStep />
-      <PensoPayment v-if="showPayment" />
+      <!-- Use if we want to hide the payment section until all required info is filled -->
+      <!-- <PensoPayment v-if="showPayment" /> -->
+       <PensoPayment />
     </div>
 
     <!-- Højre side (1/3 af bredden, sticky kurv) -->
