@@ -21,7 +21,6 @@
             placeholder="Start dato"
             :auto-apply="true"
             :min-date="minStartDate"
-            :disabled-dates="disableWeekends"
           />
         </div>
         <div class="flex-1">
@@ -60,7 +59,7 @@
             :value="model.name"
             :disabled="availability[model.id] === 0"
           >
-            {{ model.name }} — {{ Math.round(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
+            {{ model.name }} — {{ (model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)).toFixed(2) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="availability[model.id] === 0">Udsolgt</template>
               <template v-else>Tilgængelige</template>
@@ -82,16 +81,15 @@
       <div
         v-for="(item, idx) in selectedModels"
         :key="item.name"
-        class="flex items-center gap-4 bg-gray-100 rounded-lg py-2 px-4"
+        class="flex items-center gap-4 bg-gray-100 rounded-lg py-2 px-4 font-medium"
       >
       <img 
-        src="/eventyr/GoPro-MountainTop.jpg" 
+        src="C:\GithubProjekter\LejGoProLive\frontend\public\eventyr\GoPro-MountainTop.jpg" 
         alt="" 
-        class="w-20 h-20 object-cover rounded mr-3 border border-gray-200 bg-white">
+        class="w-12 h-12 object-cover rounded mr-3 border border-gray-200 bg-white">
 
         <div class="flex-1">
-          <p class="font-semibold">{{ item.name }}</p>
-          <p class="text-sm text-[#888] mt-2">Inkluderet tilbehør: Beskyttelsescase, ekstra batteri, rejsetaske</p>
+          {{ item.name }} <p>Features:</p>
         </div>
         <div class="flex items-center justify-center gap-2 group relative">
           <span>Antal</span>
@@ -193,11 +191,6 @@ import { useCheckoutStore } from "@/stores/checkout";
 import { useNuxtApp } from "#app";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
-// Function to disable weekends in date picker
-function disableWeekends(date: Date) {
-  const day = date.getDay();
-  return day === 0 || day === 6;
-}
 
 // Models are now fetched from the backend Product table
 interface ProductOption {
@@ -270,7 +263,7 @@ const endDate = ref<Date | null>(
   store.endDate ? new Date(store.endDate) : null
 );
 
-// Watch startDate: if it changes, reset endDate
+// Watch startDate: hvis den ændres, nulstil endDate
 watch(startDate, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     endDate.value = null;
@@ -308,8 +301,6 @@ function selectModel(model: {
   const found = selectedModels.value.find((m) => m.name === model.name);
   if (!found) {
     selectedModels.value.push({ ...model, quantity: 1 });
-  } else {
-    found.quantity = (found.quantity ?? 1) + 1;
   }
 }
 
@@ -395,8 +386,6 @@ function onAddSelectedCamera() {
     const exists = selectedCameras.value.find(c => c.id === camera.id);
     if (!exists) {
       selectedCameras.value.push(selectedCamera);
-      // TODO: Add setCameraId to store if needed
-      // store.setCameraId(camera.id);
     }
   }
   
@@ -428,60 +417,8 @@ function removeAccessory(idx: number) {
   selectedAccessories.value.splice(idx, 1);
 }
 
-// --- Price calculation helpers with discount logic ---
-function getRentalDays() {
-  if (!startDate.value || !endDate.value) return 0;
-  const msPerDay = 1000 * 60 * 60 * 24;
-  // Add 1 to include both start and end date
-  return Math.max(1, Math.ceil((endDate.value.getTime() - startDate.value.getTime()) / msPerDay) + 1);
-}
-
-function getModelBreakdown() {
-  // Apply 25% discount to all cameras except the first
-  return selectedModels.value.map((item, idx) => {
-    const days = getRentalDays();
-    let pricePerDay = item.price;
-    if (idx > 0) pricePerDay = pricePerDay * 0.75;
-    return {
-      name: item.name,
-      quantity: item.quantity,
-      pricePerDay,
-      total: pricePerDay * item.quantity * days
-    };
-  });
-}
-
-function getAccessoryBreakdown() {
-  const days = getRentalDays();
-  return selectedAccessories.value.map(item => ({
-    name: item.name,
-    quantity: item.quantity,
-    pricePerDay: item.price,
-    total: item.price * item.quantity * days
-  }));
-}
-
-function getTotalPrice() {
-  const days = getRentalDays();
-  // Models: first full price, rest 25% off
-  let modelTotal = 0;
-  selectedModels.value.forEach((item, idx) => {
-    let pricePerDay = item.price;
-    if (idx > 0) pricePerDay = pricePerDay * 0.75;
-    modelTotal += pricePerDay * item.quantity * days;
-  });
-  // Accessories: no discount
-  let accessoryTotal = 0;
-  selectedAccessories.value.forEach(item => {
-    accessoryTotal += item.price * item.quantity * days;
-  });
-  // Insurance: add if selected (example: flat 100 kr)
-  let insuranceTotal = insurance.value ? 100 : 0;
-  return modelTotal + accessoryTotal + insuranceTotal;
-}
 
 // Sync to store
-import { z } from "zod";
 watch(
   [selectedModels, selectedAccessories, insurance, startDate, endDate],
   () => {
@@ -500,44 +437,7 @@ onMounted(async () => {
   const supabase = useSupabase();
   
   try {
-const bookingSchema = z.object({
-  startDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid start date" }),
-  endDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid end date" }),
-  models: z.array(z.object({
-    name: z.string(),
-    quantity: z.number().int().min(1),
-    productId: z.number().int(),
-  })),
-  accessories: z.array(z.object({
-    name: z.string(),
-    quantity: z.number().int().min(1),
-  })),
-  insurance: z.boolean(),
-});
     // Fetch products from Supabase
-function validateBooking() {
-  const formData = {
-    startDate: startDate.value?.toISOString() ?? "",
-    endDate: endDate.value?.toISOString() ?? "",
-    models: selectedModels.value.map(m => ({
-      name: m.name,
-      quantity: m.quantity,
-      productId: m.productId ?? 0,
-    })),
-    accessories: selectedAccessories.value.map(a => ({
-      name: a.name,
-      quantity: a.quantity,
-    })),
-    insurance: !!insurance.value,
-  };
-  const result = bookingSchema.safeParse(formData);
-  if (!result.success) {
-    // Handle validation errors (show to user, log, etc.)
-    console.log("Validation errors:", result.error.issues);
-    return false;
-  }
-  return true;
-}
     const { data: productsData, error: productsError } = await supabase
       .from('Product')
       .select('*')
@@ -574,12 +474,8 @@ function validateBooking() {
     console.error("Error fetching accessories from Supabase:", e);
   }
 
-  // Note: Availability checking would need to be implemented with a bookings table
-  // For now, we'll skip the availability check since we don't have booking data yet
 });
 
-// Refetch availability whenever dates change and both are set
-// Note: This would need to be implemented with a bookings table in Supabase
 watch([startDate, endDate], async () => {
   if (!startDate.value || !endDate.value) {
     availability.value = {};

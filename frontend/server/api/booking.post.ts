@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import { getRequestIP, sendError, createError } from 'h3';
+import { calculatePricing } from './pricing';
+import { enrichModelsWithPrices, enrichAccessoriesWithPrices } from './productUtils';
 // Rate limiter setup: 2 requests per 600 sekunder per IP
 const rateLimiter = new RateLimiterMemory({
   points: 2,
@@ -149,10 +151,31 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // If all checks pass, insert booking
+
+  // --- Pricing & Discount Calculation (Business Logic Enforcement) ---
+  // Enrich models and accessories with prices from DB
+  const enrichedModels = await enrichModelsWithPrices(booking.models);
+  const enrichedAccessories = await enrichAccessoriesWithPrices(booking.accessories);
+
+  const pricing = calculatePricing(
+    enrichedModels,
+    enrichedAccessories,
+    booking.insurance,
+    booking.startDate,
+    booking.endDate
+  );
+
+  const bookingData = {
+    ...booking,
+    models: enrichedModels,
+    accessories: enrichedAccessories,
+    ...pricing
+  };
+
+  // Insert booking with enforced pricing
   const { error: insertError } = await supabase
     .from('Booking')
-    .insert([booking]);
+    .insert([bookingData]);
 
   if (insertError) {
     return {
@@ -164,5 +187,6 @@ export default defineEventHandler(async (event) => {
   return {
     status: 200,
     message: 'Booking created successfully',
+    ...pricing
   };
 });
