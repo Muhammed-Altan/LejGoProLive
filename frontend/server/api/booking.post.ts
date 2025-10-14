@@ -25,8 +25,36 @@ const bookingSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
+
+  // --- Input Sanitization ---
   const body = await readBody(event);
-  const result = bookingSchema.safeParse(body);
+  // Remove any unexpected fields and trim strings
+  function sanitizeString(str: unknown): string {
+    return typeof str === 'string' ? str.trim() : '';
+  }
+  function sanitizeNumber(num: unknown): number {
+    return typeof num === 'number' && !isNaN(num) ? num : 0;
+  }
+  // Sanitize models and accessories arrays
+  const sanitizedModels = Array.isArray(body.models) ? body.models.map((m: any) => ({
+    name: sanitizeString(m.name),
+    quantity: sanitizeNumber(m.quantity),
+    productId: sanitizeNumber(m.productId),
+  })) : [];
+  const sanitizedAccessories = Array.isArray(body.accessories) ? body.accessories.map((a: any) => ({
+    name: sanitizeString(a.name),
+    quantity: sanitizeNumber(a.quantity),
+  })) : [];
+  const sanitizedBody = {
+    startDate: sanitizeString(body.startDate),
+    endDate: sanitizeString(body.endDate),
+    models: sanitizedModels,
+    accessories: sanitizedAccessories,
+    insurance: !!body.insurance,
+  };
+
+  // --- Zod Validation ---
+  const result = bookingSchema.safeParse(sanitizedBody);
   if (!result.success) {
     return {
       status: 400,
@@ -36,7 +64,45 @@ export default defineEventHandler(async (event) => {
   }
   const booking = result.data;
 
-  // Availability check (prevent double booking)
+  // --- Date Range Validation ---
+  const start = new Date(booking.startDate);
+  const end = new Date(booking.endDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  // Minimum start date: 3 days from today
+  const minStart = new Date(today);
+  minStart.setDate(today.getDate() + 3);
+  // Minimum rental period: 3 days
+  const minEnd = new Date(start);
+  minEnd.setDate(start.getDate() + 2); // +2 because start+2 = 3 days incl. start
+  if (start < minStart) {
+    return {
+      status: 400,
+      message: 'Start date must be at least 3 days from today',
+    };
+  }
+  if (end < minEnd) {
+    return {
+      status: 400,
+      message: 'Rental period must be at least 3 days',
+    };
+  }
+  if (end < start) {
+    return {
+      status: 400,
+      message: 'End date must be after start date',
+    };
+  }
+
+  // --- Weekend Exclusion (start date cannot be Sat/Sun) ---
+  if (start.getDay() === 0 || start.getDay() === 6) {
+    return {
+      status: 400,
+      message: 'Start date cannot be a weekend',
+    };
+  }
+
+  // --- Availability check (prevent double booking) ---
   const { data: bookings, error } = await supabase
     .from('Booking')
     .select('productId, quantity, startDate, endDate');
