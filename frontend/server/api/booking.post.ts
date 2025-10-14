@@ -1,5 +1,12 @@
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
+import { getRequestIP, sendError, createError } from 'h3';
+// Rate limiter setup: 2 requests per 600 sekunder per IP
+const rateLimiter = new RateLimiterMemory({
+  points: 2,
+  duration: 600,
+});
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -25,6 +32,13 @@ const bookingSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
+  // --- Rate limiting ---
+  const ip = getRequestIP(event) || 'unknown';
+  try {
+    await rateLimiter.consume(ip);
+  } catch {
+    return sendError(event, createError({ statusCode: 429, statusMessage: 'Rate limit exceeded. Prøv igen senere.' }));
+  }
 
   // --- Input Sanitization ---
   const body = await readBody(event);
