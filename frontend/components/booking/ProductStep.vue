@@ -59,7 +59,7 @@
             :value="model.name"
             :disabled="availability[model.id] === 0"
           >
-            {{ model.name }} — {{ (model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)).toFixed(2) }} kr./dag
+            {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="availability[model.id] === 0">Udsolgt</template>
               <template v-else>Tilgængelige</template>
@@ -134,7 +134,7 @@
         >
           <option disabled value="">Vælg tilbehør…</option>
           <option v-for="acc in accessories" :key="acc.name" :value="acc.name">
-            {{ acc.name }} — {{ acc.price.toFixed(2) }} kr./dag
+            {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./dag
           </option>
         </select>
         <button
@@ -202,6 +202,7 @@ interface ProductOption {
   quantity?: number;
 }
 
+// Only keep max quantity helpers for UI input validation
 function getMaxProductQuantity(item: { name: string; productId?: number }) {
   const arr = models.value as ProductOption[];
   const id = item.productId ?? arr.find((m: ProductOption) => m.name === item.name)?.id;
@@ -418,7 +419,7 @@ function removeAccessory(idx: number) {
 }
 
 
-// Sync to store
+// Sync to store (no business logic)
 watch(
   [selectedModels, selectedAccessories, insurance, startDate, endDate],
   () => {

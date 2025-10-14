@@ -4,6 +4,9 @@ import { RateLimiterMemory } from 'rate-limiter-flexible';
 import { getRequestIP, sendError, createError } from 'h3';
 import { calculatePricing } from './pricing';
 import { enrichModelsWithPrices, enrichAccessoriesWithPrices } from './productUtils';
+import { checkAvailability } from './availability';
+import { enforceMaxQuantities, enforceMaxAccessoryQuantities, validateBookingPeriod, validateInsurance, validateAccessoryProductRelation } from './validation';
+import { requireAuth } from './auth';
 // Rate limiter setup: 2 requests per 600 sekunder per IP
 const rateLimiter = new RateLimiterMemory({
   points: 2,
@@ -34,6 +37,8 @@ const bookingSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
+  // --- Authentication ---
+  // const user = requireAuth(event); // Uncomment if authentication is required
   // --- Rate limiting ---
   const ip = getRequestIP(event) || 'unknown';
   try {
@@ -80,75 +85,27 @@ export default defineEventHandler(async (event) => {
   }
   const booking = result.data;
 
-  // --- Date Range Validation ---
-  const start = new Date(booking.startDate);
-  const end = new Date(booking.endDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  // Minimum start date: 3 days from today
-  const minStart = new Date(today);
-  minStart.setDate(today.getDate() + 3);
-  // Minimum rental period: 3 days
-  const minEnd = new Date(start);
-  minEnd.setDate(start.getDate() + 2); // +2 because start+2 = 3 days incl. start
-  if (start < minStart) {
-    return {
-      status: 400,
-      message: 'Start date must be at least 3 days from today',
-    };
+  // --- Centralized Backend Validation ---
+  if (!validateBookingPeriod(booking.startDate, booking.endDate)) {
+    return sendError(event, createError({ statusCode: 400, statusMessage: 'Invalid booking period' }));
   }
-  if (end < minEnd) {
-    return {
-      status: 400,
-      message: 'Rental period must be at least 3 days',
-    };
+  if (!enforceMaxQuantities(booking.models)) {
+    return sendError(event, createError({ statusCode: 400, statusMessage: 'Too many products requested' }));
   }
-  if (end < start) {
-    return {
-      status: 400,
-      message: 'End date must be after start date',
-    };
+  if (!enforceMaxAccessoryQuantities(booking.accessories)) {
+    return sendError(event, createError({ statusCode: 400, statusMessage: 'Too many accessories requested' }));
+  }
+  if (!validateInsurance(booking.insurance, booking.models)) {
+    return sendError(event, createError({ statusCode: 400, statusMessage: 'Insurance required for this booking' }));
+  }
+  if (!validateAccessoryProductRelation(booking.models, booking.accessories)) {
+    return sendError(event, createError({ statusCode: 400, statusMessage: 'Accessory not allowed for selected products' }));
   }
 
-  // --- Weekend Exclusion (start date cannot be Sat/Sun) ---
-  if (start.getDay() === 0 || start.getDay() === 6) {
-    return {
-      status: 400,
-      message: 'Start date cannot be a weekend',
-    };
-  }
-
-  // --- Availability check (prevent double booking) ---
-  const { data: bookings, error } = await supabase
-    .from('Booking')
-    .select('productId, quantity, startDate, endDate');
-
-  if (error) {
-    return {
-      status: 500,
-      message: 'Database error',
-    };
-  }
-
-  // Check for overlapping bookings and available quantity
-  for (const model of booking.models) {
-    let available = model.quantity;
-    let totalQty = model.quantity;
-    // You may want to fetch the product's total quantity from Product table
-    // For now, assume 5 as default
-    totalQty = 5;
-    const overlapping = bookings.filter((b: any) => {
-      return b.productId === model.productId &&
-        new Date(booking.startDate) <= new Date(b.endDate) &&
-        new Date(booking.endDate) >= new Date(b.startDate);
-    });
-    const bookedQty = overlapping.reduce((sum: number, b: any) => sum + (b.quantity || 1), 0);
-    if (bookedQty + model.quantity > totalQty) {
-      return {
-        status: 409,
-        message: `Not enough availability for product ${model.name}`,
-      };
-    }
+  // --- Centralized Availability Check ---
+  const available = await checkAvailability(booking.models, booking.startDate, booking.endDate);
+  if (!available) {
+    return sendError(event, createError({ statusCode: 409, statusMessage: 'Not enough availability for requested products' }));
   }
 
 
