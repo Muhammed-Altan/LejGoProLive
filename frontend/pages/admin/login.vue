@@ -111,9 +111,10 @@ import { ref } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 
-definePageMeta({
-  middleware: 'admin'
-})
+// Remove the admin middleware from login page
+// definePageMeta({
+//   middleware: 'admin'
+// })
 
 
 // Form data
@@ -127,27 +128,40 @@ const error = ref<string | null>(null)
 
 // Handle form submission
 const handleLogin = async () => {
+  console.log('🔄 Login attempt started...')
   error.value = null
   loading.value = true
 
   try {
-    // TODO: Implement actual login logic here
-    console.log('Login attempt:', {
-      email: email.value,
-      password: password.value,
-      rememberMe: rememberMe.value
-    })
-
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // For now, show a placeholder message
-    alert('Login functionality will be implemented in backend phase')
+    console.log('📧 Email:', email.value)
+    console.log('🔑 Password length:', password.value.length)
+    console.log('💾 Remember me:', rememberMe.value)
     
-  } catch (err) {
-    error.value = 'Der opstod en fejl under login. Prøv igen.'
+    const auth = useAuth()
+    console.log('🔍 Auth composable loaded:', !!auth)
+    
+    const result = await auth.login(email.value, password.value, rememberMe.value)
+    console.log('📋 Login result:', result)
+
+    if (result.success) {
+      console.log('✅ Login successful, redirecting to /admin...')
+      
+      // Small delay to ensure auth state is fully updated
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Redirect to admin panel on successful login
+      await navigateTo('/admin')
+    } else {
+      console.log('❌ Login failed:', result.error)
+      error.value = result.error || 'Login fejlede'
+    }
+    
+  } catch (err: any) {
+    console.error('💥 Login error:', err)
+    error.value = err.message || 'Der opstod en fejl under login. Prøv igen.'
   } finally {
     loading.value = false
+    console.log('🏁 Login attempt finished')
   }
 }
 
