@@ -36,6 +36,7 @@ const bookingSchema = z.object({
     quantity: z.number().int().min(1),
   })),
   insurance: z.boolean(),
+  acceptedTerms: z.boolean().refine(val => val === true, { message: 'Rental conditions must be accepted' }),
 });
 
 export default defineEventHandler(async (event) => {
@@ -77,6 +78,7 @@ export default defineEventHandler(async (event) => {
     models: sanitizedModels,
     accessories: sanitizedAccessories,
     insurance: !!body.insurance,
+    acceptedTerms: !!body.acceptedTerms,
   };
 
   // --- Zod Validation ---
