@@ -75,6 +75,8 @@
 // const city = defineModel(FIELD_CITY, { default: '' });
 import { useCheckoutStore } from '@/stores/checkout';
 import { watch, ref } from 'vue';
+import { computed } from 'vue';
+import DOMPurify from 'dompurify';
 
 // Field name constants for type safety
 const FIELD_FULL_NAME = 'fullName';
@@ -96,27 +98,97 @@ const apartment = ref('');
 const postalCode = ref('');
 const city = ref('');
 
-// Watch and sync to store
+// Error refs
+const errors = ref({
+	fullName: '',
+	phone: '',
+	email: '',
+	address: '',
+	postalCode: '',
+	city: ''
+});
+
+// Sanitization helper using DOMPurify
+function sanitizeInput(value) {
+	return DOMPurify.sanitize(value, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+}
+
+function isValidEmail(val) {
+	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+}
+function isValidPhone(val) {
+	return /^\+45\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}$/.test(val);
+}
+function isValidPostalCode(val) {
+	return /^\d{4}$/.test(val);
+}
+
+function validateAndSync() {
+	// Sanitize all inputs
+	const n = sanitizeInput(fullName.value);
+	const p = sanitizeInput(phone.value);
+	const e = sanitizeInput(email.value);
+	const a = sanitizeInput(address.value);
+	const ap = sanitizeInput(apartment.value);
+	const pc = sanitizeInput(postalCode.value);
+	const c = sanitizeInput(city.value);
+
+	// Reset errors
+	errors.value = {
+		fullName: '',
+		phone: '',
+		email: '',
+		address: '',
+		postalCode: '',
+		city: ''
+	};
+
+	let valid = true;
+	if (!n) {
+		errors.value.fullName = 'Navn er påkrævet.';
+		valid = false;
+	}
+	if (!isValidPhone(p)) {
+		errors.value.phone = 'Ugyldigt telefonnummer.';
+		valid = false;
+	}
+	if (!isValidEmail(e)) {
+		errors.value.email = 'Ugyldig email.';
+		valid = false;
+	}
+	if (!a) {
+		errors.value.address = 'Adresse er påkrævet.';
+		valid = false;
+	}
+	if (!isValidPostalCode(pc)) {
+		errors.value.postalCode = 'Ugyldigt postnummer.';
+		valid = false;
+	}
+	if (!c) {
+		errors.value.city = 'By er påkrævet.';
+		valid = false;
+	}
+
+	if (valid) {
+		store.setDeliveryInfo({
+			[FIELD_FULL_NAME]: n,
+			[FIELD_PHONE]: p,
+			[FIELD_EMAIL]: e,
+			[FIELD_ADDRESS]: a,
+			[FIELD_APARTMENT]: ap,
+			[FIELD_POSTAL_CODE]: pc,
+			[FIELD_CITY]: c
+		});
+	}
+}
+
 watch(
- [fullName, phone, email, address, apartment, postalCode, city],
- ([n, p, e, a, ap, pc, c]) => {
-	 store.setDeliveryInfo({
-		 [FIELD_FULL_NAME]: n,
-		 [FIELD_PHONE]: p,
-		 [FIELD_EMAIL]: e,
-		 [FIELD_ADDRESS]: a,
-		 [FIELD_APARTMENT]: ap,
-		 [FIELD_POSTAL_CODE]: pc,
-		 [FIELD_CITY]: c
-	 });
- },
- { immediate: true }
+	[fullName, phone, email, address, apartment, postalCode, city],
+	validateAndSync,
+	{ immediate: true }
 );
 </script>
 
 <style scoped>
-* {
-	color: black !important;
-}
 
 </style>

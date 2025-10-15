@@ -7,6 +7,8 @@ import { enrichModelsWithPrices, enrichAccessoriesWithPrices } from './productUt
 import { checkAvailability } from './availability';
 import { enforceMaxQuantities, enforceMaxAccessoryQuantities, validateBookingPeriod, validateInsurance, validateAccessoryProductRelation } from './validation';
 import { requireAuth } from './auth';
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
 // Rate limiter setup: 2 requests per 600 sekunder per IP
 const rateLimiter = new RateLimiterMemory({
   points: 2,
@@ -49,9 +51,12 @@ export default defineEventHandler(async (event) => {
 
   // --- Input Sanitization ---
   const body = await readBody(event);
-  // Remove any unexpected fields and trim strings
+  // Remove any unexpected fields, trim strings, and sanitize with DOMPurify
+  const window = new JSDOM('').window;
+  const purify = DOMPurify(window);
+
   function sanitizeString(str: unknown): string {
-    return typeof str === 'string' ? str.trim() : '';
+    return typeof str === 'string' ? purify.sanitize(str.trim(), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : '';
   }
   function sanitizeNumber(num: unknown): number {
     return typeof num === 'number' && !isNaN(num) ? num : 0;

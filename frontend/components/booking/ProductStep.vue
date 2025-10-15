@@ -186,6 +186,11 @@
 </template>
 
 <script setup lang="ts">
+import DOMPurify from 'dompurify';
+// Sanitization helper using DOMPurify
+function sanitizeInput(value: string): string {
+  return DOMPurify.sanitize(value, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+}
 import { ref, watch, onMounted, computed } from "vue";
 import { useCheckoutStore } from "@/stores/checkout";
 import { useNuxtApp } from "#app";
