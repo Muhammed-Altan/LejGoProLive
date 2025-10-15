@@ -1,7 +1,15 @@
 <template>
     <Header />
     <div class="max-w-5xl mx-auto py-12 mb-10">
-        <h1 class="text-3xl font-bold mb-8 text-center">Admin Panel</h1>
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-center flex-1">Admin Panel</h1>
+            <button 
+                @click="handleLogout"
+                class="bg-red-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-red-700 transition"
+            >
+                Log ud
+            </button>
+        </div>
         <div class="flex justify-center gap-4 mb-8">
             <button
                 class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
@@ -18,6 +26,11 @@
                 :class="activeTab === 'orders' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'orders'"
             >Ordrer</button>
+            <button
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                :class="activeTab === 'integrations' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
+                @click="activeTab = 'integrations'"
+            >Integrationer</button>
         </div>
         <div v-if="activeTab === 'products'">
                     <div class="flex justify-end mb-4">
@@ -346,6 +359,15 @@
                 </div>
             </div>
         </div>
+
+        <div v-else-if="activeTab === 'integrations'">
+            <div class="max-w-4xl mx-auto py-8">
+                <h2 class="text-2xl font-bold text-center mb-8 text-gray-900">Integrationer</h2>
+                <div class="space-y-6">
+                    <DineroAuth />
+                </div>
+            </div>
+        </div>
     </div>
     <Footer />
 </template>
@@ -353,12 +375,25 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive } from 'vue';
 import ProductCalendar from '@/components/booking/ProductCalendar.vue';
+import DineroAuth from '@/components/integrations/DineroAuth.vue';
 
 definePageMeta({
   middleware: 'admin'
 })
 
 const toast = useToast();
+
+// Add logout functionality
+const handleLogout = async () => {
+    try {
+        const auth = useAuth()
+        await auth.logout()
+    } catch (error) {
+        console.error('Logout error:', error)
+        // Force navigation to login page even if logout API fails
+        await navigateTo('/admin/login')
+    }
+}
 
 async function deleteBooking(id: number) {
     try {
