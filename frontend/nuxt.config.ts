@@ -20,7 +20,17 @@ export default defineNuxtConfig({
       // Supabase configuration
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      // Dinero integration configuration
+      dineroClientId: process.env.DINERO_CLIENT_ID,
     },
+    // Private keys (only available on server-side)
+    dineroClientSecret: process.env.DINERO_CLIENT_SECRET,
+    // JWT secrets for admin authentication
+    jwtAccessSecret: process.env.JWT_ACCESS_SECRET,
+    jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
+    // Admin credentials
+    adminEmail: process.env.ADMIN_EMAIL,
+    adminPassword: process.env.ADMIN_PASSWORD,
   },
   app: {
     head: {
