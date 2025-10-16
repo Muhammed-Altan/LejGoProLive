@@ -5,7 +5,9 @@
     <div class="lg:col-span-2 space-y-6 bg-white p-6 rounded-xl shadow-md">
       <ProductStep />
       <DeliveryStep />
-      <PensoPayment v-if="showPayment" />
+      <!-- Use if we want to hide the payment section until all required info is filled -->
+      <!-- <PensoPayment v-if="showPayment" /> -->
+       <PensoPayment />
     </div>
 
     <!-- Højre side (1/3 af bredden, sticky kurv) -->
@@ -24,7 +26,6 @@
 import ProductStep from '@/components/booking/ProductStep.vue';
 import DeliveryStep from '@/components/booking/DeliveryStep.vue';
 import PensoPayment from '@/components/booking/PensoPayment.vue';
-import BookingConfirmation from '~/components/booking/RentalConditions.vue';
 import BasketView from '@/components/booking/BasketView.vue';
 import TestHelper from '@/components/TestHelper.vue';
 import Header from '~/components/Header.vue';
