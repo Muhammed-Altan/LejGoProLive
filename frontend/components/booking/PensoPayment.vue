@@ -102,7 +102,7 @@
     <!-- Action Button -->
     <button
       @click="initiatePayment"
-      :disabled="!selectedMethod || loading || !isTermsAccepted"
+      :disabled="!selectedMethod || loading || !isTermsAccepted || !isDeliveryValid"
       class="w-full bg-[#B90C2C] hover:bg-[#a10a25] text-white text-lg font-semibold py-3 rounded-lg focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <span v-if="loading" class="flex items-center justify-center">
@@ -120,6 +120,11 @@
     <!-- Terms acceptance reminder -->
     <div v-if="!isTermsAccepted && selectedMethod" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
       <p class="text-yellow-800 text-sm">Du skal acceptere lejebetingelserne for at fortsætte til betaling.</p>
+    </div>
+
+    <!-- Delivery validation reminder -->
+    <div v-if="!isDeliveryValid && selectedMethod" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <p class="text-yellow-800 text-sm">Udfyld venligst dit navn og en gyldig emailadresse før du fortsætter til betaling.</p>
     </div>
 
     <!-- Error Message -->
@@ -156,6 +161,13 @@ const totalAmount = computed(() => {
   return store.backendTotal || 0
 })
 
+// Basic delivery validation (client-side)
+const isDeliveryValid = computed(() => {
+  if (!store.fullName || !store.email) return false
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(store.email)
+})
+
 // Format price helper
 const formatPrice = (price: number): string => {
   return new Intl.NumberFormat('da-DK', {
@@ -184,6 +196,23 @@ const initiatePayment = async () => {
 
   loading.value = true
   error.value = null
+
+  // If delivery info is invalid, focus the first invalid field and prevent submission
+  if (!isDeliveryValid.value) {
+    // Determine first invalid field: fullName, email
+    if (!store.fullName) {
+      const el = document.getElementById('fullName') || document.querySelector('input[autocomplete="name"]') as HTMLElement
+      el?.focus()
+    } else if (!store.email || !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(store.email))) {
+      const el = document.getElementById('email')
+      el?.focus()
+    } else if (!store.phone) {
+      const el = document.getElementById('phone')
+      el?.focus()
+    }
+    loading.value = false
+    return
+  }
 
   try {
     // Prepare booking data

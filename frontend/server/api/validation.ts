@@ -33,3 +33,17 @@ export function validateAccessoryProductRelation(models: Array<any>, accessories
   // Implement your logic here
   return true;
 }
+
+// Reusable validators
+import validator from 'validator'
+
+export function isValidEmail(email: string | null | undefined): boolean {
+  if (!email || typeof email !== 'string') return false
+  return validator.isEmail(email.trim())
+}
+
+export function isValidPhoneNumber(phone: string | null | undefined): boolean {
+  if (!phone || typeof phone !== 'string') return false
+  // Use validator.js mobile phone check for Denmark
+  return validator.isMobilePhone(phone.trim(), 'da-DK')
+}

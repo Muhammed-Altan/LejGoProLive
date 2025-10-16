@@ -6,28 +6,44 @@
 			<h2 class="font-medium text-base">Udfyld formularen nedenfor for at se Leveringsmetoder</h2>
 		</article>
 		<div class="flex flex-col md:flex-row gap-4">
-			<input
-				type="text"
-				v-model="fullName"
-				placeholder="Indtast dit fulde navn"
-				class="flex-1 px-4 py-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-900 placeholder-gray-500"
-				autocomplete="name"
-			/>
-			<input
-				type="tel"
-				v-model="phone"
-				placeholder="+45 12 34 56 78"
-				class="flex-1 px-4 py-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-900 placeholder-gray-500"
-				autocomplete="tel"
-			/>
+			<div class="flex-1">
+				<input
+					type="text"
+					v-model="fullName"
+					id="fullName"
+					@input="touchedFullName = true"
+					placeholder="Indtast dit fulde navn"
+					class="w-full px-4 py-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-900 placeholder-gray-500"
+					autocomplete="name"
+				/>
+			</div>
+			<div class="flex-1 flex flex-col">
+				<input
+					type="tel"
+					v-model="phone"
+					placeholder="+45 12 34 56 78"
+					id="phone"
+					@input="handlePhoneInput"
+					@focus="onPhoneFocus"
+					@paste.prevent="onPhonePaste"
+					:class="['w-full px-4 py-3 rounded-lg', (errors.phone && touchedPhone) ? 'bg-red-50 border border-red-300 focus:ring-red-400' : 'bg-gray-100 focus:ring-blue-400 text-gray-900 placeholder-gray-500']"
+					autocomplete="tel"
+				/>
+				<p v-if="errors.phone && touchedPhone" class="mt-1 text-sm text-red-600">{{ errors.phone }}</p>
+			</div>
 		</div>
-		<input
-			type="email"
-			v-model="email"
-			placeholder="din@email.com"
-			class="w-full px-4 py-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-900 placeholder-gray-500"
-			autocomplete="email"
-		/>
+		<div>
+			<input
+				type="email"
+				v-model="email"
+				placeholder="din@email.com"
+				id="email"
+				@input="touchedEmail = true"
+				:class="['w-full px-4 py-3 rounded-lg', (errors.email && touchedEmail) ? 'bg-red-50 border border-red-300 focus:ring-red-400' : 'bg-gray-100 focus:ring-blue-400 text-gray-900 placeholder-gray-500']"
+				autocomplete="email"
+			/>
+			<p v-if="errors.email && touchedEmail" class="mt-1 text-sm text-red-600">{{ errors.email }}</p>
+		</div>
 		<input
 			type="text"
 			v-model="address"
@@ -66,8 +82,7 @@
 
 <script setup>
 import { useCheckoutStore } from '@/stores/checkout';
-import { watch, ref } from 'vue';
-import { computed } from 'vue';
+import { watch, ref, computed, nextTick } from 'vue';
 import DOMPurify from 'dompurify';
 
 // Field name constants for type safety
@@ -100,9 +115,28 @@ const errors = ref({
 	city: ''
 });
 
+// Touched flags to avoid showing validation before user interaction
+const touchedFullName = ref(false)
+const touchedPhone = ref(false)
+const touchedEmail = ref(false)
+
 // Sanitization helper using DOMPurify
+function stripTags(input) {
+	if (!input) return ''
+	return String(input).replace(/<[^>]*>/g, '').trim()
+}
+
 function sanitizeInput(value) {
-	return DOMPurify.sanitize(value, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+	// DOMPurify may not expose sanitize during SSR depending on how it's imported.
+	// Only call DOMPurify.sanitize when running in the browser and the function exists.
+	try {
+		if (typeof window !== 'undefined' && DOMPurify && typeof DOMPurify.sanitize === 'function') {
+			return DOMPurify.sanitize(value, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] })
+		}
+	} catch (e) {
+		// Fallthrough to safe fallback
+	}
+	return stripTags(value)
 }
 
 function isValidEmail(val) {
@@ -179,6 +213,70 @@ watch(
 	validateAndSync,
 	{ immediate: true }
 );
+
+// Phone input helpers
+function setCaretToEnd(el) {
+	if (!el) return
+	const len = el.value.length
+	try {
+		el.setSelectionRange(len, len)
+	} catch (e) {
+		// ignore
+	}
+}
+
+function onPhoneFocus(e) {
+	// Only run in client
+	if (typeof window === 'undefined') return
+	const el = e && e.target && e.target instanceof HTMLInputElement ? e.target : null
+	if (!el) return
+	if (!phone.value || phone.value.trim() === '') {
+		phone.value = '+45 '
+		nextTick(() => setCaretToEnd(el))
+	}
+	touchedPhone.value = true
+}
+
+function normalizePhoneValue(val) {
+	if (!val) return ''
+	// Keep plus sign, digits and spaces only
+	let v = val.replace(/[^+\d\s]/g, '')
+	v = v.replace(/\s+/g, ' ').trim()
+	// If user typed leading 45 without +, add +
+	if (/^(45\s?)/.test(v)) {
+		v = '+' + v
+	}
+	// If starts with single 0 followed by digits, replace with +45
+	if (/^0\d+/.test(v)) {
+		v = v.replace(/^0/, '+45 ')
+	}
+	// Ensure +45 is present
+	if (!v.startsWith('+45') && /^\d/.test(v)) {
+		v = '+45 ' + v
+	}
+	return v
+}
+
+function handlePhoneInput(e) {
+	const el = e && e.target && e.target instanceof HTMLInputElement ? e.target : null
+	touchedPhone.value = true
+	const raw = el ? (el.value || '') : (phone.value || '')
+	const normalized = normalizePhoneValue(raw)
+	if (normalized !== raw) {
+		phone.value = normalized
+		// set caret
+		nextTick(() => setCaretToEnd(el))
+	}
+}
+
+function onPhonePaste(e) {
+	const pasted = e && e.clipboardData ? (e.clipboardData.getData('text') || '') : ''
+	const normalized = normalizePhoneValue(pasted)
+	phone.value = normalized
+	const el = document.getElementById('phone')
+	nextTick(() => setCaretToEnd(el))
+	touchedPhone.value = true
+}
 </script>
 
 <style scoped>
