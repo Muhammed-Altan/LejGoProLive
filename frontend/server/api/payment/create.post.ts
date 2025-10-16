@@ -60,6 +60,18 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Trim and validate email format server-side using centralized validator
+    if (typeof bookingData.email === 'string') {
+      bookingData.email = bookingData.email.trim()
+    }
+  const { isValidEmail } = await import('../validation')
+    if (!isValidEmail(bookingData.email)) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid email format'
+      })
+    }
+
     if (!bookingData.startDate || !bookingData.endDate) {
       throw createError({
         statusCode: 400,

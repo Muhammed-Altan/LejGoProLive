@@ -21,8 +21,10 @@
             placeholder="Start dato"
             :auto-apply="true"
             :min-date="minStartDate"
-            :disabled-dates="disableWeekends"
+            :disabled-dates="isStartDateDisabled"
           />
+          <!-- Small helper text -->
+          <!-- <p class="mt-2 text-sm text-gray-500">Bemærk: Startdato må ikke være en weekend (lørdag eller søndag).</p> -->
         </div>
         <div class="flex-1">
               <VueDatePicker
@@ -60,7 +62,7 @@
             :value="model.name"
             :disabled="availability[model.id] === 0"
           >
-            {{ model.name }} — {{ Math.round(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
+            {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="availability[model.id] === 0">Udsolgt</template>
               <template v-else>Tilgængelige</template>
@@ -82,16 +84,15 @@
       <div
         v-for="(item, idx) in selectedModels"
         :key="item.name"
-        class="flex items-center gap-4 bg-gray-100 rounded-lg py-2 px-4"
+        class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
       >
       <img 
         src="/eventyr/GoPro-MountainTop.jpg" 
         alt="" 
-        class="w-20 h-20 object-cover rounded mr-3 border border-gray-200 bg-white">
+        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
 
         <div class="flex-1">
-          <p class="font-semibold">{{ item.name }}</p>
-          <p class="text-sm text-[#888] mt-2">Inkluderet tilbehør: Beskyttelsescase, ekstra batteri, rejsetaske</p>
+           <p class="font-medium">{{ item.name }}</p> <p class="text-xs text-gray-600">inkluderer: Beskyttelsescase, Batteri, Rejsetaske</p>
         </div>
         <div class="flex items-center justify-center gap-2 group relative">
           <span>Antal</span>
@@ -136,7 +137,7 @@
         >
           <option disabled value="">Vælg tilbehør…</option>
           <option v-for="acc in accessories" :key="acc.name" :value="acc.name">
-            {{ acc.name }} — {{ acc.price.toFixed(2) }} kr./dag
+            {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./dag
           </option>
         </select>
         <button
@@ -154,9 +155,14 @@
       <div
         v-for="(item, idx) in selectedAccessories"
         :key="item.name"
-        class="flex items-center gap-4 bg-blue-100 rounded-lg py-2 px-4 font-medium"
+        class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
       >
-        <div class="flex-1 text-center">
+      <img 
+        src="/eventyr/GoPro-MountainTop.jpg" 
+        alt="" 
+        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
+
+        <div class="flex-1 font-medium">
           {{ item.name }}
         </div>
         <div class="flex items-center justify-center gap-2 group relative">
@@ -184,91 +190,20 @@
         </button>
       </div>
     </section>
-
-    <!-- Insurance Toggle -->
-    <!-- <section
-      class="bg-gray-50 rounded-xl p-6 shadow flex items-center justify-between"
-    >
-      <div class="flex items-center gap-3">
-        <span
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-100"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="40"
-            height="40"
-            viewBox="0 0 24 24"
-          >
-            <path
-              fill="#08d035"
-              d="M12 22q-3.475-.875-5.738-3.988T4 11.1V5l8-3l8 3v6.1q0 3.8-2.262 6.913T12 22m0-2.1q2.6-.825 4.3-3.3t1.7-5.5V6.375l-6-2.25l-6 2.25V11.1q0 3.025 1.7 5.5t4.3 3.3m0-7.9"
-            />
-          </svg>
-        </span>
-        <div>
-          <div class="font-semibold flex items-center gap-1">
-            Forsikring
-            <span class="relative group cursor-pointer">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
-                <circle cx="12" cy="12" r="10" fill="#FBBF24" />
-                <text
-                  x="12"
-                  y="17"
-                  text-anchor="middle"
-                  font-size="16"
-                  fill="#fff"
-                  font-family="Arial"
-                  font-weight="bold"
-                >
-                  !
-                </text>
-              </svg>
-              <span
-                class="absolute left-1/2 z-10 -translate-x-1/2 mt-2 w-56 rounded bg-white text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg"
-              >
-                Dette er dummy tekst om forsikringen. Her kan du forklare hvad
-                forsikringen dækker, f.eks. skader, tyveri, selvrisiko osv.
-              </span>
-            </span>
-          </div>
-          <div class="text-sm text-gray-500">Fuld erstatningsdækning</div>
-        </div>
-      </div>
-      <label class="inline-flex relative items-center cursor-pointer">
-        <input
-          type="checkbox"
-          v-model="insurance"
-          class="sr-only peer"
-          :disabled="!datesSelected"
-        />
-        <div
-          class="w-14 h-8 bg-gray-200 rounded-full peer peer-checked:bg-rose-600 transition-colors"
-        ></div>
-        <div
-          class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow peer-checked:translate-x-6 transition-transform"
-        ></div>
-      </label>
-    </section> -->
   </div>
 </template>
 
 <script setup lang="ts">
+import DOMPurify from 'dompurify';
+// Sanitization helper using DOMPurify
+function sanitizeInput(value: string): string {
+  return DOMPurify.sanitize(value, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+}
 import { ref, watch, onMounted, computed } from "vue";
 import { useCheckoutStore } from "@/stores/checkout";
 import { useNuxtApp } from "#app";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
-// Function to disable weekends in date picker
-function disableWeekends(date: Date) {
-  const day = date.getDay();
-  return day === 0 || day === 6;
-}
 
 // Models are now fetched from the backend Product table
 interface ProductOption {
@@ -280,6 +215,7 @@ interface ProductOption {
   quantity?: number;
 }
 
+// Only keep max quantity helpers for UI input validation
 function getMaxProductQuantity(item: { name: string; productId?: number }) {
   const arr = models.value as ProductOption[];
   const id = item.productId ?? arr.find((m: ProductOption) => m.name === item.name)?.id;
@@ -370,6 +306,13 @@ const minEndDate = computed(() => {
   return date;
 });
 
+// Disable weekends for the start date picker (Saturday=6, Sunday=0)
+function isStartDateDisabled(date: Date) {
+  if (!date) return false;
+  const day = date.getDay();
+  return day === 0 || day === 6;
+}
+
 function selectModel(model: {
   name: string;
   price: number;
@@ -379,8 +322,6 @@ function selectModel(model: {
   const found = selectedModels.value.find((m) => m.name === model.name);
   if (!found) {
     selectedModels.value.push({ ...model, quantity: 1 });
-  } else {
-    found.quantity = (found.quantity ?? 1) + 1;
   }
 }
 
@@ -426,6 +367,11 @@ function removeModel(idx: number) {
 async function fetchCamerasForProduct(productId: number) {
   try {
     const supabase = useSupabase();
+    if (!supabase) {
+      console.error('Supabase client not available');
+      availableCameras.value = [];
+      return;
+    }
     console.log('Fetching cameras for product:', productId);
     
     const { data: cameras, error } = await supabase
@@ -466,8 +412,6 @@ function onAddSelectedCamera() {
     const exists = selectedCameras.value.find(c => c.id === camera.id);
     if (!exists) {
       selectedCameras.value.push(selectedCamera);
-      // TODO: Add setCameraId to store if needed
-      // store.setCameraId(camera.id);
     }
   }
   
@@ -499,59 +443,8 @@ function removeAccessory(idx: number) {
   selectedAccessories.value.splice(idx, 1);
 }
 
-// --- Price calculation helpers with discount logic ---
-function getRentalDays() {
-  if (!startDate.value || !endDate.value) return 0;
-  const msPerDay = 1000 * 60 * 60 * 24;
-  // Add 1 to include both start and end date
-  return Math.max(1, Math.ceil((endDate.value.getTime() - startDate.value.getTime()) / msPerDay) + 1);
-}
 
-function getModelBreakdown() {
-  // Apply 25% discount to all cameras except the first
-  return selectedModels.value.map((item, idx) => {
-    const days = getRentalDays();
-    let pricePerDay = item.price;
-    if (idx > 0) pricePerDay = pricePerDay * 0.75;
-    return {
-      name: item.name,
-      quantity: item.quantity,
-      pricePerDay,
-      total: pricePerDay * item.quantity * days
-    };
-  });
-}
-
-function getAccessoryBreakdown() {
-  const days = getRentalDays();
-  return selectedAccessories.value.map(item => ({
-    name: item.name,
-    quantity: item.quantity,
-    pricePerDay: item.price,
-    total: item.price * item.quantity * days
-  }));
-}
-
-function getTotalPrice() {
-  const days = getRentalDays();
-  // Models: first full price, rest 25% off
-  let modelTotal = 0;
-  selectedModels.value.forEach((item, idx) => {
-    let pricePerDay = item.price;
-    if (idx > 0) pricePerDay = pricePerDay * 0.75;
-    modelTotal += pricePerDay * item.quantity * days;
-  });
-  // Accessories: no discount
-  let accessoryTotal = 0;
-  selectedAccessories.value.forEach(item => {
-    accessoryTotal += item.price * item.quantity * days;
-  });
-  // Insurance: add if selected (example: flat 100 kr)
-  let insuranceTotal = insurance.value ? 100 : 0;
-  return modelTotal + accessoryTotal + insuranceTotal;
-}
-
-// Sync to store
+// Sync to store (no business logic)
 watch(
   [selectedModels, selectedAccessories, insurance, startDate, endDate],
   () => {
@@ -568,7 +461,11 @@ watch(
 // Fetch products and accessories from Supabase
 onMounted(async () => {
   const supabase = useSupabase();
-  
+  if (!supabase) {
+    console.error('Supabase client not available on mount');
+    return;
+  }
+
   try {
     // Fetch products from Supabase
     const { data: productsData, error: productsError } = await supabase
@@ -605,23 +502,10 @@ onMounted(async () => {
     }));
   } catch (e) {
     console.error("Error fetching accessories from Supabase:", e);
-    // Set some default accessories if table doesn't exist yet
-    // accessories.value = [
-    //   { name: "Grip", price: 70 },
-    //   { name: "Ekstra batteri", price: 50 },
-    //   { name: "Headstrap", price: 60 },
-    //   { name: "Brystmount", price: 80 },
-    //   { name: "Beskyttelsescase", price: 40 },
-    //   { name: "Sugekop til ruder", price: 90 }
-    // ];
   }
 
-  // Note: Availability checking would need to be implemented with a bookings table
-  // For now, we'll skip the availability check since we don't have booking data yet
 });
 
-// Refetch availability whenever dates change and both are set
-// Note: This would need to be implemented with a bookings table in Supabase
 watch([startDate, endDate], async () => {
   if (!startDate.value || !endDate.value) {
     availability.value = {};

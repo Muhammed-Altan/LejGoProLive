@@ -14,7 +14,7 @@
         <span>{{ line.quantity }}x <span class="font-semibold">{{ line.name }}</span></span>
         <span class="ml-auto">{{ formatCurrency(line.total) }}</span>
       </div>
-      <div class="text-xs text-[#888] mb-4">Beskyttelsescases medfølger til alle modeller.</div>
+      <!-- <div class="text-xs text-[#888] mb-4">Beskyttelsescases medfølger til alle modeller.</div> -->
       <div v-if="backendBreakdown && backendBreakdown.accessories && backendBreakdown.accessories.length" class="mt-6 mb-4">
         <div class="font-semibold mb-2 text-[1.05rem]">Ekstra udstyr:</div>
         <div>
@@ -62,12 +62,15 @@
 // Computed tip for discount threshold
 const discountTip = computed(() => {
   if (!rentalDays.value) return null;
-  if (rentalDays.value === 6) {
-    return 'Tip: Book én dag mere og få ugepris!';
+  // Show 7-day tip for 1-6 days
+  if (rentalDays.value >= 1 && rentalDays.value <= 6) {
+    return 'Tip: Husk at du får rabat, når du lejer i 7 dage!';
   }
-  if (rentalDays.value === 13) {
-    return 'Tip: Book én dag mere og få 2-ugers pris!';
+  // Show 14-day tip for 8-13 days
+  if (rentalDays.value >= 8 && rentalDays.value <= 13) {
+    return 'Tip: Husk at du får rabat, når du lejer i 14 dage!';
   }
+  // No tip for exactly 7 or 14 days
   return null;
 });
 import { computed, ref, watch } from 'vue';
