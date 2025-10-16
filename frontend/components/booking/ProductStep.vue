@@ -277,7 +277,7 @@ const endDate = ref<Date | null>(
   store.endDate ? new Date(store.endDate) : null
 );
 
-// Watch startDate: hvis den ændres, nulstil endDate
+// Watch startDate: if it changes, reset endDate
 watch(startDate, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     endDate.value = null;
