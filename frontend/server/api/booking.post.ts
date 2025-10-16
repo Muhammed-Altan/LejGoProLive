@@ -9,7 +9,7 @@ import { enforceMaxQuantities, enforceMaxAccessoryQuantities, validateBookingPer
 import { requireAuth } from './auth';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
-// Rate limiter setup: 2 requests per 600 sekunder per IP
+// Rate limiter setup: 2 requests per 600 seconds per IP
 const rateLimiter = new RateLimiterMemory({
   points: 2,
   duration: 600,
