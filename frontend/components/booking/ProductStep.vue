@@ -23,6 +23,8 @@
             :min-date="minStartDate"
             :disabled-dates="isStartDateDisabled"
           />
+          <!-- Small helper text -->
+          <!-- <p class="mt-2 text-sm text-gray-500">Bemærk: Startdato må ikke være en weekend (lørdag eller søndag).</p> -->
         </div>
         <div class="flex-1">
               <VueDatePicker
@@ -82,15 +84,15 @@
       <div
         v-for="(item, idx) in selectedModels"
         :key="item.name"
-        class="flex items-center gap-4 bg-gray-100 rounded-lg py-2 px-4 font-medium"
+        class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
       >
       <img 
         src="C:\GithubProjekter\LejGoProLive\frontend\public\eventyr\GoPro-MountainTop.jpg" 
         alt="" 
-        class="w-12 h-12 object-cover rounded mr-3 border border-gray-200 bg-white">
+        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
 
         <div class="flex-1">
-          {{ item.name }} <p>Features:</p>
+           <p class="font-medium">{{ item.name }}</p> <p class="text-xs text-gray-600">inkluderer: Beskyttelsescase, Batteri, Rejsetaske</p>
         </div>
         <div class="flex items-center justify-center gap-2 group relative">
           <span>Antal</span>
@@ -153,9 +155,14 @@
       <div
         v-for="(item, idx) in selectedAccessories"
         :key="item.name"
-        class="flex items-center gap-4 bg-blue-100 rounded-lg py-2 px-4 font-medium"
+        class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
       >
-        <div class="flex-1 text-center">
+      <img 
+        src="C:\GithubProjekter\LejGoProLive\frontend\public\eventyr\GoPro-MountainTop.jpg" 
+        alt="" 
+        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
+
+        <div class="flex-1 font-medium">
           {{ item.name }}
         </div>
         <div class="flex items-center justify-center gap-2 group relative">

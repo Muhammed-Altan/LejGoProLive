@@ -65,14 +65,6 @@
 </template>
 
 <script setup>
-// Previous defineModel code for reference:
-// const fullName = defineModel(FIELD_FULL_NAME, { default: '' });
-// const phone = defineModel(FIELD_PHONE, { default: '' });
-// const email = defineModel(FIELD_EMAIL, { default: '' });
-// const address = defineModel(FIELD_ADDRESS, { default: '' });
-// const apartment = defineModel(FIELD_APARTMENT, { default: '' });
-// const postalCode = defineModel(FIELD_POSTAL_CODE, { default: '' });
-// const city = defineModel(FIELD_CITY, { default: '' });
 import { useCheckoutStore } from '@/stores/checkout';
 import { watch, ref } from 'vue';
 import { computed } from 'vue';

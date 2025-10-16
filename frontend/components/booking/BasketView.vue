@@ -14,7 +14,7 @@
         <span>{{ line.quantity }}x <span class="font-semibold">{{ line.name }}</span></span>
         <span class="ml-auto">{{ formatCurrency(line.total) }}</span>
       </div>
-      <div class="text-xs text-[#888] mb-4">Beskyttelsescases medfølger til alle modeller.</div>
+      <!-- <div class="text-xs text-[#888] mb-4">Beskyttelsescases medfølger til alle modeller.</div> -->
       <div v-if="backendBreakdown && backendBreakdown.accessories && backendBreakdown.accessories.length" class="mt-6 mb-4">
         <div class="font-semibold mb-2 text-[1.05rem]">Ekstra udstyr:</div>
         <div>
