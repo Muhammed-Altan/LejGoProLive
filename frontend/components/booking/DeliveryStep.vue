@@ -243,7 +243,7 @@ function normalizePhoneValue(val) {
 	let v = val.replace(/[^+\d\s]/g, '')
 	v = v.replace(/\s+/g, ' ').trim()
 	// If user typed leading 45 without +, add +
-	if (/^(45\s?)/.test(v)) {
+	if (/^(45\s?)/.test(v) && !v.startsWith('+')) {
 		v = '+' + v
 	}
 	// If starts with single 0 followed by digits, replace with +45
