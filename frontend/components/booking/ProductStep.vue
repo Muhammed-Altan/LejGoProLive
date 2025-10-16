@@ -21,6 +21,7 @@
             placeholder="Start dato"
             :auto-apply="true"
             :min-date="minStartDate"
+            :disabled-dates="isStartDateDisabled"
           />
         </div>
         <div class="flex-1">
@@ -298,6 +299,13 @@ const minEndDate = computed(() => {
   return date;
 });
 
+// Disable weekends for the start date picker (Saturday=6, Sunday=0)
+function isStartDateDisabled(date: Date) {
+  if (!date) return false;
+  const day = date.getDay();
+  return day === 0 || day === 6;
+}
+
 function selectModel(model: {
   name: string;
   price: number;
@@ -352,6 +360,11 @@ function removeModel(idx: number) {
 async function fetchCamerasForProduct(productId: number) {
   try {
     const supabase = useSupabase();
+    if (!supabase) {
+      console.error('Supabase client not available');
+      availableCameras.value = [];
+      return;
+    }
     console.log('Fetching cameras for product:', productId);
     
     const { data: cameras, error } = await supabase
@@ -441,7 +454,11 @@ watch(
 // Fetch products and accessories from Supabase
 onMounted(async () => {
   const supabase = useSupabase();
-  
+  if (!supabase) {
+    console.error('Supabase client not available on mount');
+    return;
+  }
+
   try {
     // Fetch products from Supabase
     const { data: productsData, error: productsError } = await supabase

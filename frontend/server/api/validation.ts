@@ -10,6 +10,14 @@ export function enforceMaxAccessoryQuantities(accessories: Array<{ quantity: num
 export function validateBookingPeriod(startDate: string, endDate: string, minDays = 3, maxDays = 30): boolean {
   const start = new Date(startDate);
   const end = new Date(endDate);
+
+  // Ensure dates are valid
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+
+  // Disallow bookings that start on weekend (Saturday=6 or Sunday=0)
+  const startDay = start.getDay();
+  if (startDay === 0 || startDay === 6) return false;
+
   const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   return start < end && days >= minDays && days <= maxDays;
 }
