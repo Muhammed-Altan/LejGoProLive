@@ -223,6 +223,59 @@ export const useCheckoutStore = defineStore('checkout', {
         throw error;
       }
     },
+
+    async createPostNordBooking() {
+      try {
+        const payload = {
+          customerReference: this.orderId ?? `ORDER-${Date.now()}`,
+          shipments: [
+            {
+              shipmentId: '1',
+              product: 'SE.PARCEL',
+              sender: {
+                name: process.env.SHOP_NAME ?? 'lejgopro.dk',
+                address1: process.env.SHOP_ADDRESS ?? 'Shop Street 1',
+                postalCode: process.env.SHOP_POSTAL ?? '1050',
+                city: process.env.SHOP_CITY ?? 'København',
+                country: process.env.SHOP_COUNTRY ?? 'DK',
+                email: process.env.SHOP_EMAIL ?? 'shop@example.com',
+                phone: process.env.SHOP_PHONE ?? '+46123456789'
+              },
+              recipient: {
+                name: this.fullName,
+                address1: this.address + (this.apartment ? `, ${this.apartment}` : ''),
+                postalCode: this.postalCode,
+                city: this.city,
+                country: 'DK',
+                email: this.email,
+                phone: this.phone
+              }
+            }
+          ]
+        }
+
+        // Use native fetch via global (Nuxt/Nitro provides fetch)
+        const res = await fetch('/api/postnord/booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(`Booking request failed: ${res.status} ${text}`)
+        }
+        const data = await res.json()
+        // Persist bookingId if present
+        if (data?.bookingId) this.bookingId = data.bookingId
+        else if (data?.bookingResult?.bookingId) this.bookingId = data.bookingResult.bookingId
+
+        return data
+      } catch (err) {
+        console.error('Error creating PostNord booking:', err)
+        throw err
+      }
+    },
     
     async loadBookingFromSupabase(bookingId: string) {
       try {
