@@ -29,7 +29,7 @@
                   autocomplete="email"
                   required
                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#B90C2C] focus:border-[#B90C2C] sm:text-sm"
-                  placeholder="admin@lejgopro.dk"
+                  placeholder="Enter admin email"
                 />
               </div>
             </div>
