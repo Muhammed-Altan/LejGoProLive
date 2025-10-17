@@ -217,9 +217,10 @@ const initiatePayment = async () => {
   try {
     // Prepare booking data
     const bookingData = {
-      cameraId: 1, // This should be properly selected
+      cameraId: 1, // This will be properly assigned by the server
       cameraName: 'Selected Camera',
       productName: store.selectedModels[0]?.name || 'Selected Product',
+      selectedAccessories: store.selectedAccessories, // Pass selected accessories to server
       startDate: store.startDate,
       endDate: store.endDate,
       address: store.address,
@@ -230,7 +231,7 @@ const initiatePayment = async () => {
       city: store.city,
       postalCode: store.postalCode,
       totalPrice: totalAmount.value,
-      accessoryInstanceIds: [], // This should be populated with actual accessory instances
+      accessoryInstanceIds: [], // This will be populated by the server with actual instances
     }
 
     // Get payment methods parameter
