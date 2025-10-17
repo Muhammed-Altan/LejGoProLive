@@ -19,8 +19,15 @@ export default defineEventHandler(async (event) => {
     const { email, password, rememberMe } = body
 
     // Get admin credentials from runtime config
-    const ADMIN_EMAIL = config.adminEmail || 'admin@lejgopro.dk'
-    const ADMIN_PASSWORD = config.adminPassword || 'admin123' // Change this in production!
+    const ADMIN_EMAIL = config.adminEmail
+    const ADMIN_PASSWORD = config.adminPassword
+
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Admin credentials not configured'
+      })
+    }
 
     // Validate required fields
     if (!email || !password) {

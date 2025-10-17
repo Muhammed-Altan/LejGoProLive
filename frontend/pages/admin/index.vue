@@ -286,6 +286,9 @@
                                 </div>
                                 <div class="flex gap-2 mt-2">
                                     <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="openEditBooking(booking)">Rediger</button>
+                                    <button class="bg-green-600 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="createInvoice(booking)" :disabled="creatingInvoice === booking.id">
+                                        {{ creatingInvoice === booking.id ? 'Opretter...' : 'Opret Faktura' }}
+                                    </button>
                                     <button class="bg-red-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="deleteBooking(booking.id)">Slet</button>
                                 </div>
                             </div>
@@ -365,6 +368,28 @@
                 <h2 class="text-2xl font-bold text-center mb-8 text-gray-900">Integrationer</h2>
                 <div class="space-y-6">
                     <DineroAuth />
+                    
+                    <!-- Dinero API Test Section -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Dinero API Test</h3>
+                        <div class="space-y-4">
+                            <button 
+                                @click="testDineroOAuth"
+                                class="bg-blue-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-700 transition"
+                                :disabled="testingOAuth"
+                            >
+                                {{ testingOAuth ? 'Testing OAuth...' : 'Test OAuth Authentication' }}
+                            </button>
+                            
+                            <div v-if="oauthTestResult" class="mt-4 p-4 rounded-lg" 
+                                 :class="oauthTestResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
+                                <h4 class="font-semibold" :class="oauthTestResult.success ? 'text-green-700' : 'text-red-700'">
+                                    {{ oauthTestResult.success ? 'Success!' : 'Error' }}
+                                </h4>
+                                <pre class="text-sm mt-2 whitespace-pre-wrap" :class="oauthTestResult.success ? 'text-green-600' : 'text-red-600'">{{ JSON.stringify(oauthTestResult, null, 2) }}</pre>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -396,6 +421,12 @@ const handleLogout = async () => {
 }
 
 async function deleteBooking(id: number) {
+    // Show confirmation dialog
+    const confirmDelete = confirm(`Er du sikker på, at du vil slette denne booking? Denne handling kan ikke fortrydes.`);
+    if (!confirmDelete) {
+        return; // User cancelled the deletion
+    }
+
     try {
         await fetch(`http://localhost:3001/bookings/${id}`, {
             method: 'DELETE',
@@ -423,6 +454,135 @@ async function deleteBooking(id: number) {
         });
     }
 }
+
+// Create invoice for booking
+async function createInvoice(booking: any) {
+    // Show confirmation dialog
+    const confirmCreate = confirm(`Er du sikker på, at du vil oprette en faktura for booking ${booking.id}?`);
+    if (!confirmCreate) {
+        return; // User cancelled
+    }
+
+    creatingInvoice.value = booking.id;
+    
+    try {
+        // Prepare products data for invoice
+        const products = [];
+        
+        // Add main product (GoPro rental)
+        if (booking.productName) {
+            products.push({
+                name: `${booking.productName} - Udlejning (${formatDateRange(booking.startDate, booking.endDate)})`,
+                quantity: 1,
+                unitPrice: booking.totalPrice / 100, // Convert from øre to kroner
+                productNumber: `GOPRO-${booking.productName?.replace(/\s+/g, '-').toUpperCase()}`
+            });
+        }
+
+        // Prepare customer info
+        const customerInfo = {
+            name: booking.fullName,
+            email: booking.email,
+            phone: booking.phone,
+            address: booking.address,
+            city: booking.city,
+            postalCode: booking.postalCode,
+            apartment: booking.apartment || ''
+        };
+
+        // Call invoice creation API
+        const response = await $fetch('/api/dinero/create-invoice', {
+            method: 'POST',
+            body: {
+                bookingId: booking.id,
+                customerInfo,
+                products,
+                totalAmount: booking.totalPrice / 100, // Convert from øre to kroner
+                currency: 'DKK'
+            }
+        }) as { success: boolean; invoiceId: string; invoiceNumber: string; message: string };
+
+        if (response.success) {
+            toast.add({
+                title: 'Faktura oprettet!',
+                description: `Faktura ${response.invoiceNumber} blev oprettet succesfuldt i Dinero`,
+                color: 'success',
+                ui: {
+                    title: 'text-gray-900 font-semibold',
+                    description: 'text-gray-700'
+                }
+            });
+            
+            // Refresh bookings to show updated invoice status
+            await fetchBookings();
+        }
+    } catch (error: any) {
+        console.error('Error creating invoice:', error);
+        toast.add({
+            title: 'Fejl ved oprettelse af faktura',
+            description: error.data?.message || 'Kunne ikke oprette fakturaen. Prøv igen.',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    } finally {
+        creatingInvoice.value = null;
+    }
+}
+
+// Helper function to format date range
+function formatDateRange(startDate: string, endDate: string): string {
+    const start = new Date(startDate).toLocaleDateString('da-DK');
+    const end = new Date(endDate).toLocaleDateString('da-DK');
+    return `${start} - ${end}`;
+}
+
+// Test Dinero OAuth authentication
+async function testDineroOAuth() {
+    testingOAuth.value = true;
+    oauthTestResult.value = null;
+    
+    try {
+        const response = await $fetch('/api/dinero/test-oauth', {
+            method: 'POST'
+        });
+        
+        oauthTestResult.value = response;
+        
+        if ((response as any).success) {
+            toast.add({
+                title: 'OAuth Test Successful!',
+                description: `Found ${(response as any).organizationCount || 0} organization(s)`,
+                color: 'success',
+                ui: {
+                    title: 'text-gray-900 font-semibold',
+                    description: 'text-gray-700'
+                }
+            });
+        }
+    } catch (error: any) {
+        console.error('OAuth test error:', error);
+        oauthTestResult.value = {
+            success: false,
+            error: error.data?.message || error.message || 'Unknown error'
+        };
+        
+        toast.add({
+            title: 'OAuth Test Failed',
+            description: error.data?.message || 'Authentication test failed',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    } finally {
+        testingOAuth.value = false;
+    }
+}
+
 function updateCameraId() {
     // Find camera id from selected name
     const match = /^Kamera (\d+)$/.exec(editBookingForm.value.cameraName);
@@ -770,6 +930,12 @@ async function createProduct() {
 }
 
 async function deleteProduct(product: any) {
+    // Show confirmation dialog
+    const confirmDelete = confirm(`Er du sikker på, at du vil slette produktet "${product.name}"? Denne handling kan ikke fortrydes.`);
+    if (!confirmDelete) {
+        return; // User cancelled the deletion
+    }
+
     try {
         const supabase = useSupabase();
         if (!supabase) {
@@ -957,6 +1123,9 @@ interface Booking {
     totalPrice?: number;
 }
 const bookings = ref<Booking[]>([]);
+const creatingInvoice = ref<number | null>(null);
+const testingOAuth = ref(false);
+const oauthTestResult = ref<any>(null);
 
 async function fetchBookings() {
     try {
@@ -1233,6 +1402,12 @@ async function createAccessory() {
 }
 
 async function deleteAccessory(id: number) {
+    // Show confirmation dialog
+    const confirmDelete = confirm(`Er du sikker på, at du vil slette dette tilbehør? Denne handling kan ikke fortrydes.`);
+    if (!confirmDelete) {
+        return; // User cancelled the deletion
+    }
+
     try {
         const supabase = useSupabase();
         if (!supabase) {
