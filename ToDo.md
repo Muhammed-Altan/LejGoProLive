@@ -79,6 +79,13 @@ Admin
 
 Dinero
 -- Push/write to dinero efter hver betaling
+-- Betaling f.eks. 300 kr skal matches op til 
 
 Privatlivspolitik
+ 
+ 
+ 
  -->
+
+
+

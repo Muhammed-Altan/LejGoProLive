@@ -45,7 +45,7 @@ EMAIL_FROM_NAME=LejGoPro Team
 You may need to modify the transporter configuration in `server/api/email/send-receipt.post.ts`:
 
 ```javascript
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: 'smtp.your-provider.com',
   port: 587,
   secure: false, // true for 465, false for other ports

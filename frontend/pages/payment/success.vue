@@ -126,20 +126,31 @@ const bookingData = computed<BookingEmailData | null>(() => {
     return null
   }
 
+  // Map the database field names to the expected email data structure
+  const customerEmail = bookingDetails.value.email || bookingDetails.value.customer_email || ''
+  const customerName = bookingDetails.value.fullName || bookingDetails.value.customer_name || bookingDetails.value.full_name || 'Kunde'
+  const customerPhone = bookingDetails.value.phone || bookingDetails.value.customer_phone || ''
+  
+  // Skip if no email is available
+  if (!customerEmail) {
+    console.warn('No email found in booking data:', bookingDetails.value)
+    return null
+  }
+
   return {
     orderNumber: orderDetails.value.order_id,
-    customerName: bookingDetails.value.customer_name || 'Kunde',
-    customerEmail: bookingDetails.value.customer_email || '',
-    customerPhone: bookingDetails.value.customer_phone,
-    service: bookingDetails.value.service || 'LejGoPro Service',
-    duration: bookingDetails.value.duration || 'N/A',
+    customerName,
+    customerEmail,
+    customerPhone,
+    service: bookingDetails.value.productName || bookingDetails.value.service || bookingDetails.value.cameraName || 'LejGoPro Service',
+    duration: `${bookingDetails.value.startDate ? new Date(bookingDetails.value.startDate).toLocaleDateString('da-DK') : ''} - ${bookingDetails.value.endDate ? new Date(bookingDetails.value.endDate).toLocaleDateString('da-DK') : ''}`,
     totalAmount: orderDetails.value.amount / 100, // Convert from øre to kroner
     bookingDate: bookingDetails.value.created_at || new Date().toISOString(),
-    rentalPeriod: bookingDetails.value.rental_start_date && bookingDetails.value.rental_end_date ? {
-      startDate: bookingDetails.value.rental_start_date,
-      endDate: bookingDetails.value.rental_end_date
+    rentalPeriod: bookingDetails.value.startDate && bookingDetails.value.endDate ? {
+      startDate: bookingDetails.value.startDate,
+      endDate: bookingDetails.value.endDate
     } : undefined,
-    deliveryAddress: bookingDetails.value.delivery_address,
+    deliveryAddress: bookingDetails.value.address ? `${bookingDetails.value.address}${bookingDetails.value.apartment ? ', ' + bookingDetails.value.apartment : ''}, ${bookingDetails.value.postalCode || ''} ${bookingDetails.value.city || ''}`.trim() : undefined,
     items: bookingDetails.value.items ? JSON.parse(bookingDetails.value.items) : undefined
   }
 })
