@@ -137,7 +137,7 @@
         >
           <option disabled value="">Vælg tilbehør…</option>
           <option v-for="acc in accessories" :key="acc.name" :value="acc.name">
-            {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./dag
+            {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
           </option>
         </select>
         <button
