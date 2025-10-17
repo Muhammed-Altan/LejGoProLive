@@ -71,6 +71,11 @@
           <p class="text-red-700">{{ error }}</p>
         </div>
 
+        <!-- Email Receipt Section -->
+        <div v-if="orderDetails && bookingData" class="mb-8">
+          <ReceiptEmailActions :booking-data="bookingData" />
+        </div>
+
         <!-- Action Buttons -->
         <div class="space-y-4">
           <button
@@ -95,11 +100,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { usePensoPay } from '@/composables/usePensoPay'
 import { useSupabase } from '@/composables/useSupabase'
+import type { BookingEmailData } from '@/composables/useEmail'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
+import ReceiptEmailActions from '@/components/ReceiptEmailActions.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -107,10 +114,35 @@ const { getPayment, loading } = usePensoPay()
 const supabase = useSupabase()
 
 const orderDetails = ref<any>(null)
+const bookingDetails = ref<any>(null)
 const error = ref<string | null>(null)
 const countdown = ref(10) // 10 seconds countdown
 const redirectCancelled = ref(false)
 let redirectTimer: NodeJS.Timeout | null = null
+
+// Prepare booking data for email
+const bookingData = computed<BookingEmailData | null>(() => {
+  if (!orderDetails.value || !bookingDetails.value) {
+    return null
+  }
+
+  return {
+    orderNumber: orderDetails.value.order_id,
+    customerName: bookingDetails.value.customer_name || 'Kunde',
+    customerEmail: bookingDetails.value.customer_email || '',
+    customerPhone: bookingDetails.value.customer_phone,
+    service: bookingDetails.value.service || 'LejGoPro Service',
+    duration: bookingDetails.value.duration || 'N/A',
+    totalAmount: orderDetails.value.amount / 100, // Convert from øre to kroner
+    bookingDate: bookingDetails.value.created_at || new Date().toISOString(),
+    rentalPeriod: bookingDetails.value.rental_start_date && bookingDetails.value.rental_end_date ? {
+      startDate: bookingDetails.value.rental_start_date,
+      endDate: bookingDetails.value.rental_end_date
+    } : undefined,
+    deliveryAddress: bookingDetails.value.delivery_address,
+    items: bookingDetails.value.items ? JSON.parse(bookingDetails.value.items) : undefined
+  }
+})
 
 // Format amount from øre to kroner
 const formatAmount = (amountInOre: number): string => {
@@ -216,6 +248,7 @@ onMounted(async () => {
           state: 'Bekræftet',
           updated_at: new Date().toISOString()
         }
+        bookingDetails.value = null
       } else {
         orderDetails.value = {
           order_id: orderId,
@@ -223,6 +256,7 @@ onMounted(async () => {
           state: booking.paymentStatus === 'paid' ? 'Betalt' : 'Bekræftet',
           updated_at: booking.paidAt || booking.created_at || new Date().toISOString()
         }
+        bookingDetails.value = booking
       }
     } catch (err) {
       console.error('Failed to load booking details:', err)
