@@ -57,7 +57,7 @@
 
             <div class="flex justify-between">
               <span class="text-gray-600">Mail</span>
-              <span class="font-medium">Du vil modtage en kvittering på din email, når PostNord modtager din pakke.</span>
+              <span class="font-medium">Du vil modtage en email, når PostNord modtager din pakke.</span>
             </div>
           </div>
         </div>
