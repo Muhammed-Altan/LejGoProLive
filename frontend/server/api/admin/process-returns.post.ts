@@ -97,6 +97,6 @@ export default defineEventHandler(async (event) => {
       accessoryInstancesMadeAvailable: accessoriesUpdated,
     }
   } catch (err: any) {
-    return createError({ statusCode: 500, statusMessage: err?.message || 'Error processing returns' })
+    throw createError({ statusCode: 500, statusMessage: err?.message || 'Error processing returns' })
   }
 })
