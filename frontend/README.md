@@ -80,4 +80,4 @@ This project includes a server endpoint to process returned bookings and mark ac
 
 - Endpoint: `POST /api/admin/process-returns`
 - Environment: requires a Supabase service role key available to the server to update inventory rows. Set `SUPABASE_SERVICE_ROLE_KEY` in your deployment environment or provide it via runtime config.
-- Scheduling: a GitHub Actions workflow `.github/workflows/process-returns.yml` is included to call the endpoint daily (adjust secrets accordingly).
+- Scheduling: a GitHub Actions workflow `frontend/.github/workflows/process-returns.yml` is included to call the endpoint daily (adjust secrets accordingly).
