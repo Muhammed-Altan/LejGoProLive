@@ -109,9 +109,12 @@ async function findAvailableAccessoryInstances(selectedAccessories: any[], start
   const start = new Date(startDate)
   const end = new Date(endDate)
   
+  console.log(`🔧 Processing ${selectedAccessories.length} selected accessories:`, selectedAccessories)
+  
   // Process each selected accessory
-  for (const selectedAccessory of selectedAccessories) {
-    console.log(`🔧 Processing accessory: ${selectedAccessory.name}, quantity: ${selectedAccessory.quantity}`)
+  for (let accessoryIndex = 0; accessoryIndex < selectedAccessories.length; accessoryIndex++) {
+    const selectedAccessory = selectedAccessories[accessoryIndex]
+    console.log(`🔧 [${accessoryIndex + 1}/${selectedAccessories.length}] Processing accessory: ${selectedAccessory.name}, quantity: ${selectedAccessory.quantity}`)
     
     // Find the accessory by name
     const { data: accessory, error: accessoryError } = await supabase
@@ -121,11 +124,11 @@ async function findAvailableAccessoryInstances(selectedAccessories: any[], start
       .single()
       
     if (accessoryError || !accessory) {
-      console.error('❌ Accessory not found:', selectedAccessory.name, accessoryError)
+      console.error(`❌ [${accessoryIndex + 1}] Accessory not found:`, selectedAccessory.name, accessoryError)
       continue
     }
     
-    console.log(`📦 Found accessory: ${accessory.name} (ID: ${accessory.id})`)
+    console.log(`📦 [${accessoryIndex + 1}] Found accessory: ${accessory.name} (ID: ${accessory.id})`)
     
     // Get all instances for this accessory
     const { data: instances, error: instancesError } = await supabase
@@ -136,11 +139,11 @@ async function findAvailableAccessoryInstances(selectedAccessories: any[], start
       .order('id')
       
     if (instancesError || !instances || instances.length === 0) {
-      console.error('❌ No available instances found for accessory:', accessory.id, instancesError)
+      console.error(`❌ [${accessoryIndex + 1}] No available instances found for accessory:`, accessory.id, instancesError)
       continue
     }
     
-    console.log(`🔧 Found ${instances.length} available instances for ${accessory.name}`)
+    console.log(`🔧 [${accessoryIndex + 1}] Found ${instances.length} available instances for ${accessory.name}`)
     
     let assignedCount = 0
     const neededQuantity = selectedAccessory.quantity || 1
@@ -189,9 +192,13 @@ async function findAvailableAccessoryInstances(selectedAccessories: any[], start
       }
     }
     
+    console.log(`📊 [${accessoryIndex + 1}] Summary for ${accessory.name}: Needed ${neededQuantity}, Assigned ${assignedCount}`)
+    
     if (assignedCount < neededQuantity) {
-      console.error(`❌ Could not find enough available instances for ${accessory.name}. Needed: ${neededQuantity}, Found: ${assignedCount}`)
+      console.error(`❌ [${accessoryIndex + 1}] Could not find enough available instances for ${accessory.name}. Needed: ${neededQuantity}, Found: ${assignedCount}`)
       // For now, we'll still continue with what we found rather than failing the entire booking
+    } else {
+      console.log(`✅ [${accessoryIndex + 1}] Successfully assigned all ${assignedCount} instances for ${accessory.name}`)
     }
   }
   
@@ -343,7 +350,17 @@ export default defineEventHandler(async (event) => {
 
     // Create booking in database with correct camera and accessory instance assignment
     const bookingPayload = {
-      ...bookingData,
+      // Only include fields that exist in the Booking table
+      productName: bookingData.productName,
+      startDate: bookingData.startDate,
+      endDate: bookingData.endDate,
+      fullName: bookingData.fullName,
+      email: bookingData.email,
+      phone: bookingData.phone,
+      address: bookingData.address,
+      apartment: bookingData.apartment,
+      city: bookingData.city,
+      postalCode: bookingData.postalCode,
       cameraId: assignedCamera.cameraId,
       cameraName: assignedCamera.cameraName,
       accessoryInstanceIds: assignedAccessoryInstances,

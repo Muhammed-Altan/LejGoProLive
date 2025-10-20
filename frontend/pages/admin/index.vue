@@ -1206,44 +1206,64 @@ async function enrichBookingsWithAccessoryNames() {
         const supabase = useSupabase();
         if (!supabase) return;
         
-        // Get all accessory instances for lookup
-        const { data: accessoryInstances, error } = await supabase
+        console.log('🔍 Enriching bookings with accessory names...');
+        
+        // Get all accessory instances
+        const { data: accessoryInstances, error: instanceError } = await supabase
             .from('AccessoryInstance')
-            .select(`
-                id, 
-                serialNumber, 
-                Accessory:accessoryId (
-                    name
-                )
-            `);
+            .select('id, serialNumber, accessoryId');
             
-        if (error) {
-            console.error('Error fetching accessory instances:', error);
+        if (instanceError) {
+            console.error('Error fetching accessory instances:', instanceError);
             return;
         }
         
-        // Create a lookup map for instance ID to instance info
-        const instanceLookup = new Map();
-        if (accessoryInstances) {
-            accessoryInstances.forEach((instance: any) => {
-                instanceLookup.set(instance.id, {
-                    serialNumber: instance.serialNumber,
-                    accessoryName: instance.Accessory?.name || 'Unknown'
-                });
-            });
+        // Get all accessories
+        const { data: accessories, error: accessoryError } = await supabase
+            .from('Accessory')
+            .select('id, name');
+            
+        if (accessoryError) {
+            console.error('Error fetching accessories:', accessoryError);
+            return;
         }
+        
+        console.log('📦 Found accessories:', accessories);
+        console.log('🔧 Found accessory instances:', accessoryInstances);
+        
+        // Create lookup maps
+        const accessoryLookup = new Map();
+        accessories?.forEach(accessory => {
+            accessoryLookup.set(accessory.id, accessory.name);
+        });
+        
+        const instanceLookup = new Map();
+        accessoryInstances?.forEach(instance => {
+            const accessoryName = accessoryLookup.get(instance.accessoryId) || 'Unknown';
+            instanceLookup.set(instance.id, {
+                serialNumber: instance.serialNumber,
+                accessoryName: accessoryName
+            });
+        });
+        
+        console.log('🗂️ Instance lookup map:', instanceLookup);
         
         // Enrich each booking with accessory instance names
         bookings.value.forEach(booking => {
             if (booking.accessoryInstanceIds && booking.accessoryInstanceIds.length > 0) {
+                console.log(`📋 Processing booking with accessory IDs: ${booking.accessoryInstanceIds}`);
                 booking.accessoryInstanceNames = booking.accessoryInstanceIds.map(id => {
                     const instance = instanceLookup.get(id);
-                    return instance ? `${instance.accessoryName} (${instance.serialNumber})` : `ID: ${id}`;
+                    const result = instance ? `${instance.accessoryName} (${instance.serialNumber})` : `ID: ${id}`;
+                    console.log(`🏷️ ID ${id} -> ${result}`);
+                    return result;
                 });
             } else {
                 booking.accessoryInstanceNames = [];
             }
         });
+        
+        console.log('✅ Enrichment complete');
         
     } catch (e) {
         console.error('Error enriching bookings with accessory names:', e);
@@ -1492,6 +1512,100 @@ async function createAccessory() {
             
             if (error) throw error;
             accessoryId = editingAccessoryId.value;
+            
+            // Update instances to match new quantity and name
+            const { data: existingInstances, error: fetchError } = await supabase
+                .from('AccessoryInstance')
+                .select('id, serialNumber')
+                .eq('accessoryId', accessoryId)
+                .order('id');
+                
+            if (!fetchError && existingInstances) {
+                const currentCount = existingInstances.length;
+                const targetCount = accessoryForm.value.quantity;
+                
+                console.log(`🔄 Updating instances: Current: ${currentCount}, Target: ${targetCount}`);
+                
+                if (targetCount > currentCount) {
+                    // Need to add more instances
+                    const instancesToAdd = targetCount - currentCount;
+                    const newInstances = Array.from({ length: instancesToAdd }, (_, i) => ({
+                        accessoryId,
+                        serialNumber: `${accessoryForm.value.name} #${currentCount + i + 1}`,
+                        isAvailable: true
+                    }));
+                    
+                    const { error: addError } = await supabase
+                        .from('AccessoryInstance')
+                        .insert(newInstances);
+                        
+                    if (addError) {
+                        console.error('Error adding new instances:', addError);
+                    } else {
+                        console.log(`✅ Added ${instancesToAdd} new instances`);
+                    }
+                }
+                
+                if (targetCount < currentCount) {
+                    // Need to remove excess instances (only remove unused ones)
+                    const instancesToRemove = currentCount - targetCount;
+                    const instancesToDelete = existingInstances.slice(-instancesToRemove); // Take last instances
+                    
+                    // Check if any of these instances are in active bookings
+                    const instanceIds = instancesToDelete.map(instance => instance.id);
+                    const { data: activeBookings, error: bookingError } = await supabase
+                        .from('Booking')
+                        .select('id, accessoryInstanceIds, paymentStatus')
+                        .neq('paymentStatus', 'cancelled')
+                        .neq('paymentStatus', 'failed');
+                    
+                    if (!bookingError && activeBookings) {
+                        const usedInstanceIds = new Set();
+                        activeBookings.forEach(booking => {
+                            if (booking.accessoryInstanceIds && Array.isArray(booking.accessoryInstanceIds)) {
+                                booking.accessoryInstanceIds.forEach(id => usedInstanceIds.add(id));
+                            }
+                        });
+                        
+                        const safeToDelete = instancesToDelete.filter(instance => !usedInstanceIds.has(instance.id));
+                        
+                        if (safeToDelete.length > 0) {
+                            const { error: deleteError } = await supabase
+                                .from('AccessoryInstance')
+                                .delete()
+                                .in('id', safeToDelete.map(instance => instance.id));
+                                
+                            if (deleteError) {
+                                console.error('Error deleting instances:', deleteError);
+                            } else {
+                                console.log(`✅ Deleted ${safeToDelete.length} unused instances`);
+                            }
+                        }
+                        
+                        if (safeToDelete.length < instancesToRemove) {
+                            console.warn(`⚠️ Could only delete ${safeToDelete.length} of ${instancesToRemove} instances (others are in use)`);
+                        }
+                    }
+                }
+                
+                // Update serial numbers for remaining instances
+                const { data: updatedInstances } = await supabase
+                    .from('AccessoryInstance')
+                    .select('id')
+                    .eq('accessoryId', accessoryId)
+                    .order('id');
+                    
+                if (updatedInstances) {
+                    for (let i = 0; i < updatedInstances.length; i++) {
+                        const newSerialNumber = `${accessoryForm.value.name} #${i + 1}`;
+                        await supabase
+                            .from('AccessoryInstance')
+                            .update({ serialNumber: newSerialNumber })
+                            .eq('id', updatedInstances[i].id);
+                    }
+                    console.log(`✅ Updated serial numbers for ${updatedInstances.length} instances of ${accessoryForm.value.name}`);
+                }
+            }
         } else {
             // Create new accessory
             const { data, error } = await supabase
