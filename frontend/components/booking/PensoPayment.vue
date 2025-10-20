@@ -225,9 +225,10 @@ const initiatePayment = async () => {
   try {
     // Prepare booking data
     const bookingData = {
-      cameraId: 1, // This should be properly selected
+      cameraId: 1, // This will be properly assigned by the server
       cameraName: 'Selected Camera',
       productName: store.selectedModels[0]?.name || 'Selected Product',
+      selectedAccessories: store.selectedAccessories, // Pass selected accessories to server
       startDate: store.startDate,
       endDate: store.endDate,
       address: store.address,
@@ -238,7 +239,7 @@ const initiatePayment = async () => {
       city: store.city,
       postalCode: store.postalCode,
       totalPrice: totalAmount.value,
-      accessoryInstanceIds: [], // This should be populated with actual accessory instances
+      accessoryInstanceIds: [], // This will be populated by the server with actual instances
     }
 
     // Get payment methods parameter
@@ -299,7 +300,22 @@ const initiatePayment = async () => {
 
   } catch (err: any) {
     console.error('Payment initiation error:', err)
-    error.value = err.message || err.data?.message || 'Betalingen kunne ikke oprettes. Prøv igen.'
+    console.log('Error details:', {
+      message: err.message,
+      statusMessage: err.statusMessage,
+      data: err.data,
+      cause: err.cause
+    })
+    
+    // Check multiple places where the error message might be
+    const errorMessage = err.statusMessage || err.message || err.data?.message || err.cause?.statusMessage || ''
+    
+    if (errorMessage.includes('ACCESSORY_UNAVAILABLE:')) {
+      const accessories = errorMessage.replace(/.*ACCESSORY_UNAVAILABLE:/, '').trim()
+      error.value = `Fejl ved betaling: ${accessories}.`
+    } else {
+      error.value = errorMessage || 'Betalingen kunne ikke oprettes. Prøv igen.'
+    }
   } finally {
     loading.value = false
   }

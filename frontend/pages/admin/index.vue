@@ -249,115 +249,152 @@
         <div v-else-if="activeTab === 'orders'">
             <div class="max-w-4xl mx-auto py-8">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-semibold text-center">Ordrer</h2>
+                    <h2 class="text-xl font-semibold text-center">Produktinformation</h2>
                     <button 
                         @click="fixBookingCameraIds" 
                         class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
                     >
-                        Fix Camera IDs
+                        Distribute Bookings
                     </button>
                 </div>
-                <div v-if="bookings.length === 0" class="text-center text-gray-500 py-12">
-                    <p>Ingen ordrer at vise endnu.</p>
+                
+                <div v-if="products.length === 0" class="text-center text-gray-500 py-12">
+                    <p>Ingen produkter at vise endnu.</p>
                 </div>
+                
                 <div v-else class="space-y-6">
-                    <div v-for="booking in bookings" :key="booking.id" class="border rounded-xl p-6 bg-white shadow">
-                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div>
-                                <h3 class="text-lg font-bold mb-1">{{ booking.fullName || booking.customerName || booking.name || 'Ukendt kunde' }}</h3>
-                                <p class="text-gray-600 mb-2">{{ booking.email }}</p>
-                                <div class="flex flex-wrap gap-2 mb-2">
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Start: {{ booking.startDate }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Slut: {{ booking.endDate }}</span>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mb-2">
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Adresse: {{ booking.address }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Lejlighed: {{ booking.apartment }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">By: {{ booking.city }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Postnummer: {{ booking.postalCode }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Telefon: {{ booking.phone }}</span>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mb-2">
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Produkt: {{ booking.productName || booking.product || 'Ukendt produkt' }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Kamera: {{ booking.cameraName }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Kamera ID: {{ booking.cameraId }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Tilbehør enheder: {{ booking.accessoryInstanceIds ? booking.accessoryInstanceIds.join(', ') : 'Ingen' }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Total pris: {{ (booking.totalPrice / 100).toFixed(2) }} kr</span>
-                                </div>
-                                <div class="flex gap-2 mt-2">
-                                    <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="openEditBooking(booking)">Rediger</button>
-                                    <button class="bg-green-600 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="createInvoice(booking)" :disabled="creatingInvoice === booking.id">
-                                        {{ creatingInvoice === booking.id ? 'Opretter...' : 'Opret Faktura' }}
-                                    </button>
-                                    <button class="bg-red-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="deleteBooking(booking.id)">Slet</button>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-1 min-w-[150px]">
-                                <span class="font-semibold">Status: <span class="text-[#B8082A]">{{ booking.status || 'Ukendt' }}</span></span>
-                                <span class="font-semibold">Booking ID: <span class="text-[#B8082A]">{{ booking.id }}</span></span>
+                    <!-- Debug info -->
+                    <div class="bg-yellow-50 border border-yellow-200 p-4 rounded mb-4">
+                        <h4 class="font-bold mb-2">Debug Info:</h4>
+                        <p>Total bookings: {{ bookings.length }}</p>
+                        <div v-for="product in products" :key="product.id">
+                            <p><strong>{{ product.name }} (Product ID: {{ product.id }}):</strong></p>
+                            <div v-for="(camera, index) in product.cameras" :key="camera.id" class="ml-4">
+                                <p>Camera ID {{ camera.id }} (Kamera {{ index + 1 }}): {{ getBookingsForCamera(camera.id).length }} bookings</p>
                             </div>
                         </div>
                     </div>
-                    <div v-if="showEditBookingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                                    <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative overflow-y-auto" style="max-height: 90vh;">
-                            <button @click="closeEditBooking" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold">&times;</button>
-                            <h2 class="mb-1 text-xl font-semibold cursor-pointer">Rediger Booking</h2>
-                            <form @submit.prevent="submitEditBooking" class="space-y-7">
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Navn</label>
-                                    <input v-model="editBookingForm.fullName" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Email</label>
-                                    <input v-model="editBookingForm.email" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Telefon</label>
-                                    <input v-model="editBookingForm.phone" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Adresse</label>
-                                    <input v-model="editBookingForm.address" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Lejlighed</label>
-                                    <input v-model="editBookingForm.apartment" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">By</label>
-                                    <input v-model="editBookingForm.city" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Postnummer</label>
-                                    <input v-model="editBookingForm.postalCode" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <!-- Status field removed -->
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Produkt navn</label>
-                                    <select v-model="editBookingForm.productName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base">
-                                        <option v-for="product in products" :key="product.id" :value="product.name">{{ product.name }}</option>
-                                    </select>
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Kamera navn</label>
-                                    <select v-model="editBookingForm.cameraName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" @change="updateCameraId">
-                                        <option v-for="camera in selectedProductCameras" :key="camera.id" :value="`Kamera ${camera.id}`">Kamera {{ camera.id }}</option>
-                                    </select>
-                                </div>
-                                <!-- Kamera ID field removed -->
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Tilbehør enheder (kommasepareret)</label>
-                                    <input v-model="editBookingForm.accessoryInstanceIds" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" placeholder="fx: 1,2,3" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Total pris</label>
-                                    <input v-model="editBookingForm.totalPrice" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex justify-end">
-                                    <button type="submit" class="bg-[#B8082A] text-white px-6 py-2 rounded font-semibold shadow hover:bg-[#a10725] transition">Gem ændringer</button>
-                                </div>
-                            </form>
+                    
+                    <div v-for="product in products" :key="product.id" class="border rounded-xl p-6 bg-white shadow">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-bold text-red-600 mb-2">Produktinformation</h3>
                         </div>
+                        
+                        <!-- Loop through each camera for this product -->
+                        <div v-for="(camera, cameraIndex) in product.cameras" :key="camera.id" class="mb-6">
+                            <div class="border-l-4 border-gray-300 pl-4">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h4 class="font-bold text-lg">Kamera: Kamera {{ cameraIndex + 1 }} (ID: {{ camera.id }})</h4>
+                                        <p class="text-gray-600">Produkt: {{ product.name }} (ID: {{ product.id }})</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="ml-4">
+                                    <h5 class="font-semibold text-red-600 mb-3">Bookinger:</h5>
+                                    
+                                    <!-- Get bookings for this specific camera -->
+                                    <div v-if="getBookingsForCamera(camera.id).length === 0" class="text-gray-500 italic">
+                                        Ingen bookinger for dette kamera.
+                                    </div>
+                                    
+                                    <div v-else class="space-y-3">
+                                        <div v-for="booking in getBookingsForCamera(camera.id)" :key="booking.id" 
+                                             class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex-1">
+                                                    <div class="font-medium text-sm">
+                                                        {{ booking.startDate && booking.endDate ? formatDateRange(booking.startDate, booking.endDate) : 'Ukendt periode' }} 
+                                                        <span class="text-red-600">{{ booking.fullName || booking.customerName || booking.name || 'Ukendt kunde' }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="flex gap-2 ml-4">
+                                                    <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs cursor-pointer" @click="openEditBooking(booking)">Rediger</button>
+                                                    <button class="bg-green-600 text-white px-2 py-1 rounded text-xs cursor-pointer" @click="createInvoice(booking)" :disabled="creatingInvoice === booking.id">
+                                                        {{ creatingInvoice === booking.id ? 'Opretter...' : 'Faktura' }}
+                                                    </button>
+                                                    <button class="bg-red-500 text-white px-2 py-1 rounded text-xs cursor-pointer" @click="deleteBooking(booking.id)">Slet</button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Additional booking details -->
+                                            <div class="mt-2 text-xs text-gray-600 space-y-1">
+                                                <div>Email: {{ booking.email }}</div>
+                                                <div>Telefon: {{ booking.phone }}</div>
+                                                <div>Adresse: {{ booking.address }}, {{ booking.city }} {{ booking.postalCode }}</div>
+                                                <div>Total pris: {{ booking.totalPrice ? (booking.totalPrice / 100).toFixed(2) : '0.00' }} kr</div>
+                                                <div v-if="booking.accessoryInstanceNames && booking.accessoryInstanceNames.length > 0">
+                                                    Tilbehør: {{ booking.accessoryInstanceNames.join(', ') }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Edit Booking Modal -->
+                <div v-if="showEditBookingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative overflow-y-auto" style="max-height: 90vh;">
+                        <button @click="closeEditBooking" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold">&times;</button>
+                        <h2 class="mb-1 text-xl font-semibold cursor-pointer">Rediger Booking</h2>
+                        <form @submit.prevent="submitEditBooking" class="space-y-7">
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Navn</label>
+                                <input v-model="editBookingForm.fullName" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Email</label>
+                                <input v-model="editBookingForm.email" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Telefon</label>
+                                <input v-model="editBookingForm.phone" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Adresse</label>
+                                <input v-model="editBookingForm.address" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Lejlighed</label>
+                                <input v-model="editBookingForm.apartment" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">By</label>
+                                <input v-model="editBookingForm.city" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Postnummer</label>
+                                <input v-model="editBookingForm.postalCode" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <!-- Status field removed -->
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Produkt navn</label>
+                                <select v-model="editBookingForm.productName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base">
+                                    <option v-for="product in products" :key="product.id" :value="product.name">{{ product.name }}</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Kamera navn</label>
+                                <select v-model="editBookingForm.cameraName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" @change="updateCameraId">
+                                    <option v-for="camera in selectedProductCameras" :key="camera.id" :value="`Kamera ${camera.id}`">Kamera {{ camera.id }}</option>
+                                </select>
+                            </div>
+                            <!-- Kamera ID field removed -->
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Tilbehør enheder (kommasepareret)</label>
+                                <input v-model="editBookingForm.accessoryInstanceIds" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" placeholder="fx: 1,2,3" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Total pris</label>
+                                <input v-model="editBookingForm.totalPrice" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="bg-[#B8082A] text-white px-6 py-2 rounded font-semibold shadow hover:bg-[#a10725] transition">Gem ændringer</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -530,6 +567,12 @@ async function createInvoice(booking: any) {
     } finally {
         creatingInvoice.value = null;
     }
+}
+
+// Helper function to get bookings for a specific camera
+function getBookingsForCamera(cameraId: number) {
+    const result = bookings.value.filter(booking => booking.cameraId === cameraId);
+    return result;
 }
 
 // Helper function to format date range
@@ -763,23 +806,18 @@ const products = ref<Product[]>([]);
 
 async function fetchProducts() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            products.value = [];
-            return;
+        console.log('🔄 Fetching products from server API...')
+        // Use server API instead of direct Supabase call
+        const response = await $fetch('/api/admin/products')
+        
+        console.log('📦 Products API response:', response)
+        
+        if (!response.success) {
+            throw new Error('Failed to fetch products')
         }
         
-        // First, get the products without the Camera relationship
-        const { data, error } = await supabase
-            .from('Product')
-            .select('*')
-            .order('id', { ascending: false});
-        
-        if (error) throw error;
-        
         // Transform the data to match the expected interface
-        products.value = (data || []).map(p => ({
+        products.value = (response.data || []).map(p => ({
             id: p.id,
             name: p.name || '',
             description: '', // No description column in your table
@@ -792,22 +830,27 @@ async function fetchProducts() {
             cameras: [] // We'll load cameras separately if needed
         }));
         
-        // Optionally, load cameras for each product separately
-        for (const product of products.value) {
-            try {
-                const { data: cameras } = await supabase
-                    .from('Camera')
-                    .select('*')
-                    .eq('productId', product.id);
+        console.log('✅ Products loaded:', products.value.length);
+        
+        // Load cameras for each product using server API
+        try {
+            const cameraResponse = await $fetch('/api/admin/cameras')
+            if (cameraResponse.success) {
+                const cameras = cameraResponse.data || []
+                console.log('📷 All cameras loaded:', cameras.length)
                 
-                product.cameras = cameras || [];
-            } catch (cameraError) {
-                console.warn(`Could not load cameras for product ${product.id}:`, cameraError);
-                product.cameras = [];
+                // Group cameras by product
+                products.value.forEach(product => {
+                    product.cameras = cameras.filter(camera => camera.productId === product.id)
+                    console.log(`📷 Product ${product.name} has ${product.cameras.length} cameras`)
+                })
             }
+        } catch (cameraError) {
+            console.warn('Could not load cameras:', cameraError)
         }
+        
     } catch (error) {
-        console.error('Error fetching products from Supabase:', error);
+        console.error('Error fetching products from server:', error);
         products.value = [];
     }
 }
@@ -815,6 +858,8 @@ async function fetchProducts() {
 // Only fetch data on client side to avoid SSR issues
 if (process.client) {
     fetchProducts();
+    fetchBookings();
+    fetchAccessory();
 }
 
 async function createProduct() {
@@ -1120,6 +1165,7 @@ interface Booking {
     cameraName?: string;
     cameraId?: number;
     accessoryInstanceIds?: number[];
+    accessoryInstanceNames?: string[];
     totalPrice?: number;
 }
 const bookings = ref<Booking[]>([]);
@@ -1129,32 +1175,100 @@ const oauthTestResult = ref<any>(null);
 
 async function fetchBookings() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            bookings.value = [];
-            return;
+        console.log('🔄 Fetching bookings from server API...')
+        // Use server API instead of direct Supabase call
+        const response = await $fetch('/api/admin/bookings')
+        
+        console.log('📋 Bookings API response:', response)
+        
+        if (!response.success) {
+            throw new Error('Failed to fetch bookings')
         }
         
-        const { data, error } = await supabase
-            .from('Booking')
-            .select('*')
-            .order('id', { ascending: false });
+        bookings.value = response.data || [];
         
-        if (error) {
-            console.error('Error fetching bookings:', error);
-            bookings.value = [];
-            return;
-        }
+        console.log('✅ Bookings loaded:', bookings.value.length)
         
-        bookings.value = data || [];
+        // Enrich bookings with accessory instance names
+        await enrichBookingsWithAccessoryNames();
     } catch (e) {
         console.error('Error fetching bookings:', e);
         bookings.value = [];
     }
 }
 
+async function enrichBookingsWithAccessoryNames() {
+    try {
+        const supabase = useSupabase();
+        if (!supabase) return;
+        
+        console.log('🔍 Enriching bookings with accessory names...');
+        
+        // Get all accessory instances
+        const { data: accessoryInstances, error: instanceError } = await supabase
+            .from('AccessoryInstance')
+            .select('id, serialNumber, accessoryId');
+            
+        if (instanceError) {
+            console.error('Error fetching accessory instances:', instanceError);
+            return;
+        }
+        
+        // Get all accessories
+        const { data: accessories, error: accessoryError } = await supabase
+            .from('Accessory')
+            .select('id, name');
+            
+        if (accessoryError) {
+            console.error('Error fetching accessories:', accessoryError);
+            return;
+        }
+        
+        console.log('📦 Found accessories:', accessories);
+        console.log('🔧 Found accessory instances:', accessoryInstances);
+        
+        // Create lookup maps
+        const accessoryLookup = new Map();
+        accessories?.forEach(accessory => {
+            accessoryLookup.set(accessory.id, accessory.name);
+        });
+        
+        const instanceLookup = new Map();
+        accessoryInstances?.forEach(instance => {
+            const accessoryName = accessoryLookup.get(instance.accessoryId) || 'Unknown';
+            instanceLookup.set(instance.id, {
+                serialNumber: instance.serialNumber,
+                accessoryName: accessoryName
+            });
+        });
+        
+        console.log('🗂️ Instance lookup map:', instanceLookup);
+        
+        // Enrich each booking with accessory instance names
+        bookings.value.forEach(booking => {
+            if (booking.accessoryInstanceIds && booking.accessoryInstanceIds.length > 0) {
+                console.log(`📋 Processing booking with accessory IDs: ${booking.accessoryInstanceIds}`);
+                booking.accessoryInstanceNames = booking.accessoryInstanceIds.map(id => {
+                    const instance = instanceLookup.get(id);
+                    const result = instance ? `${instance.accessoryName} (${instance.serialNumber})` : `ID: ${id}`;
+                    console.log(`🏷️ ID ${id} -> ${result}`);
+                    return result;
+                });
+            } else {
+                booking.accessoryInstanceNames = [];
+            }
+        });
+        
+        console.log('✅ Enrichment complete');
+        
+    } catch (e) {
+        console.error('Error enriching bookings with accessory names:', e);
+    }
+}
+
 async function fixBookingCameraIds() {
+    console.log('🔄 Starting booking distribution...');
+    
     try {
         const supabase = useSupabase();
         if (!supabase) {
@@ -1162,73 +1276,124 @@ async function fixBookingCameraIds() {
             return;
         }
         
+        // Get all products first
+        const { data: allProducts, error: productsError } = await supabase
+            .from('Product')
+            .select('id, name')
+            .order('id');
+            
+        if (productsError) {
+            console.error('Error fetching products:', productsError);
+            return;
+        }
+        
+        // Get all cameras
+        const { data: allCameras, error: camerasError } = await supabase
+            .from('Camera')
+            .select('id, productId')
+            .order('id');
+            
+        if (camerasError) {
+            console.error('Error fetching cameras:', camerasError);
+            return;
+        }
+        
+        // Group cameras by productId
+        const camerasByProduct: Record<number, any[]> = {};
+        for (const camera of allCameras || []) {
+            if (!camerasByProduct[camera.productId]) {
+                camerasByProduct[camera.productId] = [];
+            }
+            camerasByProduct[camera.productId].push(camera);
+        }
+        
+        console.log('📦 Products:', allProducts);
+        console.log('📷 Cameras by product:', camerasByProduct);
+        
         // Get all bookings
         const { data: allBookings, error: bookingsError } = await supabase
             .from('Booking')
-            .select('id, cameraId, productName');
+            .select('id, productName, cameraId, startDate, endDate')
+            .order('startDate');
             
         if (bookingsError) {
-            console.error('Error fetching bookings for fixing:', bookingsError);
+            console.error('Error fetching bookings:', bookingsError);
             return;
         }
         
-        // Get all products and their cameras
-        const { data: allProducts, error: productsError } = await supabase
-            .from('Product')
-            .select('id, name');
-            
-        if (productsError) {
-            console.error('Error fetching products for fixing:', productsError);
-            return;
-        }
+        console.log('📋 All bookings:', allBookings?.length || 0);
         
-        // For each booking, try to find the correct camera ID
-        for (const booking of allBookings || []) {
-            // Find the product that matches the booking's productName
-            const matchingProduct = allProducts?.find(p => p.name === booking.productName);
+        // Group bookings by product name and redistribute
+        for (const product of allProducts || []) {
+            const productBookings = allBookings?.filter(b => b.productName === product.name) || [];
+            const productCameras = camerasByProduct[product.id] || [];
             
-            if (matchingProduct) {
-                // Get the first camera for this product
-                const { data: cameras, error: camerasError } = await supabase
-                    .from('Camera')
-                    .select('id')
-                    .eq('productId', matchingProduct.id)
-                    .limit(1);
+            if (productBookings.length === 0) {
+                console.log(`📦 ${product.name}: No bookings to redistribute`);
+                continue;
+            }
+            
+            if (productCameras.length === 0) {
+                console.log(`📦 ${product.name}: No cameras available`);
+                continue;
+            }
+            
+            console.log(`📦 ${product.name}: Redistributing ${productBookings.length} bookings across ${productCameras.length} cameras`);
+            
+            // Sort bookings chronologically
+            productBookings.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+            
+            // Redistribute using round-robin
+            for (let i = 0; i < productBookings.length; i++) {
+                const booking = productBookings[i];
+                const cameraIndex = i % productCameras.length;
+                const targetCamera = productCameras[cameraIndex];
                 
-                if (!camerasError && cameras && cameras.length > 0) {
-                    const correctCameraId = cameras[0].id;
+                if (booking.cameraId !== targetCamera.id) {
+                    console.log(`🔄 Moving booking ${booking.id} from camera ${booking.cameraId} to camera ${targetCamera.id} (${product.name})`);
                     
-                    if (booking.cameraId !== correctCameraId) {
-                        console.log(`Updating booking ${booking.id}: camera ID ${booking.cameraId} → ${correctCameraId}`);
+                    const { error: updateError } = await supabase
+                        .from('Booking')
+                        .update({
+                            cameraId: targetCamera.id,
+                            cameraName: `Kamera ${cameraIndex + 1}`
+                        })
+                        .eq('id', booking.id);
                         
-                        const { error: updateError } = await supabase
-                            .from('Booking')
-                            .update({ cameraId: correctCameraId })
-                            .eq('id', booking.id);
-                            
-                        if (updateError) {
-                            console.error(`Error updating booking ${booking.id}:`, updateError);
-                        }
+                    if (updateError) {
+                        console.error(`❌ Failed to update booking ${booking.id}:`, updateError);
+                    } else {
+                        console.log(`✅ Updated booking ${booking.id}`);
                     }
+                } else {
+                    console.log(`✓ Booking ${booking.id} already correctly assigned to camera ${targetCamera.id}`);
                 }
             }
         }
         
-        // Refresh bookings after fixing
         await fetchBookings();
+        console.log('✅ Distribution complete!');
         
         toast.add({
-            title: 'Booking camera IDs fixed',
-            description: 'All booking camera IDs have been updated to match existing cameras',
-            color: 'success'
+            title: 'Bookings redistributed!',
+            description: 'All bookings have been properly assigned to cameras within their products',
+            color: 'success',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
         });
         
     } catch (error) {
-        console.error('Error fixing booking camera IDs:', error);
+        console.error('Error redistributing bookings:', error);
         toast.add({
-            title: 'Error fixing bookings',
-            description: 'Could not update booking camera IDs',
-            color: 'error'
+            title: 'Error redistributing bookings',
+            description: 'Could not redistribute bookings properly',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
         });
     }
 }
@@ -1266,27 +1431,15 @@ const accessoryForm = ref({ name: '', description: '', price: 0, quantity: 1 });
 
 async function fetchAccessory() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            accessory.value = [];
-            return;
-        }
+        // Use server API instead of direct Supabase call
+        const response = await $fetch('/api/admin/accessories')
         
-        const { data, error } = await supabase
-            .from('Accessory')
-            .select('*')
-            .order('id', { ascending: false });
-        
-        if (error) {
-            // If accessories table doesn't exist, create some default ones
-            console.warn('Accessory table not found, using defaults:', error);
-            accessory.value = [];
-            return;
+        if (!response.success) {
+            throw new Error('Failed to fetch accessories')
         }
         
         // Transform the data and load instances for each accessory
-        accessory.value = (data || []).map(a => ({
+        accessory.value = (response.data || []).map((a: any) => ({
             id: a.id,
             name: a.name,
             description: a.description || '',
@@ -1343,6 +1496,100 @@ async function createAccessory() {
             
             if (error) throw error;
             accessoryId = editingAccessoryId.value;
+            
+            // Update instances to match new quantity and name
+            const { data: existingInstances, error: fetchError } = await supabase
+                .from('AccessoryInstance')
+                .select('id, serialNumber')
+                .eq('accessoryId', accessoryId)
+                .order('id');
+                
+            if (!fetchError && existingInstances) {
+                const currentCount = existingInstances.length;
+                const targetCount = accessoryForm.value.quantity;
+                
+                console.log(`🔄 Updating instances: Current: ${currentCount}, Target: ${targetCount}`);
+                
+                if (targetCount > currentCount) {
+                    // Need to add more instances
+                    const instancesToAdd = targetCount - currentCount;
+                    const newInstances = Array.from({ length: instancesToAdd }, (_, i) => ({
+                        accessoryId,
+                        serialNumber: `${accessoryForm.value.name} #${currentCount + i + 1}`,
+                        isAvailable: true
+                    }));
+                    
+                    const { error: addError } = await supabase
+                        .from('AccessoryInstance')
+                        .insert(newInstances);
+                        
+                    if (addError) {
+                        console.error('Error adding new instances:', addError);
+                    } else {
+                        console.log(`✅ Added ${instancesToAdd} new instances`);
+                    }
+                }
+                
+                if (targetCount < currentCount) {
+                    // Need to remove excess instances (only remove unused ones)
+                    const instancesToRemove = currentCount - targetCount;
+                    const instancesToDelete = existingInstances.slice(-instancesToRemove); // Take last instances
+                    
+                    // Check if any of these instances are in active bookings
+                    const instanceIds = instancesToDelete.map(instance => instance.id);
+                    const { data: activeBookings, error: bookingError } = await supabase
+                        .from('Booking')
+                        .select('id, accessoryInstanceIds, paymentStatus')
+                        .neq('paymentStatus', 'cancelled')
+                        .neq('paymentStatus', 'failed');
+                    
+                    if (!bookingError && activeBookings) {
+                        const usedInstanceIds = new Set();
+                        activeBookings.forEach(booking => {
+                            if (booking.accessoryInstanceIds && Array.isArray(booking.accessoryInstanceIds)) {
+                                booking.accessoryInstanceIds.forEach(id => usedInstanceIds.add(id));
+                            }
+                        });
+                        
+                        const safeToDelete = instancesToDelete.filter(instance => !usedInstanceIds.has(instance.id));
+                        
+                        if (safeToDelete.length > 0) {
+                            const { error: deleteError } = await supabase
+                                .from('AccessoryInstance')
+                                .delete()
+                                .in('id', safeToDelete.map(instance => instance.id));
+                                
+                            if (deleteError) {
+                                console.error('Error deleting instances:', deleteError);
+                            } else {
+                                console.log(`✅ Deleted ${safeToDelete.length} unused instances`);
+                            }
+                        }
+                        
+                        if (safeToDelete.length < instancesToRemove) {
+                            console.warn(`⚠️ Could only delete ${safeToDelete.length} of ${instancesToRemove} instances (others are in use)`);
+                        }
+                    }
+                }
+                
+                // Update serial numbers for remaining instances
+                const { data: updatedInstances } = await supabase
+                    .from('AccessoryInstance')
+                    .select('id')
+                    .eq('accessoryId', accessoryId)
+                    .order('id');
+                    
+                if (updatedInstances) {
+                    for (let i = 0; i < updatedInstances.length; i++) {
+                        const newSerialNumber = `${accessoryForm.value.name} #${i + 1}`;
+                        await supabase
+                            .from('AccessoryInstance')
+                            .update({ serialNumber: newSerialNumber })
+                            .eq('id', updatedInstances[i].id);
+                    }
+                    console.log(`✅ Updated serial numbers for ${updatedInstances.length} instances of ${accessoryForm.value.name}`);
+                }
+            }
         } else {
             // Create new accessory
             const { data, error } = await supabase

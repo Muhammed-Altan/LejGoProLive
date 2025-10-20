@@ -7,32 +7,55 @@ if (!supabaseUrl || !supabaseAnonKey) throw new Error('Missing Supabase env vars
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function checkAvailability(models: Array<{ productId: number; quantity: number }>, startDate: string, endDate: string): Promise<boolean> {
-  const { data: bookings, error } = await supabase
-    .from('Booking')
-    .select('productId, quantity, startDate, endDate');
-  if (error) throw error;
-  const bookedMap: Record<number, number> = {};
   const start = new Date(startDate);
   const end = new Date(endDate);
-  bookings?.forEach((booking: any) => {
-    const bookingStart = new Date(booking.startDate);
-    const bookingEnd = new Date(booking.endDate);
-    if (start <= bookingEnd && end >= bookingStart) {
-      bookedMap[booking.productId] = (bookedMap[booking.productId] || 0) + (booking.quantity || 1);
-    }
-  });
-  const ids = models.map(m => m.productId);
-  const { data: products, error: prodError } = await supabase
-    .from('Product')
-    .select('id, quantity')
-    .in('id', ids);
-  if (prodError) throw prodError;
+  
+  // Check each product to see if we have enough available cameras
   for (const model of models) {
-    const product = products?.find((p: any) => p.id === model.productId);
-    const totalQty = product?.quantity ?? 5;
-    const bookedQty = bookedMap[model.productId] || 0;
-    const availableQty = Math.max(0, totalQty - bookedQty);
-    if (model.quantity > availableQty) return false;
+    // Get all cameras for this product
+    const { data: cameras, error: camerasError } = await supabase
+      .from('Camera')
+      .select('id')
+      .eq('productId', model.productId);
+      
+    if (camerasError || !cameras) {
+      console.error('Error fetching cameras for product:', model.productId);
+      return false;
+    }
+    
+    let availableCameras = 0;
+    
+    // Check each camera for availability during the requested period
+    for (const camera of cameras) {
+      const { data: conflictingBookings, error: bookingsError } = await supabase
+        .from('Booking')
+        .select('startDate, endDate')
+        .eq('cameraId', camera.id);
+        
+      if (bookingsError) {
+        console.error('Error checking bookings for camera:', camera.id);
+        continue;
+      }
+      
+      // Check if this camera has any date conflicts
+      const hasConflict = conflictingBookings?.some((booking: any) => {
+        const bookingStart = new Date(booking.startDate);
+        const bookingEnd = new Date(booking.endDate);
+        // Check if date ranges overlap
+        return start <= bookingEnd && end >= bookingStart;
+      });
+      
+      if (!hasConflict) {
+        availableCameras++;
+      }
+    }
+    
+    // Check if we have enough available cameras for this model
+    if (availableCameras < model.quantity) {
+      console.log(`Not enough cameras available for product ${model.productId}: need ${model.quantity}, have ${availableCameras}`);
+      return false;
+    }
   }
+  
   return true;
 }
