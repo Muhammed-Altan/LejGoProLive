@@ -27,12 +27,36 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const { bookingData }: { bookingData: BookingData } = body
 
+    console.log('📧 Received booking data for HTML email:', JSON.stringify(bookingData, null, 2))
+
     // Validate required fields
     if (!bookingData || !bookingData.customerEmail || !bookingData.orderNumber) {
+      console.error('❌ Missing required fields:', {
+        hasBookingData: !!bookingData,
+        hasEmail: !!bookingData?.customerEmail,
+        hasOrderNumber: !!bookingData?.orderNumber
+      })
       throw createError({
         statusCode: 400,
         statusMessage: 'Missing required booking data'
       })
+    }
+
+    // Check if we're in development mode and email is not properly configured
+    const isDev = process.env.NODE_ENV === 'development'
+    const hasValidEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD && 
+                                process.env.EMAIL_PASSWORD !== 'your-16-character-app-password-here'
+
+    if (isDev && !hasValidEmailConfig) {
+      console.log('📧 HTML Email would be sent to:', bookingData.customerEmail)
+      console.log('📧 HTML Email subject: Booking Receipt - Order #' + bookingData.orderNumber)
+      console.log('📧 HTML Email content preview: Professional HTML email with booking details')
+      
+      return {
+        success: true,
+        message: 'HTML email sending simulated in development mode (check console)',
+        messageId: 'dev-simulation'
+      }
     }
 
     // Configure email transporter
@@ -149,12 +173,21 @@ LejGoPro Team
       messageId: info.messageId
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Email sending error:', error)
+    
+    // More detailed error reporting
+    if (error?.code === 'EAUTH') {
+      console.error('Gmail authentication failed. Check EMAIL_USER and EMAIL_PASSWORD in .env')
+    } else if (error?.code === 'ECONNECTION') {
+      console.error('Connection failed. Check internet connection and Gmail settings')
+    } else {
+      console.error('Unexpected error:', error?.message || error)
+    }
     
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to send receipt email'
+      statusMessage: 'Failed to send receipt email: ' + (error?.message || 'Unknown error')
     })
   }
 })

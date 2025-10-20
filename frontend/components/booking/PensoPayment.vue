@@ -102,7 +102,7 @@
     <!-- Action Button -->
     <button
       @click="initiatePayment"
-      :disabled="!selectedMethod || loading || !isTermsAccepted || !isDeliveryValid"
+      :disabled="!selectedMethod || loading || !isTermsAccepted || !isDeliveryValid || !hasModels"
       class="w-full bg-[#B90C2C] hover:bg-[#a10a25] text-white text-lg font-semibold py-3 rounded-lg focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <span v-if="loading" class="flex items-center justify-center">
@@ -127,6 +127,11 @@
       <p class="text-yellow-800 text-sm">Udfyld venligst dit navn og en gyldig emailadresse før du fortsætter til betaling.</p>
     </div>
 
+    <!-- Model selection reminder -->
+    <div v-if="!hasModels && selectedMethod" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <p class="text-yellow-800 text-sm">Du skal tilføje mindst én model til kurven før du kan betale.</p>
+    </div>
+
     <!-- Error Message -->
     <div v-if="error" class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
       <p class="font-medium">Fejl ved betaling:</p>
@@ -146,6 +151,9 @@ const selectedMethod = ref<'googlepay' | 'applepay' | 'creditcard' | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const bookingConfirmation = ref<any>(null)
+
+// Require at least one selected model before allowing payment
+const hasModels = computed(() => Array.isArray(store.selectedModels) && store.selectedModels.length > 0)
 
 // Check if we're in test mode
 const isTestMode = computed(() => process.env.NODE_ENV !== 'production')
@@ -217,9 +225,10 @@ const initiatePayment = async () => {
   try {
     // Prepare booking data
     const bookingData = {
-      cameraId: 1, // This should be properly selected
+      cameraId: 1, // This will be properly assigned by the server
       cameraName: 'Selected Camera',
       productName: store.selectedModels[0]?.name || 'Selected Product',
+      selectedAccessories: store.selectedAccessories, // Pass selected accessories to server
       startDate: store.startDate,
       endDate: store.endDate,
       address: store.address,
@@ -230,7 +239,7 @@ const initiatePayment = async () => {
       city: store.city,
       postalCode: store.postalCode,
       totalPrice: totalAmount.value,
-      accessoryInstanceIds: [], // This should be populated with actual accessory instances
+      accessoryInstanceIds: [], // This will be populated by the server with actual instances
     }
 
     // Get payment methods parameter
@@ -291,7 +300,22 @@ const initiatePayment = async () => {
 
   } catch (err: any) {
     console.error('Payment initiation error:', err)
-    error.value = err.message || err.data?.message || 'Betalingen kunne ikke oprettes. Prøv igen.'
+    console.log('Error details:', {
+      message: err.message,
+      statusMessage: err.statusMessage,
+      data: err.data,
+      cause: err.cause
+    })
+    
+    // Check multiple places where the error message might be
+    const errorMessage = err.statusMessage || err.message || err.data?.message || err.cause?.statusMessage || ''
+    
+    if (errorMessage.includes('ACCESSORY_UNAVAILABLE:')) {
+      const accessories = errorMessage.replace(/.*ACCESSORY_UNAVAILABLE:/, '').trim()
+      error.value = `Fejl ved betaling: ${accessories}.`
+    } else {
+      error.value = errorMessage || 'Betalingen kunne ikke oprettes. Prøv igen.'
+    }
   } finally {
     loading.value = false
   }

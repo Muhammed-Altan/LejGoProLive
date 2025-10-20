@@ -1,36 +1,25 @@
 <template>
   <div class="receipt-email-actions">
-    <!-- Send Email Button -->
+    <!-- Send PDF Faktura Button -->
     <button
-      @click="sendEmailReceipt"
+      @click="sendPDFReceipt"
       :disabled="isLoading"
       class="btn btn-primary"
       :class="{ 'loading': isLoading }"
     >
       <span v-if="!isLoading">
         <svg class="icon icon-small icon-margin-right" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 7.89a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
         </svg>
-        Send Receipt Email
+        Send PDF Faktura
       </span>
       <span v-else>
         <svg class="icon icon-small icon-spin icon-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        Sending...
+        Sending PDF...
       </span>
-    </button>
-
-    <!-- Mailto Button (Fallback) -->
-    <button
-      @click="openMailtoLink"
-      class="btn btn-secondary btn-secondary-spacing"
-    >
-      <svg class="icon icon-small icon-margin-right" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M7 7l10 10M17 7l-10 10"></path>
-      </svg>
-      Open in Email Client
     </button>
 
     <!-- Success/Error Messages -->
@@ -59,10 +48,16 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const { sendBookingReceipt, openEmailClient, validateBookingData, isLoading, error, clearError } = useEmail()
+const { 
+  sendReceiptPDF,
+  validateBookingData, 
+  isLoading, 
+  error, 
+  clearError 
+} = useEmail()
 const emailSuccess = ref(false)
 
-const sendEmailReceipt = async () => {
+const sendPDFReceipt = async () => {
   clearError()
   emailSuccess.value = false
 
@@ -71,7 +66,7 @@ const sendEmailReceipt = async () => {
     return
   }
 
-  const success = await sendBookingReceipt(props.bookingData)
+  const success = await sendReceiptPDF(props.bookingData)
   
   if (success) {
     emailSuccess.value = true
@@ -80,16 +75,6 @@ const sendEmailReceipt = async () => {
       emailSuccess.value = false
     }, 5000)
   }
-}
-
-const openMailtoLink = () => {
-  clearError()
-  
-  if (!validateBookingData(props.bookingData)) {
-    return
-  }
-  
-  openEmailClient(props.bookingData)
 }
 </script>
 
@@ -125,21 +110,8 @@ const openMailtoLink = () => {
   cursor: not-allowed;
 }
 
-.btn-secondary {
-  background-color: #4b5563;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background-color: #374151;
-}
-
 .loading {
   cursor: wait;
-}
-
-.btn-secondary-spacing {
-  margin-left: 0.5rem;
 }
 
 .icon {

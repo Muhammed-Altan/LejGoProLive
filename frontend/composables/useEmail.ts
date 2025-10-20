@@ -53,6 +53,50 @@ export const useEmail = () => {
   }
 
   /**
+   * Send a booking receipt as PDF attachment
+   */
+  const sendReceiptPDF = async (bookingData: BookingEmailData): Promise<boolean> => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await $fetch<{ success: boolean; message: string; messageId?: string; filename?: string }>('/api/email/send-receipt-pdf', {
+        method: 'POST',
+        body: {
+          bookingData
+        }
+      })
+
+      if (response.success) {
+        return true
+      } else {
+        throw new Error('Failed to send PDF receipt')
+      }
+    } catch (err: any) {
+      console.error('Error sending PDF receipt:', err)
+      error.value = err.message || 'Failed to send PDF receipt'
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Download receipt as PDF
+   */
+  const downloadReceiptPDF = async (bookingData: BookingEmailData) => {
+    if (process.client) {
+      try {
+        const { downloadPDF } = await import('~/utils/pdfGenerator')
+        await downloadPDF(bookingData, `LejGoPro-Faktura-${bookingData.orderNumber}.pdf`)
+      } catch (err) {
+        console.error('Error downloading PDF:', err)
+        error.value = 'Failed to download PDF'
+      }
+    }
+  }
+
+  /**
    * Generate a mailto link for manual email sending
    */
   const generateMailtoLink = (bookingData: BookingEmailData): string => {
@@ -154,6 +198,8 @@ LejGoPro Team
     
     // Methods
     sendBookingReceipt,
+    sendReceiptPDF,
+    downloadReceiptPDF,
     generateMailtoLink,
     openEmailClient,
     validateBookingData,

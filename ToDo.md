@@ -21,7 +21,6 @@ Brug logikken som Andreas lavede til at den smider bookingen videre hvis den for
 
 Change the last localhost fetches
 
-Popup for slet
 
 Kit for booking - Specifikke tilbehør fjernes uanset ekstra udstyr 
 Vis det visuelt at der er nogle tilbehør er automatisk inkluderet
@@ -30,41 +29,21 @@ Speciffike tilbehør som beskyttelsescase for hero 13, ska være for det kamera 
 De andre kameraer skal stadig få det normale case med
 
 
-Kan tilvælges
-Grip
-Ekstra batteri
-Headstrap
-Brystmount
-Sugekop til ruder
-
-Altid med
-Beskyttelsescase
-
 
 
 Booking af flere kameraer booker kun for det første, ændrer det til at gemme flere
  -- Stringify json object eller komma seperated text for at gemme flere kameraer
 Joey moe booking ligger under hero 11 i frontend men er hero 9 booking i database. Debug og fix
 
---- Kamera id sat forkert for produkter i admin panel
-Den smider alle bookinger under hero 11 kamera 1
-
-
 
 AccessoryInstanceIds bliver gemt i et tomt array, ændrer det til at hente info fra pinia store
-
-
 
 
 Opsæt auto capture
 Hæv pengene med det samme
 
-Kvittering / email auto flow
--- Send booking id med
 
 Sikkerhed
--- Backend for login
--- JSON Web Tokens i cookies
 -- Kig på resten af cookies
 -- Order id in URL, gem måske order id i cookies?
 
@@ -82,9 +61,6 @@ Dinero
 -- Betaling f.eks. 300 kr skal matches op til 
 
 Privatlivspolitik
- 
- 
- 
  -->
 
 
