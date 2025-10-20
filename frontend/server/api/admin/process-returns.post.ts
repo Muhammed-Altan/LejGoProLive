@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   // Use runtime config when available (Nuxt) but fall back to env
   const config = (typeof useRuntimeConfig === 'function') ? useRuntimeConfig() : (globalThis as any).__RUNTIME_CONFIG__ || {}
   const supabaseUrl = config.public?.supabaseUrl || process.env.SUPABASE_URL
-  const serviceRoleKey = config.supabaseServiceRoleKey || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+  const serviceRoleKey = config.supabaseServiceRoleKey || process.env.SUPABASE_SERVICE_ROLE_KEY
   const anonKey = config.public?.supabaseAnonKey || process.env.SUPABASE_ANON_KEY
 
   if (!supabaseUrl) {
