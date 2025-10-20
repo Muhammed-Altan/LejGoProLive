@@ -292,7 +292,22 @@ const initiatePayment = async () => {
 
   } catch (err: any) {
     console.error('Payment initiation error:', err)
-    error.value = err.message || err.data?.message || 'Betalingen kunne ikke oprettes. Prøv igen.'
+    console.log('Error details:', {
+      message: err.message,
+      statusMessage: err.statusMessage,
+      data: err.data,
+      cause: err.cause
+    })
+    
+    // Check multiple places where the error message might be
+    const errorMessage = err.statusMessage || err.message || err.data?.message || err.cause?.statusMessage || ''
+    
+    if (errorMessage.includes('ACCESSORY_UNAVAILABLE:')) {
+      const accessories = errorMessage.replace(/.*ACCESSORY_UNAVAILABLE:/, '').trim()
+      error.value = `Fejl ved betaling: ${accessories}.`
+    } else {
+      error.value = errorMessage || 'Betalingen kunne ikke oprettes. Prøv igen.'
+    }
   } finally {
     loading.value = false
   }
