@@ -806,23 +806,18 @@ const products = ref<Product[]>([]);
 
 async function fetchProducts() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            products.value = [];
-            return;
+        console.log('🔄 Fetching products from server API...')
+        // Use server API instead of direct Supabase call
+        const response = await $fetch('/api/admin/products')
+        
+        console.log('📦 Products API response:', response)
+        
+        if (!response.success) {
+            throw new Error('Failed to fetch products')
         }
         
-        // First, get the products without the Camera relationship
-        const { data, error } = await supabase
-            .from('Product')
-            .select('*')
-            .order('id', { ascending: false});
-        
-        if (error) throw error;
-        
         // Transform the data to match the expected interface
-        products.value = (data || []).map(p => ({
+        products.value = (response.data || []).map(p => ({
             id: p.id,
             name: p.name || '',
             description: '', // No description column in your table
@@ -835,22 +830,27 @@ async function fetchProducts() {
             cameras: [] // We'll load cameras separately if needed
         }));
         
-        // Optionally, load cameras for each product separately
-        for (const product of products.value) {
-            try {
-                const { data: cameras } = await supabase
-                    .from('Camera')
-                    .select('*')
-                    .eq('productId', product.id);
+        console.log('✅ Products loaded:', products.value.length);
+        
+        // Load cameras for each product using server API
+        try {
+            const cameraResponse = await $fetch('/api/admin/cameras')
+            if (cameraResponse.success) {
+                const cameras = cameraResponse.data || []
+                console.log('📷 All cameras loaded:', cameras.length)
                 
-                product.cameras = cameras || [];
-            } catch (cameraError) {
-                console.warn(`Could not load cameras for product ${product.id}:`, cameraError);
-                product.cameras = [];
+                // Group cameras by product
+                products.value.forEach(product => {
+                    product.cameras = cameras.filter(camera => camera.productId === product.id)
+                    console.log(`📷 Product ${product.name} has ${product.cameras.length} cameras`)
+                })
             }
+        } catch (cameraError) {
+            console.warn('Could not load cameras:', cameraError)
         }
+        
     } catch (error) {
-        console.error('Error fetching products from Supabase:', error);
+        console.error('Error fetching products from server:', error);
         products.value = [];
     }
 }
@@ -858,6 +858,8 @@ async function fetchProducts() {
 // Only fetch data on client side to avoid SSR issues
 if (process.client) {
     fetchProducts();
+    fetchBookings();
+    fetchAccessory();
 }
 
 async function createProduct() {
@@ -1173,25 +1175,19 @@ const oauthTestResult = ref<any>(null);
 
 async function fetchBookings() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            bookings.value = [];
-            return;
+        console.log('🔄 Fetching bookings from server API...')
+        // Use server API instead of direct Supabase call
+        const response = await $fetch('/api/admin/bookings')
+        
+        console.log('📋 Bookings API response:', response)
+        
+        if (!response.success) {
+            throw new Error('Failed to fetch bookings')
         }
         
-        const { data, error } = await supabase
-            .from('Booking')
-            .select('*')
-            .order('id', { ascending: false });
+        bookings.value = response.data || [];
         
-        if (error) {
-            console.error('Error fetching bookings:', error);
-            bookings.value = [];
-            return;
-        }
-        
-        bookings.value = data || [];
+        console.log('✅ Bookings loaded:', bookings.value.length)
         
         // Enrich bookings with accessory instance names
         await enrichBookingsWithAccessoryNames();
@@ -1435,27 +1431,15 @@ const accessoryForm = ref({ name: '', description: '', price: 0, quantity: 1 });
 
 async function fetchAccessory() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            accessory.value = [];
-            return;
-        }
+        // Use server API instead of direct Supabase call
+        const response = await $fetch('/api/admin/accessories')
         
-        const { data, error } = await supabase
-            .from('Accessory')
-            .select('*')
-            .order('id', { ascending: false });
-        
-        if (error) {
-            // If accessories table doesn't exist, create some default ones
-            console.warn('Accessory table not found, using defaults:', error);
-            accessory.value = [];
-            return;
+        if (!response.success) {
+            throw new Error('Failed to fetch accessories')
         }
         
         // Transform the data and load instances for each accessory
-        accessory.value = (data || []).map(a => ({
+        accessory.value = (response.data || []).map((a: any) => ({
             id: a.id,
             name: a.name,
             description: a.description || '',

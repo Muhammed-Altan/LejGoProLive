@@ -1,14 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabaseClient } from '../../utils/supabase'
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Initialize Supabase client with service role (bypasses RLS for server operations)
+const supabase = createServerSupabaseClient()
 
 // Helper function to find available camera for a product
 async function findAvailableCamera(productName: string, startDate: string, endDate: string): Promise<{ cameraId: number; cameraName: string; productId: number } | null> {
@@ -111,6 +104,8 @@ async function findAvailableAccessoryInstances(selectedAccessories: any[], start
   
   console.log(`🔧 Processing ${selectedAccessories.length} selected accessories:`, selectedAccessories)
   
+  const unavailableAccessories: string[] = []
+  
   // Process each selected accessory
   for (let accessoryIndex = 0; accessoryIndex < selectedAccessories.length; accessoryIndex++) {
     const selectedAccessory = selectedAccessories[accessoryIndex]
@@ -195,11 +190,20 @@ async function findAvailableAccessoryInstances(selectedAccessories: any[], start
     console.log(`📊 [${accessoryIndex + 1}] Summary for ${accessory.name}: Needed ${neededQuantity}, Assigned ${assignedCount}`)
     
     if (assignedCount < neededQuantity) {
+      const shortfall = neededQuantity - assignedCount
+      const shortfallMessage = `${accessory.name} (mangler ${shortfall} stk.)`
+      unavailableAccessories.push(shortfallMessage)
       console.error(`❌ [${accessoryIndex + 1}] Could not find enough available instances for ${accessory.name}. Needed: ${neededQuantity}, Found: ${assignedCount}`)
-      // For now, we'll still continue with what we found rather than failing the entire booking
     } else {
       console.log(`✅ [${accessoryIndex + 1}] Successfully assigned all ${assignedCount} instances for ${accessory.name}`)
     }
+  }
+  
+  // Check if any accessories were unavailable
+  if (unavailableAccessories.length > 0) {
+    const errorMessage = `F\u00F8lgende tilbeh\u00F8r er ikke tilg\u00E6ngeligt i de valgte datoer: ${unavailableAccessories.join(', ')}. V\u00E6lg venligst andre datoer eller fjern det utilg\u00E6ngelige tilbeh\u00F8r.`
+    console.error('❌ Booking failed due to unavailable accessories:', unavailableAccessories)
+    throw new Error(errorMessage)
   }
   
   console.log(`✅ Assigned accessory instances:`, assignedInstanceIds)
@@ -340,11 +344,23 @@ export default defineEventHandler(async (event) => {
     console.log('🎯 Assigned camera:', assignedCamera)
 
     // Find available accessory instances for selected accessories
-    const assignedAccessoryInstances = await findAvailableAccessoryInstances(
-      bookingData.selectedAccessories || [],
-      bookingData.startDate,
-      bookingData.endDate
-    )
+    let assignedAccessoryInstances: number[]
+    try {
+      assignedAccessoryInstances = await findAvailableAccessoryInstances(
+        bookingData.selectedAccessories || [],
+        bookingData.startDate,
+        bookingData.endDate
+      )
+    } catch (accessoryError: any) {
+      console.error('❌ Accessory assignment failed:', accessoryError.message)
+      // Send simple error code and let frontend handle Danish message
+      // Extract everything after the colon and before the final period (handling stk. properly)
+      const accessories = accessoryError.message.match(/: (.+)\. V.lg/)?.[1] || 'accessories'
+      throw createError({
+        statusCode: 409,
+        statusMessage: `ACCESSORY_UNAVAILABLE:${accessories}`
+      })
+    }
     
     console.log('🔧 Assigned accessory instances:', assignedAccessoryInstances)
 

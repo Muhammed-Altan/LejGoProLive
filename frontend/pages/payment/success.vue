@@ -239,19 +239,14 @@ onMounted(async () => {
     await updatePaymentStatus(orderId)
     
     try {
-      // Fetch the actual booking data from the database
-      if (!supabase) {
-        throw new Error('Supabase client not available')
-      }
+      // Fetch the actual booking data from the database using server API (bypasses RLS)
+      console.log('🔍 Fetching booking data for orderId:', orderId)
+      const response = await $fetch(`/api/booking/${orderId}`)
       
-      const { data: booking, error } = await supabase
-        .from('Booking')
-        .select('*')
-        .eq('orderId', orderId)
-        .single()
+      console.log('📋 Booking API response:', response)
       
-      if (error) {
-        console.error('Error fetching booking from Supabase:', error)
+      if (!response.success) {
+        console.error('Error fetching booking from server:', response)
         // Fallback to generic data if booking not found
         orderDetails.value = {
           order_id: orderId,
@@ -261,6 +256,7 @@ onMounted(async () => {
         }
         bookingDetails.value = null
       } else {
+        const booking = (response as any).data
         orderDetails.value = {
           order_id: orderId,
           amount: booking.totalPrice || 0, // Use actual price from database (in øre)
