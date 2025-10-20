@@ -1,0 +1,19 @@
+name: Process returned bookings
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # every day at 03:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  process-returns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call process-returns endpoint
+        env:
+          API_BASE: ${{ secrets.NUXT_PUBLIC_BASE_URL }}
+          API_KEY: ${{ secrets.SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$API_BASE" ]; then echo "Missing API_BASE"; exit 1; fi
+          # Fire the endpoint (expecting it to be deployed on the public site)
+          curl -sS -X POST "$API_BASE/api/admin/process-returns" -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/json" | jq || true

@@ -73,3 +73,11 @@ bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+## Background jobs
+
+This project includes a server endpoint to process returned bookings and mark accessory/camera instances as available again 3 days after the booking `endDate`.
+
+- Endpoint: `POST /api/admin/process-returns`
+- Environment: requires a Supabase service role key available to the server to update inventory rows. Set `SUPABASE_SERVICE_ROLE_KEY` in your deployment environment or provide it via runtime config.
+- Scheduling: a GitHub Actions workflow `.github/workflows/process-returns.yml` is included to call the endpoint daily (adjust secrets accordingly).
