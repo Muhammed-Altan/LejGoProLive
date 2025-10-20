@@ -95,16 +95,20 @@
            <p class="font-medium">{{ item.name }}</p> <p class="text-xs text-gray-600">inkluderer: Beskyttelsescase, Batteri, Rejsetaske</p>
         </div>
         <div class="flex items-center justify-center gap-2 group relative">
-          <span>Antal</span>
+          <span>
+            Antal
+            <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantity(item) }})</small>
+            <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small>
+          </span>
           <input
             type="number"
             min="1"
-            :max="item.productId !== undefined ? availability[item.productId] ?? 1 : 1"
+            :max="getMaxProductQuantity(item)"
             v-model.number="item.quantity"
             class="w-20 text-center rounded border border-gray-300"
           />
           <span
-            v-if="item.productId !== undefined && item.quantity === (availability[item.productId] ?? 1)"
+            v-if="item.productId !== undefined && item.quantity === getMaxProductQuantity(item)"
             class="absolute left-1/2 z-10 -translate-x-1/2 -top-14 w-56 rounded bg-white text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg"
             style="color: #b90c2c; background: #FF8800"
           >
@@ -219,13 +223,26 @@ interface ProductOption {
 function getMaxProductQuantity(item: { name: string; productId?: number }) {
   const arr = models.value as ProductOption[];
   const id = item.productId ?? arr.find((m: ProductOption) => m.name === item.name)?.id;
-  return id !== undefined ? (availability.value[id] ?? 5) : 5;
+  if (id === undefined) return 0;
+  const product = arr.find((m: ProductOption) => m.id === id);
+  // Prefer server availability; fall back to DB-configured product.quantity, then 0
+  return availability.value[id] ?? product?.quantity ?? 0;
 }
 
 function getMaxAccessoryQuantity(item: { name: string }) {
-  const arr = models.value as ProductOption[];
-  const id = arr.find((m: ProductOption) => m.name === item.name)?.id;
-  return id !== undefined ? (availability.value[id] ?? 5) : 5;
+  // Prefer accessory-specific quantity if available
+  const acc = accessories.value.find(a => a.name === item.name);
+  if (acc) {
+    if (typeof acc.quantity === 'number') return acc.quantity;
+    if (typeof acc.id === 'number') {
+      const prod = models.value.find(m => m.id === acc.id);
+      return availability.value[acc.id] ?? prod?.quantity ?? 0;
+    }
+  }
+  // fallback: match product by name
+  const prod = models.value.find((m: ProductOption) => m.name === item.name);
+  if (prod) return availability.value[prod.id] ?? prod.quantity ?? 0;
+  return 0;
 }
 
 interface Camera {
@@ -234,6 +251,7 @@ interface Camera {
   dailyPrice: number;
   weeklyPrice: number;
   twoWeekPrice: number;
+  isAvailable?: boolean;
 }
 
 interface SelectedCamera {
@@ -246,8 +264,9 @@ interface SelectedCamera {
 }
 
 const models = ref<ProductOption[]>([]);
-const accessories = ref<{ name: string; price: number }[]>([]);
+const accessories = ref<{ id?: number; name: string; price: number; quantity?: number }[]>([]);
 const availability = ref<Record<number, number>>({});
+const availabilityLoading = ref<boolean>(false);
 const availableCameras = ref<Camera[]>([]);
 const selectedCameras = ref<SelectedCamera[]>([]);
 const selectedCameraId = ref<number | null>(null);
@@ -373,18 +392,42 @@ async function fetchCamerasForProduct(productId: number) {
       return;
     }
     console.log('Fetching cameras for product:', productId);
-    
+    // First, request authoritative availability (including booked camera ids) from the server
+    let bookedCameraIds: number[] = [];
+    try {
+      if (startDate.value && endDate.value) {
+        const params = new URLSearchParams({ startDate: startDate.value.toISOString(), endDate: endDate.value.toISOString() });
+        const resp = await fetch(`/api/availability?${params.toString()}`);
+        if (resp.ok) {
+          const body = await resp.json();
+          const camAvail = body?.cameraAvailability;
+          if (camAvail && camAvail[productId] && Array.isArray(camAvail[productId].bookedCameraIds)) {
+            bookedCameraIds = camAvail[productId].bookedCameraIds;
+          }
+        } else {
+          console.warn('Availability API responded with status', resp.status);
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching availability for cameras:', err);
+    }
+
     const { data: cameras, error } = await supabase
       .from('Camera')
       .select('*')
       .eq('productId', productId);
-    
+
     console.log('Raw camera data:', cameras);
     console.log('Camera error:', error);
-    
+
     if (error) throw error;
-    
-    availableCameras.value = cameras || [];
+
+    // Filter out cameras that are explicitly booked for the period or marked unavailable
+    availableCameras.value = (cameras || []).filter((c: any) => {
+      if (typeof c.id === 'number' && bookedCameraIds.includes(c.id)) return false;
+      if (typeof c.isAvailable === 'boolean' && c.isAvailable === false) return false;
+      return true;
+    });
     console.log('Available cameras set to:', availableCameras.value);
     console.log('Selected models length:', selectedModels.value.length);
     console.log('Should show camera section:', selectedModels.value.length > 0 && availableCameras.value.length > 0);
@@ -483,6 +526,8 @@ onMounted(async () => {
       twoWeekPrice: p.twoWeekPrice,
       quantity: typeof p.quantity === "number" ? p.quantity : 5,
     }));
+    // Seed availability from DB-configured product quantities so UI shows non-magic defaults immediately
+    availability.value = Object.fromEntries(models.value.map(m => [m.id, m.quantity ?? 0]));
   } catch (e) {
     console.error("Error fetching products from Supabase:", e);
   }
@@ -497,8 +542,10 @@ onMounted(async () => {
     if (accessoriesError) throw accessoriesError;
     
     accessories.value = (accessoriesData || []).map((a: any) => ({
+      id: a.id,
       name: a.name,
       price: typeof a.price === "number" ? a.price : 70,
+      quantity: typeof a.quantity === 'number' ? a.quantity : undefined,
     }));
   } catch (e) {
     console.error("Error fetching accessories from Supabase:", e);
@@ -509,51 +556,31 @@ onMounted(async () => {
 watch([startDate, endDate], async () => {
   if (!startDate.value || !endDate.value) {
     availability.value = {};
+    availabilityLoading.value = false;
     return;
   }
 
-  // Real implementation: check bookings and subtract from product quantity
-  const supabase = useSupabase();
-  if (!supabase) {
-    availability.value = {};
-    return;
-  }
-  // Get all bookings that overlap with the selected period
-  // Assuming Booking table has: productId, quantity, startDate, endDate
-  const { data: bookings, error } = await supabase
-    .from('Booking')
-    .select('productId, quantity, startDate, endDate');
-
-  // Build a map of booked quantities per product for the selected period
-  const bookedMap: Record<number, number> = {};
-  if (!error && bookings && startDate.value && endDate.value) {
-    const start = startDate.value as Date;
-    const end = endDate.value as Date;
-    bookings.forEach((booking: any) => {
-      const bookingStart = new Date(booking.startDate);
-      const bookingEnd = new Date(booking.endDate);
-      // Check for overlap
-      if (
-        start <= bookingEnd &&
-        end >= bookingStart
-      ) {
-        bookedMap[booking.productId] = (bookedMap[booking.productId] || 0) + (booking.quantity || 1);
-      }
-    });
-  }
-
-  // Set availability based on product quantity minus booked quantity
-  const newAvailability: Record<number, number> = {};
-  models.value.forEach(model => {
-    // Use model.quantity from Product table, fallback to 5 only if undefined/null
-    let totalQty = 5;
-    if (typeof model.quantity === 'number' && !isNaN(model.quantity)) {
-      totalQty = model.quantity;
+  availabilityLoading.value = true;
+  try {
+    const params = new URLSearchParams({ startDate: startDate.value!.toISOString(), endDate: endDate.value!.toISOString() });
+    const resp = await fetch(`/api/availability?${params.toString()}`);
+    if (!resp.ok) {
+      console.error('Availability API error', resp.statusText);
+      availability.value = {};
+      return;
     }
-    const bookedQty = bookedMap[model.id] || 0;
-    newAvailability[model.id] = Math.max(0, totalQty - bookedQty);
-  });
-  availability.value = newAvailability;
+    const body = await resp.json();
+    if (body && body.availability) {
+      availability.value = body.availability;
+    } else {
+      availability.value = {};
+    }
+  } catch (err) {
+    console.error('Error fetching availability', err);
+    availability.value = {};
+  } finally {
+    availabilityLoading.value = false;
+  }
 });
 
 // Fetch cameras when products are selected

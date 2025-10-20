@@ -18,7 +18,11 @@ export function validateBookingPeriod(startDate: string, endDate: string, minDay
   const startDay = start.getDay();
   if (startDay === 0 || startDay === 6) return false;
 
-  const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  // Use UTC-based day calculation to avoid DST/timezone issues
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const startUTC = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const endUTC = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  const days = Math.floor((endUTC - startUTC) / msPerDay) + 1;
   return start < end && days >= minDays && days <= maxDays;
 }
 
