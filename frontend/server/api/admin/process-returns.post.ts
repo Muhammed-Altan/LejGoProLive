@@ -5,18 +5,16 @@ export default defineEventHandler(async (event) => {
   const config = (typeof useRuntimeConfig === 'function') ? useRuntimeConfig() : (globalThis as any).__RUNTIME_CONFIG__ || {}
   const supabaseUrl = config.public?.supabaseUrl || process.env.SUPABASE_URL
   const serviceRoleKey = config.supabaseServiceRoleKey || process.env.SUPABASE_SERVICE_ROLE_KEY
-  const anonKey = config.public?.supabaseAnonKey || process.env.SUPABASE_ANON_KEY
 
   if (!supabaseUrl) {
     return createError({ statusCode: 500, statusMessage: 'Missing SUPABASE_URL' })
   }
 
-  const keyToUse = serviceRoleKey || anonKey
-  if (!keyToUse) {
-    return createError({ statusCode: 500, statusMessage: 'Missing Supabase key (service role or anon)' })
+  if (!serviceRoleKey) {
+    return createError({ statusCode: 500, statusMessage: 'Missing Supabase service role key' })
   }
 
-  const supabase = createClient(supabaseUrl, keyToUse, { auth: { persistSession: false } })
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
 
   // Cutoff: bookings that ended at least 3 days ago
   const cutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
