@@ -28,12 +28,16 @@ export default async (event: any) => {
   }
 
   // Query bookings that overlap the given period and retrieve fields we need
-  // Use server-side filtering to reduce bandwidth: bookings where startDate <= end AND endDate >= start
+  // Include 3-day buffer period after each booking ends (for cleaning, maintenance, etc.)
+  // Logic: bookings where startDate <= requestedEnd AND (endDate + 3 days) >= requestedStart
+  const startMinus3Days = new Date(start);
+  startMinus3Days.setDate(startMinus3Days.getDate() - 3);
+  
   const { data: bookings, error: bookingsError } = await supabase
     .from('Booking')
     .select('id, cameraId, selectedModels, selectedAccessories, accessoryInstanceIds, startDate, endDate')
     .lte('startDate', end.toISOString())
-    .gte('endDate', start.toISOString());
+    .gte('endDate', startMinus3Days.toISOString());
 
   if (bookingsError) {
     console.error('Error fetching bookings:', bookingsError);

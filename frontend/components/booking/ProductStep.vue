@@ -36,6 +36,7 @@
                 :auto-apply="true"
                 :min-date="minEndDate"
                 :disabled="!startDate"
+                :start-date="startDate || new Date()"
               />
         </div>
       </div>
@@ -67,6 +68,9 @@
               <template v-if="availability[model.id] === 0">Udsolgt</template>
               <template v-else>Tilgængelige</template>
             </span>
+          </option>
+          <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
+            Har du brug for 7+ GoPros? Kontakt os på email for en specialpris
           </option>
         </select>
         <button
@@ -105,7 +109,9 @@
             min="1"
             :max="getMaxProductQuantity(item)"
             v-model.number="item.quantity"
-            class="w-20 text-center rounded border border-gray-300"
+            :disabled="getMaxProductQuantity(item) <= 1"
+            class="w-12 text-center rounded border border-gray-300"
+            :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxProductQuantity(item) <= 1 }"
           />
           <span
             v-if="item.productId !== undefined && item.quantity === getMaxProductQuantity(item)"
@@ -189,7 +195,9 @@
             min="1"
             :max="getMaxAccessoryQuantity(item)"
             v-model.number="item.quantity"
-            class="w-20 text-center rounded border border-gray-300"
+            :disabled="getMaxAccessoryQuantity(item) <= 1"
+            class="w-12 text-center rounded border border-gray-300"
+            :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxAccessoryQuantity(item) <= 1 }"
           />
           <span
             v-if="item.quantity === getMaxAccessoryQuantity(item)"
