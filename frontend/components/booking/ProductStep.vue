@@ -144,10 +144,16 @@
             v-for="acc in accessories"
             :key="acc.name"
             :value="acc.name"
-            :disabled="selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri')"
+            :disabled="selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name)"
           >
-            <span :class="{ 'text-gray-400': selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') }">
+            <span :class="{ 'text-gray-400': selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name) }">
               {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
+              <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()]">
+                ({{ accessoryAvailability[acc.name.toLowerCase()].available }} tilgængelige)
+              </template>
+              <template v-else-if="datesSelected">
+                (Ikke tilgængelig)
+              </template>
             </span>
           </option>
         </select>
@@ -181,7 +187,7 @@
           <input
             type="number"
             min="1"
-            :max="item.name && item.name.toLowerCase() === 'ekstra batteri' ? 5 : 1"
+            :max="getMaxAccessoryQuantity(item)"
             v-model.number="item.quantity"
             class="w-20 text-center rounded border border-gray-300"
           />
@@ -237,19 +243,31 @@ function getMaxProductQuantity(item: { name: string; productId?: number }) {
 }
 
 function getMaxAccessoryQuantity(item: { name: string }) {
-  // Prefer accessory-specific quantity if available
-  const acc = accessories.value.find(a => a.name === item.name);
-  if (acc) {
-    if (typeof acc.quantity === 'number') return acc.quantity;
-    if (typeof acc.id === 'number') {
-      const prod = models.value.find(m => m.id === acc.id);
-      return availability.value[acc.id] ?? prod?.quantity ?? 0;
+  // For ekstra batteri, use DB accessory.quantity field but also respect availability
+  const EXTRA_BATTERY_NAME = 'ekstra batteri';
+  const name = (item.name || '').toString().trim().toLowerCase();
+  
+  if (name === EXTRA_BATTERY_NAME) {
+    const acc = accessories.value.find(a => a.name.toLowerCase() === EXTRA_BATTERY_NAME);
+    const dbQuantity = acc?.quantity ?? 5;
+    
+    // Also check availability for the booking period
+    const availInfo = accessoryAvailability.value[name];
+    if (availInfo) {
+      return Math.min(dbQuantity, availInfo.available);
     }
+    
+    return dbQuantity; // fallback to DB quantity if no availability info
   }
-  // fallback: match product by name
-  const prod = models.value.find((m: ProductOption) => m.name === item.name);
-  if (prod) return availability.value[prod.id] ?? prod.quantity ?? 0;
-  return 0;
+  
+  // For other accessories, check availability for the booking period
+  const availInfo = accessoryAvailability.value[name];
+  if (availInfo) {
+    return Math.min(1, availInfo.available); // max 1 for non-battery accessories
+  }
+  
+  // Fallback to 1 if no availability info
+  return 1;
 }
 
 interface Camera {
@@ -273,6 +291,7 @@ interface SelectedCamera {
 const models = ref<ProductOption[]>([]);
 const accessories = ref<{ id?: number; name: string; price: number; quantity?: number }[]>([]);
 const availability = ref<Record<number, number>>({});
+const accessoryAvailability = ref<Record<string, { total: number; available: number; booked: number }>>({});
 const availabilityLoading = ref<boolean>(false);
 const availableCameras = ref<Camera[]>([]);
 const selectedCameras = ref<SelectedCamera[]>([]);
@@ -337,6 +356,13 @@ function isStartDateDisabled(date: Date) {
   if (!date) return false;
   const day = date.getDay();
   return day === 0 || day === 6;
+}
+
+function isAccessoryUnavailable(accessoryName: string): boolean {
+  if (!datesSelected.value) return false;
+  const name = (accessoryName || '').toString().trim().toLowerCase();
+  const availInfo = accessoryAvailability.value[name];
+  return availInfo ? availInfo.available <= 0 : true;
 }
 
 function selectModel(model: {
@@ -473,14 +499,27 @@ function removeCamera(idx: number) {
 }
 
 function addAccessory(acc: { name: string; price: number }) {
+  // Check availability first
+  if (isAccessoryUnavailable(acc.name)) {
+    console.warn(`Accessory "${acc.name}" is not available for the selected dates`);
+    return;
+  }
+
   // Allow multiple 'ekstra batteri' but keep other accessories to max 1.
   const EXTRA_BATTERY_NAME = 'ekstra batteri';
   const found = selectedAccessories.value.find((a) => a.name === acc.name);
   if (found) {
     if ((acc.name || '').toString().trim().toLowerCase() === EXTRA_BATTERY_NAME) {
-      // increment ekstra batteri up to a sensible cap (5)
+      // increment ekstra batteri up to DB quantity limit or available quantity
+      const dbAcc = accessories.value.find(a => a.name.toLowerCase() === EXTRA_BATTERY_NAME);
+      const dbMaxQuantity = dbAcc?.quantity ?? 5;
+      const name = acc.name.toLowerCase();
+      const availInfo = accessoryAvailability.value[name];
+      const availableQuantity = availInfo ? availInfo.available : dbMaxQuantity;
+      const maxQuantity = Math.min(dbMaxQuantity, availableQuantity);
+      
       found.quantity = (found.quantity || 0) + 1;
-      if (found.quantity > 5) found.quantity = 5;
+      if (found.quantity > maxQuantity) found.quantity = maxQuantity;
     }
     // for other accessories, do nothing when already present
   } else {
@@ -570,6 +609,7 @@ onMounted(async () => {
 watch([startDate, endDate], async () => {
   if (!startDate.value || !endDate.value) {
     availability.value = {};
+    accessoryAvailability.value = {};
     availabilityLoading.value = false;
     return;
   }
@@ -581,6 +621,7 @@ watch([startDate, endDate], async () => {
     if (!resp.ok) {
       console.error('Availability API error', resp.statusText);
       availability.value = {};
+      accessoryAvailability.value = {};
       return;
     }
     const body = await resp.json();
@@ -589,9 +630,15 @@ watch([startDate, endDate], async () => {
     } else {
       availability.value = {};
     }
+    if (body && body.accessoryAvailability) {
+      accessoryAvailability.value = body.accessoryAvailability;
+    } else {
+      accessoryAvailability.value = {};
+    }
   } catch (err) {
     console.error('Error fetching availability', err);
     availability.value = {};
+    accessoryAvailability.value = {};
   } finally {
     availabilityLoading.value = false;
   }

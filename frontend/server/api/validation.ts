@@ -12,9 +12,8 @@ export function enforceMaxAccessoryQuantities(
   // Default rules:
   // - No more than `maxTotalAccessories` distinct accessory types.
   // - Each accessory quantity must be >=1 and <= maxPerAccessory.
-  // Exception: accessory named 'ekstra batteri' may have a higher per-item cap (legacy rule).
+  // Exception: accessory named 'ekstra batteri' uses its own DB quantity limit.
   const EXTRA_BATTERY_NAME = 'ekstra batteri';
-  const EXTRA_BATTERY_MAX = 5; // allow up to 5 ekstra batteri by default
 
   if (!Array.isArray(accessories)) return false;
   if (accessories.length > maxTotalAccessories) return false;
@@ -23,6 +22,9 @@ export function enforceMaxAccessoryQuantities(
     const qty = typeof a.quantity === 'number' ? a.quantity : 0;
     const name = (a.name || '').toString().trim().toLowerCase();
     if (name === EXTRA_BATTERY_NAME) {
+      // For ekstra batteri, we allow up to a reasonable limit
+      // The actual availability check is done separately in checkAccessoryAvailability
+      const EXTRA_BATTERY_MAX = 50; // reasonable upper bound
       return qty > 0 && qty <= EXTRA_BATTERY_MAX;
     }
     return qty > 0 && qty <= maxPerAccessory;

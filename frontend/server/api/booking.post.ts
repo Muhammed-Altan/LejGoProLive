@@ -9,6 +9,66 @@ import { enforceMaxQuantities, enforceMaxAccessoryQuantities, validateBookingPer
 import { requireAuth } from './auth';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
+
+// Check accessory availability for a booking period
+async function checkAccessoryAvailability(accessories: Array<{ name: string; quantity: number }>, startDate: string, endDate: string): Promise<boolean> {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) return false;
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  
+  // Get bookings that overlap with the requested period
+  const { data: bookings, error: bookingsError } = await supabase
+    .from('Booking')
+    .select('selectedAccessories')
+    .lte('startDate', endDate)
+    .gte('endDate', startDate);
+    
+  if (bookingsError) {
+    console.error('Error checking accessory availability:', bookingsError);
+    return false;
+  }
+  
+  // Calculate booked quantities per accessory
+  const bookedQuantities: Record<string, number> = {};
+  (bookings || []).forEach((booking: any) => {
+    if (Array.isArray(booking.selectedAccessories)) {
+      booking.selectedAccessories.forEach((acc: any) => {
+        const name = (acc.name || '').toString().trim().toLowerCase();
+        const qty = typeof acc.quantity === 'number' ? acc.quantity : 1;
+        bookedQuantities[name] = (bookedQuantities[name] || 0) + qty;
+      });
+    }
+  });
+  
+  // Get accessory total quantities from DB
+  const { data: dbAccessories, error: accessoriesError } = await supabase
+    .from('Accessory')
+    .select('name, quantity');
+    
+  if (accessoriesError) {
+    console.error('Error fetching accessories:', accessoriesError);
+    return false;
+  }
+  
+  // Check if requested quantities are available
+  for (const reqAcc of accessories) {
+    const name = reqAcc.name.toLowerCase();
+    const requestedQty = reqAcc.quantity;
+    const bookedQty = bookedQuantities[name] || 0;
+    
+    const dbAcc = dbAccessories?.find(a => a.name.toLowerCase() === name);
+    const totalQty = dbAcc?.quantity || 5; // fallback
+    
+    const availableQty = totalQty - bookedQty;
+    if (requestedQty > availableQty) {
+      return false;
+    }
+  }
+  
+  return true;
+}
 // Rate limiter setup: 2 requests per 600 seconds per IP
 const rateLimiter = new RateLimiterMemory({
   points: 2,
@@ -113,6 +173,12 @@ export default defineEventHandler(async (event) => {
   const available = await checkAvailability(booking.models, booking.startDate, booking.endDate);
   if (!available) {
     return sendError(event, createError({ statusCode: 409, statusMessage: 'Not enough availability for requested products' }));
+  }
+
+  // --- Accessory Availability Check ---
+  const accessoryAvailable = await checkAccessoryAvailability(booking.accessories, booking.startDate, booking.endDate);
+  if (!accessoryAvailable) {
+    return sendError(event, createError({ statusCode: 409, statusMessage: 'Not enough availability for requested accessories' }));
   }
 
 

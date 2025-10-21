@@ -66,12 +66,12 @@ export const useCheckoutStore = defineStore('checkout', {
         console.error('Non-array passed to setSelectedAccessories:', items);
       }
       // Clamp accessory quantities to a maximum of 1 for most accessories, but allow
-      // 'ekstra batteri' to be added multiple times (legacy behavior).
+      // 'ekstra batteri' to use its configured quantity (no clamping for ekstra batteri).
       const EXTRA_BATTERY_NAME = 'ekstra batteri';
       this.selectedAccessories = Array.isArray(items) ? items.map(i => {
         const name = (i.name || '').toString().trim().toLowerCase();
         if (name === EXTRA_BATTERY_NAME) {
-          // keep provided quantity (ensure at least 1)
+          // keep provided quantity for ekstra batteri (ensure at least 1)
           return { ...i, quantity: i.quantity > 0 ? i.quantity : 1 };
         }
         // For other accessories, clamp quantity to 1

@@ -31,7 +31,7 @@ export default async (event: any) => {
   // Use server-side filtering to reduce bandwidth: bookings where startDate <= end AND endDate >= start
   const { data: bookings, error: bookingsError } = await supabase
     .from('Booking')
-    .select('id, cameraId, productId, quantity, selectedModels, startDate, endDate')
+    .select('id, cameraId, productId, quantity, selectedModels, selectedAccessories, accessoryInstanceIds, startDate, endDate')
     .lte('startDate', end.toISOString())
     .gte('endDate', start.toISOString());
 
@@ -45,6 +45,9 @@ export default async (event: any) => {
   // Build map of booked quantities (product-level) and booked camera ids
   const bookedMap: Record<number, number> = {};
   const bookedCameraIds = new Set<number>();
+  const bookedAccessoryMap: Record<string, number> = {}; // accessory name -> booked quantity
+  const bookedAccessoryInstanceIds = new Set<number>();
+  
   (bookings || []).forEach((b: any) => {
     // If a booking references a specific camera, mark it as booked
     if (b.cameraId) bookedCameraIds.add(b.cameraId);
@@ -61,6 +64,33 @@ export default async (event: any) => {
         const qty = typeof m.quantity === 'number' ? m.quantity : (m.quantity ? Number(m.quantity) : 1);
         if (typeof pid === 'number') bookedMap[pid] = (bookedMap[pid] || 0) + (qty || 1);
       });
+    }
+
+    // Modern: if booking has selectedAccessories JSONB array, iterate entries
+    if (Array.isArray(b.selectedAccessories)) {
+      b.selectedAccessories.forEach((a: any) => {
+        const name = (a.name || '').toString().trim().toLowerCase();
+        const qty = typeof a.quantity === 'number' ? a.quantity : (a.quantity ? Number(a.quantity) : 1);
+        if (name) bookedAccessoryMap[name] = (bookedAccessoryMap[name] || 0) + (qty || 1);
+      });
+    }
+
+    // Track booked accessory instance IDs
+    if (b.accessoryInstanceIds) {
+      let instanceIds: number[] = [];
+      if (Array.isArray(b.accessoryInstanceIds)) {
+        instanceIds = b.accessoryInstanceIds.filter((x: any) => typeof x === 'number');
+      } else if (typeof b.accessoryInstanceIds === 'string') {
+        try {
+          const parsed = JSON.parse(b.accessoryInstanceIds);
+          if (Array.isArray(parsed)) {
+            instanceIds = parsed.filter((x: any) => typeof x === 'number');
+          }
+        } catch (e) {
+          // ignore parsing errors
+        }
+      }
+      instanceIds.forEach(id => bookedAccessoryInstanceIds.add(id));
     }
   });
 
@@ -106,8 +136,30 @@ export default async (event: any) => {
     if (bookedCameraIds.has(c.id)) cameraAvailability[pid].bookedCameraIds.push(c.id);
   });
 
+  // Compute accessory availability
+  const { data: accessories, error: accessoriesError } = await supabase
+    .from('Accessory')
+    .select('id, name, quantity');
+
+  const accessoryAvailability: Record<string, { total: number; available: number; booked: number }> = {};
+  
+  if (!accessoriesError && accessories) {
+    for (const acc of accessories) {
+      const name = (acc.name || '').toString().trim().toLowerCase();
+      const total = typeof acc.quantity === 'number' ? acc.quantity : 5;
+      const booked = bookedAccessoryMap[name] || 0;
+      const available = Math.max(0, total - booked);
+      
+      accessoryAvailability[name] = {
+        total,
+        available,
+        booked
+      };
+    }
+  }
+
   return {
     status: 200,
-    body: { availability, cameraAvailability }
+    body: { availability, cameraAvailability, accessoryAvailability }
   };
 };
