@@ -3,8 +3,30 @@ export function enforceMaxQuantities(models: Array<{ quantity: number }>, maxPer
   return models.every(m => m.quantity > 0 && m.quantity <= maxPerProduct);
 }
 
-export function enforceMaxAccessoryQuantities(accessories: Array<{ quantity: number }>, maxPerAccessory = 5): boolean {
-  return accessories.every(a => a.quantity > 0 && a.quantity <= maxPerAccessory);
+export function enforceMaxAccessoryQuantities(
+  accessories: Array<{ quantity: number; name?: string }>,
+  maxPerAccessory = 1,
+  maxTotalAccessories = 1
+): boolean {
+  // Enforce that accessory quantities are in allowed ranges.
+  // Default rules:
+  // - No more than `maxTotalAccessories` distinct accessory types.
+  // - Each accessory quantity must be >=1 and <= maxPerAccessory.
+  // Exception: accessory named 'ekstra batteri' may have a higher per-item cap (legacy rule).
+  const EXTRA_BATTERY_NAME = 'ekstra batteri';
+  const EXTRA_BATTERY_MAX = 5; // allow up to 5 ekstra batteri by default
+
+  if (!Array.isArray(accessories)) return false;
+  if (accessories.length > maxTotalAccessories) return false;
+
+  return accessories.every(a => {
+    const qty = typeof a.quantity === 'number' ? a.quantity : 0;
+    const name = (a.name || '').toString().trim().toLowerCase();
+    if (name === EXTRA_BATTERY_NAME) {
+      return qty > 0 && qty <= EXTRA_BATTERY_MAX;
+    }
+    return qty > 0 && qty <= maxPerAccessory;
+  });
 }
 
 export function validateBookingPeriod(startDate: string, endDate: string, minDays = 3, maxDays = 30): boolean {

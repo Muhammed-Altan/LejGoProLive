@@ -60,7 +60,7 @@
             v-for="model in models"
             :key="model.name"
             :value="model.name"
-            :disabled="availability[model.id] === 0"
+            :disabled="availability[model.id] === 0 || selectedModels.some(sm => sm.name === model.name)"
           >
             {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
@@ -140,8 +140,15 @@
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">Vælg tilbehør…</option>
-          <option v-for="acc in accessories" :key="acc.name" :value="acc.name">
-            {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
+          <option
+            v-for="acc in accessories"
+            :key="acc.name"
+            :value="acc.name"
+            :disabled="selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri')"
+          >
+            <span :class="{ 'text-gray-400': selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') }">
+              {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
+            </span>
           </option>
         </select>
         <button
@@ -174,7 +181,7 @@
           <input
             type="number"
             min="1"
-            :max="getMaxAccessoryQuantity(item)"
+            :max="item.name && item.name.toLowerCase() === 'ekstra batteri' ? 5 : 1"
             v-model.number="item.quantity"
             class="w-20 text-center rounded border border-gray-300"
           />
@@ -466,9 +473,16 @@ function removeCamera(idx: number) {
 }
 
 function addAccessory(acc: { name: string; price: number }) {
+  // Allow multiple 'ekstra batteri' but keep other accessories to max 1.
+  const EXTRA_BATTERY_NAME = 'ekstra batteri';
   const found = selectedAccessories.value.find((a) => a.name === acc.name);
   if (found) {
-    found.quantity++;
+    if ((acc.name || '').toString().trim().toLowerCase() === EXTRA_BATTERY_NAME) {
+      // increment ekstra batteri up to a sensible cap (5)
+      found.quantity = (found.quantity || 0) + 1;
+      if (found.quantity > 5) found.quantity = 5;
+    }
+    // for other accessories, do nothing when already present
   } else {
     selectedAccessories.value.push({ ...acc, quantity: 1 });
   }
