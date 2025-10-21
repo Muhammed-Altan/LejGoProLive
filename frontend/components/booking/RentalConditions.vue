@@ -31,21 +31,74 @@
           style="max-height: 400px;"
           @scroll="handleScroll"
         >
-          <p class="mb-4">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque euismod, urna eu tincidunt consectetur, nisi nisl aliquam nunc, eget aliquam massa nisl quis neque. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Etiam nec facilisis urna. Suspendisse potenti. Mauris euismod, sapien eu commodo cursus, enim erat dictum erat, nec dictum erat erat eu erat. Sed euismod, sapien eu commodo cursus, enim erat dictum erat, nec dictum erat erat eu erat.
-          </p>
-          <p class="mb-4">
-            Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Mauris viverra veniam consectetur pellentesque. Donec auctor blandit quam, ac finibus ante aliquam ac. Ut vehicula rhoncus elementum. Etiam et tortor molestie, faucibus lorem in, facilisis nunc.
-          </p>
-          <p class="mb-4">
-            Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Sed cursus turpis a purus adipiscing bibendum. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante etiam sit amet orci eget eros faucibus tincidunt. Duis leo.
-          </p>
-          <p class="mb-4">
-            Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc, quis gravida magna mi a libero. Fusce vulputate eleifend sapien.
-          </p>
-          <p>
-            Vestibulum purus quam, scelerisque ut, mollis sed, nonummy id, metus. Nullam accumsan lorem in dui. Cras ultricies mi eu turpis hendrerit fringilla. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae.
-          </p>
+          <div class="space-y-6">
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">1. Generelle oplysninger</h3>
+              <p>LejGoPro.dk drives af:</p>
+              <p>LejGoPro<br />CVR-nr.: 41910437<br />Adresse: Snorresgade 1 st th, 2300 København S<br />E-mail: kontakt@lejgopro.dk<br />Telefon: +45 53 80 59 54</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">2. Anvendelsesområde</h3>
+              <p>Disse handelsbetingelser gælder for alle lejeaftaler indgået via LejGoPro.dk. Ved bestilling accepterer du disse vilkår.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">3. Produkter og ydelser</h3>
+              <p>LejGoPro.dk tilbyder udlejning af kameraudstyr og tilbehør. Alle produkter lejes på dagsbasis med mulighed for forlængelse efter aftale.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">4. Bestilling</h3>
+              <p>Leje sker via vores hjemmeside. En lejeaftale er bindende, når ordrebekræftelsen er sendt til din e-mail.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">5. Priser og betaling</h3>
+              <p>Alle priser er angivet i DKK og inkl. moms. Betaling sker online via sikre betalingsløsninger. Beløbet trækkes ved bekræftelse af lejeperioden.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">6. Afhentning og returnering</h3>
+              <p>Udstyret kan afhentes og returneres efter aftale. Returnering skal ske senest på det aftalte tidspunkt. Forsinket returnering kan medføre ekstra betaling.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">7. Kundens ansvar</h3>
+              <p>Lejer er ansvarlig for udstyret i hele lejeperioden. Skader eller bortkomst af udstyr erstattes af lejer. Det anbefales at tegne forsikring.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">8. Fortrydelsesret og afbestilling</h3>
+              <p>Lejeaftaler er undtaget den normale fortrydelsesret (jf. Forbrugeraftaleloven § 18, stk. 2, nr. 12), men vi tilbyder følgende fleksible afbestillingsbetingelser:</p>
+              <ul class="list-disc ml-6 mt-2 mb-2">
+                <li>Ved afbestilling senest 14 dage før lejeaftalens begyndelse refunderes 100%.</li>
+                <li>Ved afbestilling senest 7 dage før lejeaftalens begyndelse refunderes 50%.</li>
+                <li>Ved afbestilling mindre end 7 dage før lejeaftalens begyndelse gives ingen refundering.</li>
+              </ul>
+              <p>Afbestilling skal ske skriftligt til kontakt@lejgopro.dk.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">9. Reklamation</h3>
+              <p>Ved fejl eller mangler bedes du kontakte os straks. Du har 2 års reklamationsret i henhold til købeloven, hvor relevant.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">10. Force Majeure</h3>
+              <p>LejGoPro.dk er ikke ansvarlig for manglende opfyldelse af aftalen ved force majeure.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">11. Persondata</h3>
+              <p>Vi behandler dine oplysninger i overensstemmelse med vores privatlivspolitik.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">12. Lovvalg og værneting</h3>
+              <p>Aftalen er underlagt dansk ret. Eventuelle tvister afgøres ved de danske domstole.</p>
+            </div>
+          </div>
         </div>
         <div class="px-6 pb-6 pt-2 flex flex-col gap-2">
           <button

@@ -27,7 +27,7 @@
                 <img src="/eventyr/GoPro-MountainTop.jpg" alt="GoPro adventure" class="rounded-xl object-cover w-full h-72" />
                 <img src="/eventyr/GoPro-Skiing.png" alt="GoPro adventure 2" class="rounded-xl object-cover w-full h-72" />
                 </div>
-                <button class="bg-[#B8082A] text-white font-semibold py-2 px-6 rounded shadow hover:bg-[#a10725] transition cursor-pointer">Begynd dit eventyr her</button>
+                <NuxtLink to="/checkout" class="bg-[#B8082A] text-white font-semibold py-2 px-6 rounded shadow hover:bg-[#a10725] transition cursor-pointer">Begynd dit eventyr her</NuxtLink>
             </div>
         </div>
     </section>

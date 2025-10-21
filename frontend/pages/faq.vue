@@ -29,7 +29,7 @@ const items = ref([
   {
     label: 'Hvordan og hvornår skal man betale?',
     icon: 'i-lucide-credit-card',
-    content: 'Betaling sker typisk via MobilePay til vores erhvervskonto. Alternativt kan man betale via faktura. Betaling sker når aftale bekræftes af dig som kunde via SMS.'
+    content: 'Betaling sker online via vores sikre betalingsløsning under checkout processen. Du kan betale med kort (Visa, Mastercard, osv.). Beløbet trækkes med det samme når din booking bekræftes, og du modtager en kvittering på email.'
   },
   {
     label: 'Hvorfor udlejer i kun GoPro Hero 10?',
