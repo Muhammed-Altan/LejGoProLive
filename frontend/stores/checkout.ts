@@ -33,14 +33,15 @@ export const useCheckoutStore = defineStore('checkout', {
   }),
   actions: {
     logState() {
-      const state = this.$state;
-      Object.entries(state).forEach(([key, val]) => {
-        if (val && typeof val === 'object') {
-          console.log(`[Pinia checkout] ${key}:`, val, 'type:', Object.prototype.toString.call(val));
-        } else {
-          console.log(`[Pinia checkout] ${key}:`, val, 'type:', typeof val);
-        }
-      });
+      // Debug logging disabled for production
+      // const state = this.$state;
+      // Object.entries(state).forEach(([key, val]) => {
+      //   if (val && typeof val === 'object') {
+      //     console.log(`[Pinia checkout] ${key}:`, val, 'type:', Object.prototype.toString.call(val));
+      //   } else {
+      //     console.log(`[Pinia checkout] ${key}:`, val, 'type:', typeof val);
+      //   }
+      // });
     },
   setDates(start: Date | string | null, end: Date | string | null) {
       if (start && typeof start !== 'string' && !(start instanceof Date)) {

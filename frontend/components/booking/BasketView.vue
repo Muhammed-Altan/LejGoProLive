@@ -181,7 +181,9 @@ async function fetchBackendTotal() {
   breakdown.discountTotal = breakdown.models.reduce((sum: number, m: any) => sum + ((m.discount || 0) * m.quantity * m.days), 0);
 
     // Calculate accessory prices
-    for (const accessory of accessories.value) {
+    const accessoriesArray = Array.from(accessories.value || []);
+    
+    for (const accessory of accessoriesArray) {
       const quantity = accessory.quantity || 1;
       // Accessory price is for the entire booking, not per day
       const accessoryTotal = accessory.price * quantity;
@@ -210,7 +212,6 @@ async function fetchBackendTotal() {
     
     // Update the store with the calculated total
     store.setBackendTotal(total);
-    console.log('🛒 BasketView: Updated store backendTotal to:', total);
   } catch (e: any) {
     error.value = (typeof e === 'object' && e && 'message' in e) ? (e as any).message : 'Ukendt fejl ved prisberegning';
     backendTotal.value = null;

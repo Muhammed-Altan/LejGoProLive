@@ -31,15 +31,13 @@ export default async (event: any) => {
   // Use server-side filtering to reduce bandwidth: bookings where startDate <= end AND endDate >= start
   const { data: bookings, error: bookingsError } = await supabase
     .from('Booking')
-    .select('id, cameraId, productId, quantity, selectedModels, selectedAccessories, accessoryInstanceIds, startDate, endDate')
+    .select('id, cameraId, selectedModels, selectedAccessories, accessoryInstanceIds, startDate, endDate')
     .lte('startDate', end.toISOString())
     .gte('endDate', start.toISOString());
 
   if (bookingsError) {
-    return {
-      status: 500,
-      body: { error: 'Error fetching bookings', details: bookingsError }
-    };
+    console.error('Error fetching bookings:', bookingsError);
+    // Continue with empty bookings array - still calculate availability based on total quantities
   }
 
   // Build map of booked quantities (product-level) and booked camera ids
@@ -48,51 +46,49 @@ export default async (event: any) => {
   const bookedAccessoryMap: Record<string, number> = {}; // accessory name -> booked quantity
   const bookedAccessoryInstanceIds = new Set<number>();
   
-  (bookings || []).forEach((b: any) => {
-    // If a booking references a specific camera, mark it as booked
-    if (b.cameraId) bookedCameraIds.add(b.cameraId);
+  // Only process bookings if we successfully fetched them
+  if (!bookingsError && bookings) {
+    (bookings || []).forEach((b: any) => {
+      // If a booking references a specific camera, mark it as booked
+      if (b.cameraId) bookedCameraIds.add(b.cameraId);
 
-    // Legacy: if booking has productId and quantity, use it
-    if (typeof b.productId === 'number') {
-      bookedMap[b.productId] = (bookedMap[b.productId] || 0) + (b.quantity || 1);
-    }
-
-    // Modern: if booking has selectedModels JSONB array, iterate entries
-    if (Array.isArray(b.selectedModels)) {
-      b.selectedModels.forEach((m: any) => {
-        const pid = m.productId ?? m.id;
-        const qty = typeof m.quantity === 'number' ? m.quantity : (m.quantity ? Number(m.quantity) : 1);
-        if (typeof pid === 'number') bookedMap[pid] = (bookedMap[pid] || 0) + (qty || 1);
-      });
-    }
-
-    // Modern: if booking has selectedAccessories JSONB array, iterate entries
-    if (Array.isArray(b.selectedAccessories)) {
-      b.selectedAccessories.forEach((a: any) => {
-        const name = (a.name || '').toString().trim().toLowerCase();
-        const qty = typeof a.quantity === 'number' ? a.quantity : (a.quantity ? Number(a.quantity) : 1);
-        if (name) bookedAccessoryMap[name] = (bookedAccessoryMap[name] || 0) + (qty || 1);
-      });
-    }
-
-    // Track booked accessory instance IDs
-    if (b.accessoryInstanceIds) {
-      let instanceIds: number[] = [];
-      if (Array.isArray(b.accessoryInstanceIds)) {
-        instanceIds = b.accessoryInstanceIds.filter((x: any) => typeof x === 'number');
-      } else if (typeof b.accessoryInstanceIds === 'string') {
-        try {
-          const parsed = JSON.parse(b.accessoryInstanceIds);
-          if (Array.isArray(parsed)) {
-            instanceIds = parsed.filter((x: any) => typeof x === 'number');
-          }
-        } catch (e) {
-          // ignore parsing errors
-        }
+      // Modern: if booking has selectedModels JSONB array, iterate entries
+      if (Array.isArray(b.selectedModels)) {
+        b.selectedModels.forEach((m: any) => {
+          const pid = m.productId ?? m.id;
+          const qty = typeof m.quantity === 'number' ? m.quantity : (m.quantity ? Number(m.quantity) : 1);
+          if (typeof pid === 'number') bookedMap[pid] = (bookedMap[pid] || 0) + (qty || 1);
+        });
       }
-      instanceIds.forEach(id => bookedAccessoryInstanceIds.add(id));
-    }
-  });
+
+      // Modern: if booking has selectedAccessories JSONB array, iterate entries
+      if (Array.isArray(b.selectedAccessories)) {
+        b.selectedAccessories.forEach((a: any) => {
+          const name = (a.name || '').toString().trim().toLowerCase();
+          const qty = typeof a.quantity === 'number' ? a.quantity : (a.quantity ? Number(a.quantity) : 1);
+          if (name) bookedAccessoryMap[name] = (bookedAccessoryMap[name] || 0) + (qty || 1);
+        });
+      }
+
+      // Track booked accessory instance IDs
+      if (b.accessoryInstanceIds) {
+        let instanceIds: number[] = [];
+        if (Array.isArray(b.accessoryInstanceIds)) {
+          instanceIds = b.accessoryInstanceIds.filter((x: any) => typeof x === 'number');
+        } else if (typeof b.accessoryInstanceIds === 'string') {
+          try {
+            const parsed = JSON.parse(b.accessoryInstanceIds);
+            if (Array.isArray(parsed)) {
+              instanceIds = parsed.filter((x: any) => typeof x === 'number');
+            }
+          } catch (e) {
+            // ignore parsing errors
+          }
+        }
+        instanceIds.forEach(id => bookedAccessoryInstanceIds.add(id));
+      }
+    });
+  }
 
   // Fetch product quantities for all products
   const { data: products, error: productsError } = await supabase
@@ -116,25 +112,20 @@ export default async (event: any) => {
   // Now compute camera availability per product
   const { data: cameras, error: camerasError } = await supabase
     .from('Camera')
-    .select('id, productId, isAvailable');
-
-  if (camerasError) {
-    // Not critical — return product availability but include cameras error info
-    return {
-      status: 200,
-      body: { availability, cameraAvailability: null, error: 'Error fetching cameras', details: camerasError }
-    };
-  }
+    .select('id, productId');
 
   const cameraAvailability: Record<number, { totalCameras: number; availableCameras: number; bookedCameraIds: number[] }> = {};
-  (cameras || []).forEach((c: any) => {
-    const pid = c.productId;
-    if (!cameraAvailability[pid]) cameraAvailability[pid] = { totalCameras: 0, availableCameras: 0, bookedCameraIds: [] };
-    cameraAvailability[pid].totalCameras += 1;
-    const isBooked = bookedCameraIds.has(c.id) || c.isAvailable === false;
-    if (!isBooked) cameraAvailability[pid].availableCameras += 1;
-    if (bookedCameraIds.has(c.id)) cameraAvailability[pid].bookedCameraIds.push(c.id);
-  });
+  
+  if (!camerasError && cameras) {
+    (cameras || []).forEach((c: any) => {
+      const pid = c.productId;
+      if (!cameraAvailability[pid]) cameraAvailability[pid] = { totalCameras: 0, availableCameras: 0, bookedCameraIds: [] };
+      cameraAvailability[pid].totalCameras += 1;
+      const isBooked = bookedCameraIds.has(c.id);
+      if (!isBooked) cameraAvailability[pid].availableCameras += 1;
+      if (bookedCameraIds.has(c.id)) cameraAvailability[pid].bookedCameraIds.push(c.id);
+    });
+  }
 
   // Compute accessory availability
   const { data: accessories, error: accessoriesError } = await supabase
@@ -146,7 +137,7 @@ export default async (event: any) => {
   if (!accessoriesError && accessories) {
     for (const acc of accessories) {
       const name = (acc.name || '').toString().trim().toLowerCase();
-      const total = typeof acc.quantity === 'number' ? acc.quantity : 5;
+      const total = typeof acc.quantity === 'number' && acc.quantity > 0 ? acc.quantity : 5;
       const booked = bookedAccessoryMap[name] || 0;
       const available = Math.max(0, total - booked);
       
@@ -158,8 +149,18 @@ export default async (event: any) => {
     }
   }
 
+  const responseBody = { 
+    availability, 
+    cameraAvailability: camerasError ? null : cameraAvailability, 
+    accessoryAvailability,
+    errors: {
+      cameras: camerasError ? camerasError.message : null,
+      accessories: accessoriesError ? accessoriesError.message : null
+    }
+  };
+  
   return {
     status: 200,
-    body: { availability, cameraAvailability, accessoryAvailability }
+    body: responseBody
   };
 };

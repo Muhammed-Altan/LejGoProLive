@@ -148,10 +148,10 @@
           >
             <span :class="{ 'text-gray-400': selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name) }">
               {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
-              <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()]">
+              <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available > 0">
                 ({{ accessoryAvailability[acc.name.toLowerCase()].available }} tilgængelige)
               </template>
-              <template v-else-if="datesSelected">
+              <template v-else-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available === 0">
                 (Ikke tilgængelig)
               </template>
             </span>
@@ -253,7 +253,7 @@ function getMaxAccessoryQuantity(item: { name: string }) {
     
     // Also check availability for the booking period
     const availInfo = accessoryAvailability.value[name];
-    if (availInfo) {
+    if (availInfo && availInfo.available >= 0) {
       return Math.min(dbQuantity, availInfo.available);
     }
     
@@ -262,11 +262,11 @@ function getMaxAccessoryQuantity(item: { name: string }) {
   
   // For other accessories, check availability for the booking period
   const availInfo = accessoryAvailability.value[name];
-  if (availInfo) {
+  if (availInfo && availInfo.available >= 0) {
     return Math.min(1, availInfo.available); // max 1 for non-battery accessories
   }
   
-  // Fallback to 1 if no availability info
+  // Fallback to 1 if no availability info (assume available)
   return 1;
 }
 
@@ -362,7 +362,9 @@ function isAccessoryUnavailable(accessoryName: string): boolean {
   if (!datesSelected.value) return false;
   const name = (accessoryName || '').toString().trim().toLowerCase();
   const availInfo = accessoryAvailability.value[name];
-  return availInfo ? availInfo.available <= 0 : true;
+  // If we have availability info, check if available quantity is 0
+  // If we don't have availability info, assume it's available (false = not unavailable)
+  return availInfo ? availInfo.available <= 0 : false;
 }
 
 function selectModel(model: {
@@ -500,7 +502,9 @@ function removeCamera(idx: number) {
 
 function addAccessory(acc: { name: string; price: number }) {
   // Check availability first
-  if (isAccessoryUnavailable(acc.name)) {
+  const isUnavailable = isAccessoryUnavailable(acc.name);
+  
+  if (isUnavailable) {
     console.warn(`Accessory "${acc.name}" is not available for the selected dates`);
     return;
   }
@@ -520,10 +524,16 @@ function addAccessory(acc: { name: string; price: number }) {
       
       found.quantity = (found.quantity || 0) + 1;
       if (found.quantity > maxQuantity) found.quantity = maxQuantity;
+      
+      // Update the store with the modified accessories list
+      store.setSelectedAccessories([...selectedAccessories.value]);
     }
     // for other accessories, do nothing when already present
   } else {
     selectedAccessories.value.push({ ...acc, quantity: 1 });
+    
+    // Update the store with the new accessories list
+    store.setSelectedAccessories([...selectedAccessories.value]);
   }
 }
 
@@ -625,15 +635,23 @@ watch([startDate, endDate], async () => {
       return;
     }
     const body = await resp.json();
-    if (body && body.availability) {
-      availability.value = body.availability;
+    console.log('Full availability API response:', body);
+    
+    // Extract the actual data from the nested response structure
+    const data = body.body || body;
+    
+    if (data && data.availability) {
+      availability.value = data.availability;
     } else {
       availability.value = {};
     }
-    if (body && body.accessoryAvailability) {
-      accessoryAvailability.value = body.accessoryAvailability;
+    
+    if (data && data.accessoryAvailability) {
+      accessoryAvailability.value = data.accessoryAvailability;
+      console.log('Accessory availability loaded:', data.accessoryAvailability);
     } else {
       accessoryAvailability.value = {};
+      console.log('No accessory availability data received');
     }
   } catch (err) {
     console.error('Error fetching availability', err);
