@@ -1,0 +1,28 @@
+/* Danish language overrides for Silktide Cookie Banner */
+
+/* Override toggle switch ON/OFF text */
+#silktide-modal .switch__on::after {
+  content: "TIL" !important;
+}
+
+#silktide-modal .switch__off::after {
+  content: "FRA" !important;
+}
+
+/* Hide original ON/OFF text if it's rendered as text content */
+#silktide-modal .switch__on,
+#silktide-modal .switch__off {
+  font-size: 0 !important;
+}
+
+#silktide-modal .switch__on::after,
+#silktide-modal .switch__off::after {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* Ensure proper styling for Danish text */
+#silktide-banner,
+#silktide-modal {
+  font-family: system-ui, -apple-system, sans-serif !important;
+}

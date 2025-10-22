@@ -74,12 +74,14 @@
         <p class="text-sm text-gray-600 text-center">Fastgør kameraet sikkert til bilruder og glatte overflader for unikke vinkler.</p>
       </div>
     </div>
+    <Footer />
   </div>
 </template>
 
 <script setup lang="ts">
 import ProductCard from '@/components/ProductCard.vue';
 import Header from '@/components/Header.vue';
+import Footer from '@/components/Footer.vue';
 
 // Define the product interface to match Supabase table structure
 interface Product {

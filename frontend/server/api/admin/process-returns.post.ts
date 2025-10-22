@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
+import { authenticateAdmin } from '../../utils/adminAuth'
 
 export default defineEventHandler(async (event) => {
+  // Authenticate admin user
+  const user = authenticateAdmin(event)
+  
   // Use runtime config when available (Nuxt) but fall back to env
   const config = (typeof useRuntimeConfig === 'function') ? useRuntimeConfig() : (globalThis as any).__RUNTIME_CONFIG__ || {}
   const supabaseUrl = config.public?.supabaseUrl || process.env.SUPABASE_URL
