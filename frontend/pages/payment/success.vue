@@ -49,9 +49,9 @@
               <span class="font-medium">{{ formatDate(orderDetails.updated_at) }}</span>
             </div>
 
-            <div class="space-y-1">
-              <span class="text-gray-600 block">Mail:</span>
-              <span class="font-medium text-sm">Du vil modtage en email, når PostNord modtager din pakke.</span>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Mail:</span>
+              <span class="font-medium">Du vil modtage en mail når din pakke bliver sendt</span>
             </div>
           </div>
         </div>
