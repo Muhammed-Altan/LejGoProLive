@@ -54,7 +54,7 @@
     <div class="border-t border-gray-700 mt-12 pt-6 text-xs text-gray-400 flex flex-col md:flex-row justify-between items-center px-8">
       <div>© 2024 GoProUdlejning.dk. Alle rettigheder forbeholdes.</div>
       <div class="flex gap-6 mt-2 md:mt-0">
-        <NuxtLink to="#" class="hover:text-white">Privatlivspolitik</NuxtLink>
+        <NuxtLink to="/privatlivspolitik" class="hover:text-white">Privatlivspolitik</NuxtLink>
         <NuxtLink to="/handelsbetingelser" class="hover:text-white">Handelsbetingelser</NuxtLink>
         <NuxtLink to="#" class="hover:text-white">Cookies</NuxtLink>
       </div>
