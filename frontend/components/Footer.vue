@@ -5,7 +5,7 @@
       <div>
         <div class="flex items-center gap-2 mb-2">
           <NuxtLink to="/" class="flex items-center h-10 w-auto p-0 m-0">
-        <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="120" height="32" viewBox="0 0 683 178" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd; display:block;" aria-label="LejGoPro logo">
+        <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="120" height="32" viewBox="0 0 683 178" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd; display:block;" aria-label="LejGoPro logo" class="footer-logo">
           <g><path style="opacity:0.947" fill="#0a0a0a" d="M 33.5,13.5 C 40.1667,13.5 46.8333,13.5 53.5,13.5C 53.3334,42.5019 53.5,71.5019 54,100.5C 55.2369,105.404 58.2369,108.738 63,110.5C 63.4994,115.823 63.666,121.156 63.5,126.5C 49.6794,127.155 40.1794,121.155 35,108.5C 33.5297,76.8829 33.0297,45.2162 33.5,13.5 Z"/></g>
           <g><path style="opacity:0.946" fill="#e90934" d="M 647.5,13.5 C 660.743,15.3187 664.577,22.3187 659,34.5C 652.014,40.042 645.347,39.7087 639,33.5C 634.627,23.5866 637.461,16.92 647.5,13.5 Z"/></g>
           <g><path style="opacity:0.962" fill="#0a0a0a" d="M 113.5,43.5 C 143.096,45.1036 156.762,60.7703 154.5,90.5C 135.167,90.5 115.833,90.5 96.5,90.5C 100.291,105.415 109.958,111.915 125.5,110C 131.587,108.705 137.087,106.205 142,102.5C 146.363,106.483 149.363,111.149 151,116.5C 130.248,132.143 109.414,132.309 88.5,117C 75.9136,102.3 73.0803,85.7996 80,67.5C 86.8954,53.4246 98.0621,45.4246 113.5,43.5 Z M 111.5,61.5 C 124.667,59.3996 132.667,64.7329 135.5,77.5C 122.483,77.8325 109.483,77.4991 96.5,76.5C 99.2171,69.1161 104.217,64.1161 111.5,61.5 Z"/></g>
@@ -30,9 +30,9 @@
         <h3 class="font-bold mb-4">Hurtige Links</h3>
         <ul class="space-y-2 text-gray-300">
           <li><NuxtLink to="/products" class="hover:text-white">Produkter</NuxtLink></li>
-          <li><NuxtLink to="#" class="hover:text-white">Hvorfor leje?</NuxtLink></li>
+          <li><NuxtLink to="/hvorfor" class="hover:text-white">Hvorfor leje?</NuxtLink></li>
           <li><NuxtLink to="/kontakt" class="hover:text-white">Kontakt Os</NuxtLink></li>
-          <li><NuxtLink to="/faq" class="hover:text-white">Booking</NuxtLink></li>
+          <li><NuxtLink to="/checkout" class="hover:text-white">Booking</NuxtLink></li>
           <li><NuxtLink to="/faq" class="hover:text-white">FAQ</NuxtLink></li>
         </ul>
       </div>
@@ -54,10 +54,21 @@
     <div class="border-t border-gray-700 mt-12 pt-6 text-xs text-gray-400 flex flex-col md:flex-row justify-between items-center px-8">
       <div>© 2024 GoProUdlejning.dk. Alle rettigheder forbeholdes.</div>
       <div class="flex gap-6 mt-2 md:mt-0">
-        <NuxtLink to="#" class="hover:text-white">Privatlivspolitik</NuxtLink>
+        <NuxtLink to="/privatlivspolitik" class="hover:text-white">Privatlivspolitik</NuxtLink>
         <NuxtLink to="/handelsbetingelser" class="hover:text-white">Handelsbetingelser</NuxtLink>
         <NuxtLink to="#" class="hover:text-white">Cookies</NuxtLink>
       </div>
     </div>
   </footer>
 </template>
+
+<style scoped>
+.footer-logo path {
+  fill: white !important;
+}
+
+/* Keep the red accent color for the dot/accent element */
+.footer-logo path[fill="#e90934"] {
+  fill: #e90934 !important;
+}
+</style>

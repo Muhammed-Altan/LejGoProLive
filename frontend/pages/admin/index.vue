@@ -444,11 +444,11 @@ definePageMeta({
 })
 
 const toast = useToast();
+const auth = useAuth(); // Add auth composable at top level
 
 // Add logout functionality
 const handleLogout = async () => {
     try {
-        const auth = useAuth()
         await auth.logout()
     } catch (error) {
         console.error('Logout error:', error)
@@ -465,9 +465,16 @@ async function deleteBooking(id: number) {
     }
 
     try {
-        await fetch(`http://localhost:3001/bookings/${id}`, {
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/bookings', {
             method: 'DELETE',
+            body: { id }
         });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to delete booking');
+        }
+        
         await fetchBookings();
         toast.add({
             title: 'Booking slettet!',
@@ -482,7 +489,7 @@ async function deleteBooking(id: number) {
         console.error('Error deleting booking:', error);
         toast.add({
             title: 'Fejl ved sletning af booking',
-            description: 'Kunne ikke slette bookingen. Prøv igen.',
+            description: error?.message || 'Kunne ikke slette bookingen. Prøv igen.',
             color: 'error',
             ui: {
                 title: 'text-gray-900 font-semibold',
@@ -690,20 +697,34 @@ function closeEditBooking() {
 async function submitEditBooking() {
     try {
         const id = editBookingForm.value.id;
-        // Build PATCH payload with correct types
-        const { id: _, status: __, ...patchPayload } = {
-            ...editBookingForm.value,
-            cameraId: Number(editBookingForm.value.cameraId),
+        // Build payload with correct field mapping based on the actual booking schema
+        const payload = {
+            id,
+            fullName: editBookingForm.value.fullName,
+            email: editBookingForm.value.email,
+            phone: editBookingForm.value.phone,
+            address: editBookingForm.value.address,
+            city: editBookingForm.value.city,
+            postalCode: editBookingForm.value.postalCode,
+            cameraId: editBookingForm.value.cameraId ? Number(editBookingForm.value.cameraId) : null,
             accessoryInstanceIds: editBookingForm.value.accessoryInstanceIds
                 ? editBookingForm.value.accessoryInstanceIds.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x))
                 : [],
-            totalPrice: Number(editBookingForm.value.totalPrice),
+            totalPrice: Number(editBookingForm.value.totalPrice) || 0,
+            status: editBookingForm.value.status,
+            productName: editBookingForm.value.productName
         };
-        await fetch(`http://localhost:3001/bookings/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patchPayload)
+        
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/bookings', {
+            method: 'POST',
+            body: payload
         });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to update booking');
+        }
+        
         showEditBookingModal.value = false;
         await fetchBookings();
         toast.add({ 
@@ -719,7 +740,7 @@ async function submitEditBooking() {
         console.error('Error updating booking:', error);
         toast.add({ 
             title: 'Fejl ved opdatering af booking',
-            description: 'Kunne ikke opdatere bookingen. Prøv igen.',
+            description: error?.message || 'Kunne ikke opdatere bookingen. Prøv igen.',
             color: 'error',
             ui: {
                 title: 'text-gray-900 font-semibold',
@@ -732,22 +753,12 @@ const accessoryInstances = reactive<Record<number, AccessoryInstance[]>>({});
 
 async function fetchAccessoryInstances(accessoryId: number) {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for accessory instances');
-            accessoryInstances[accessoryId] = [];
-            return;
-        }
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch(`/api/admin/accessory-instances?accessoryId=${accessoryId}`);
         
-        const { data, error } = await supabase
-            .from('AccessoryInstance')
-            .select('*')
-            .eq('accessoryId', accessoryId)
-            .order('serialNumber');
-        
-        if (error) {
-            console.warn('AccessoryInstance table not found, creating mock instances:', error);
-            // Create mock instances if table doesn't exist
+        if (!response.success) {
+            console.warn('Failed to fetch accessory instances, creating mock instances');
+            // Create mock instances if API fails
             accessoryInstances[accessoryId] = Array.from({ length: accessory.value.find(a => a.id === accessoryId)?.quantity || 1 }, (_, i) => ({
                 id: accessoryId * 100 + i + 1,
                 accessoryId,
@@ -755,7 +766,7 @@ async function fetchAccessoryInstances(accessoryId: number) {
                 isAvailable: true
             }));
         } else {
-            accessoryInstances[accessoryId] = data || [];
+            accessoryInstances[accessoryId] = response.data || [];
         }
     } catch (error) {
         console.error('Error fetching accessory instances:', error);
@@ -807,8 +818,8 @@ const products = ref<Product[]>([]);
 async function fetchProducts() {
     try {
         console.log('🔄 Fetching products from server API...')
-        // Use server API instead of direct Supabase call
-        const response = await $fetch('/api/admin/products')
+        // Use authenticated fetch with JWT token
+        const response = await auth.authenticatedFetch('/api/admin/products')
         
         console.log('📦 Products API response:', response)
         
@@ -834,7 +845,7 @@ async function fetchProducts() {
         
         // Load cameras for each product using server API
         try {
-            const cameraResponse = await $fetch('/api/admin/cameras')
+            const cameraResponse = await auth.authenticatedFetch('/api/admin/cameras')
             if (cameraResponse.success) {
                 const cameras = cameraResponse.data || []
                 console.log('📷 All cameras loaded:', cameras.length)
@@ -864,74 +875,40 @@ if (process.client) {
 
 async function createProduct() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for creating product');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
-        }
-        
         // Upload image if a new file is selected
         let imageUrl = form.value.imageUrl;
         if (selectedImageFile.value) {
-            imageUrl = await uploadImageToSupabase(selectedImageFile.value);
+            const supabase = useSupabase();
+            if (supabase) {
+                imageUrl = await uploadImageToSupabase(selectedImageFile.value);
+            }
         }
         
-        // Prepare the payload for Supabase (matching your actual table structure)
-        const payload = {
+        // Prepare the payload for the API
+        const payload: any = {
             name: form.value.name,
-            features: form.value.features || '', // Ensure it's not null
+            features: form.value.features || '',
             dailyPrice: form.value.dailyPrice,
             weeklyPrice: form.value.weeklyPrice,
             twoWeekPrice: form.value.twoWeekPrice,
             popular: form.value.popular,
-            quantity: form.value.quantity || 1, // Ensure it's not null
+            quantity: form.value.quantity || 1,
             imageUrl: imageUrl
         };
         
+        // Add ID if editing
         if (editingId.value) {
-            // Update existing product
-            const { error } = await supabase
-                .from('Product')
-                .update(payload)
-                .eq('id', editingId.value);
-            
-            if (error) throw error;
-        } else {
-            // Create new product
-            const { data: newProduct, error } = await supabase
-                .from('Product')
-                .insert([payload])
-                .select()
-                .single();
-            
-            if (error) throw error;
-            
-            // Create cameras for the new product (assuming you want to create 4 cameras per product)
-            if (newProduct && form.value.quantity > 0) {
-                const cameras = [];
-                for (let i = 1; i <= form.value.quantity; i++) {
-                    cameras.push({
-                        productId: newProduct.id,
-                        dailyPrice: form.value.dailyPrice,
-                        weeklyPrice: form.value.weeklyPrice,
-                        twoWeekPrice: form.value.twoWeekPrice
-                    });
-                }
-                
-                const { error: camerasError } = await supabase
-                    .from('Camera')
-                    .insert(cameras);
-                
-                if (camerasError) {
-                    console.warn('Error creating cameras:', camerasError);
-                    // Don't throw error here, product was created successfully
-                }
-            }
+            payload.id = editingId.value;
+        }
+        
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/products', {
+            method: 'POST',
+            body: payload
+        });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to save product');
         }
         
         // Save the product name before resetting the form
@@ -961,7 +938,7 @@ async function createProduct() {
             }
         });
     } catch (error: any) {
-        console.error('Error saving product to Supabase:', error);
+        console.error('Error saving product:', error);
         toast.add({ 
             title: 'Fejl ved gem af produkt',
             description: error?.message || 'Ukendt fejl opstod',
@@ -982,35 +959,15 @@ async function deleteProduct(product: any) {
     }
 
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for deleting product');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/products', {
+            method: 'DELETE',
+            body: { id: product.id }
+        });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to delete product');
         }
-        
-        // First, delete all cameras associated with this product
-        const { error: camerasError } = await supabase
-            .from('Camera')
-            .delete()
-            .eq('productId', product.id);
-            
-        if (camerasError) {
-            console.warn('Error deleting cameras for product:', camerasError);
-            // Continue anyway - maybe there were no cameras
-        }
-        
-        // Then delete the product
-        const { error } = await supabase
-            .from('Product')
-            .delete()
-            .eq('id', product.id);
-        
-        if (error) throw error;
         
         await fetchProducts();
         toast.add({ 
@@ -1023,7 +980,7 @@ async function deleteProduct(product: any) {
             }
         });
     } catch (error: any) {
-        console.error('Error deleting product from Supabase:', error);
+        console.error('Error deleting product:', error);
         toast.add({ 
             title: 'Fejl ved sletning af produkt',
             description: error?.message || 'Ukendt fejl opstod',
@@ -1176,8 +1133,8 @@ const oauthTestResult = ref<any>(null);
 async function fetchBookings() {
     try {
         console.log('🔄 Fetching bookings from server API...')
-        // Use server API instead of direct Supabase call
-        const response = await $fetch('/api/admin/bookings')
+        // Use authenticated fetch with JWT token
+        const response = await auth.authenticatedFetch('/api/admin/bookings')
         
         console.log('📋 Bookings API response:', response)
         
@@ -1431,8 +1388,8 @@ const accessoryForm = ref({ name: '', description: '', price: 0, quantity: 1 });
 
 async function fetchAccessory() {
     try {
-        // Use server API instead of direct Supabase call
-        const response = await $fetch('/api/admin/accessories')
+        // Use authenticated fetch with JWT token
+        const response = await auth.authenticatedFetch('/api/admin/accessories')
         
         if (!response.success) {
             throw new Error('Failed to fetch accessories')
@@ -1464,161 +1421,29 @@ if (process.client) {
 
 async function createAccessory() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for creating accessory');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
-        }
-        
         const isEditing = !!editingAccessoryId.value;
         const accessoryName = accessoryForm.value.name;
         
-        const payload = { 
+        const payload: any = { 
             name: accessoryForm.value.name, 
             description: accessoryForm.value.description, 
             price: accessoryForm.value.price, 
             quantity: accessoryForm.value.quantity 
         };
         
-        let accessoryId: number;
-        
+        // Add ID if editing
         if (editingAccessoryId.value) {
-            // Update existing accessory
-            const { error } = await supabase
-                .from('Accessory')
-                .update(payload)
-                .eq('id', editingAccessoryId.value);
-            
-            if (error) throw error;
-            accessoryId = editingAccessoryId.value;
-            
-            // Update instances to match new quantity and name
-            const { data: existingInstances, error: fetchError } = await supabase
-                .from('AccessoryInstance')
-                .select('id, serialNumber')
-                .eq('accessoryId', accessoryId)
-                .order('id');
-                
-            if (!fetchError && existingInstances) {
-                const currentCount = existingInstances.length;
-                const targetCount = accessoryForm.value.quantity;
-                
-                console.log(`🔄 Updating instances: Current: ${currentCount}, Target: ${targetCount}`);
-                
-                if (targetCount > currentCount) {
-                    // Need to add more instances
-                    const instancesToAdd = targetCount - currentCount;
-                    const newInstances = Array.from({ length: instancesToAdd }, (_, i) => ({
-                        accessoryId,
-                        serialNumber: `${accessoryForm.value.name} #${currentCount + i + 1}`,
-                        isAvailable: true
-                    }));
-                    
-                    const { error: addError } = await supabase
-                        .from('AccessoryInstance')
-                        .insert(newInstances);
-                        
-                    if (addError) {
-                        console.error('Error adding new instances:', addError);
-                    } else {
-                        console.log(`✅ Added ${instancesToAdd} new instances`);
-                    }
-                }
-                
-                if (targetCount < currentCount) {
-                    // Need to remove excess instances (only remove unused ones)
-                    const instancesToRemove = currentCount - targetCount;
-                    const instancesToDelete = existingInstances.slice(-instancesToRemove); // Take last instances
-                    
-                    // Check if any of these instances are in active bookings
-                    const instanceIds = instancesToDelete.map(instance => instance.id);
-                    const { data: activeBookings, error: bookingError } = await supabase
-                        .from('Booking')
-                        .select('id, accessoryInstanceIds, paymentStatus')
-                        .neq('paymentStatus', 'cancelled')
-                        .neq('paymentStatus', 'failed');
-                    
-                    if (!bookingError && activeBookings) {
-                        const usedInstanceIds = new Set();
-                        activeBookings.forEach(booking => {
-                            if (booking.accessoryInstanceIds && Array.isArray(booking.accessoryInstanceIds)) {
-                                booking.accessoryInstanceIds.forEach(id => usedInstanceIds.add(id));
-                            }
-                        });
-                        
-                        const safeToDelete = instancesToDelete.filter(instance => !usedInstanceIds.has(instance.id));
-                        
-                        if (safeToDelete.length > 0) {
-                            const { error: deleteError } = await supabase
-                                .from('AccessoryInstance')
-                                .delete()
-                                .in('id', safeToDelete.map(instance => instance.id));
-                                
-                            if (deleteError) {
-                                console.error('Error deleting instances:', deleteError);
-                            } else {
-                                console.log(`✅ Deleted ${safeToDelete.length} unused instances`);
-                            }
-                        }
-                        
-                        if (safeToDelete.length < instancesToRemove) {
-                            console.warn(`⚠️ Could only delete ${safeToDelete.length} of ${instancesToRemove} instances (others are in use)`);
-                        }
-                    }
-                }
-                
-                // Update serial numbers for remaining instances
-                const { data: updatedInstances } = await supabase
-                    .from('AccessoryInstance')
-                    .select('id')
-                    .eq('accessoryId', accessoryId)
-                    .order('id');
-                    
-                if (updatedInstances) {
-                    for (let i = 0; i < updatedInstances.length; i++) {
-                        const newSerialNumber = `${accessoryForm.value.name} #${i + 1}`;
-                        await supabase
-                            .from('AccessoryInstance')
-                            .update({ serialNumber: newSerialNumber })
-                            .eq('id', updatedInstances[i].id);
-                    }
-                    console.log(`✅ Updated serial numbers for ${updatedInstances.length} instances of ${accessoryForm.value.name}`);
-                }
-            }
-        } else {
-            // Create new accessory
-            const { data, error } = await supabase
-                .from('Accessory')
-                .insert([payload])
-                .select()
-                .single();
-            
-            if (error) throw error;
-            accessoryId = data.id;
-            
-            // Create instances for the new accessory
-            const instances = Array.from({ length: accessoryForm.value.quantity }, (_, i) => ({
-                accessoryId,
-                serialNumber: `${accessoryForm.value.name} #${i + 1}`,
-                isAvailable: true
-            }));
-            
-            try {
-                const { error: instancesError } = await supabase
-                    .from('AccessoryInstance')
-                    .insert(instances);
-                
-                if (instancesError) {
-                    console.warn('Could not create accessory instances:', instancesError);
-                }
-            } catch (instanceError) {
-                console.warn('AccessoryInstance table may not exist:', instanceError);
-            }
+            payload.id = editingAccessoryId.value;
+        }
+        
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/accessories', {
+            method: 'POST',
+            body: payload
+        });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to save accessory');
         }
         
         showAccessoryModal.value = false;
@@ -1635,7 +1460,7 @@ async function createAccessory() {
             }
         });
     } catch (error: any) {
-        console.error('Error saving accessory to Supabase:', error);
+        console.error('Error saving accessory:', error);
         toast.add({ 
             title: 'Fejl ved gem af tilbehør',
             description: error?.message || 'Ukendt fejl opstod',
@@ -1656,35 +1481,15 @@ async function deleteAccessory(id: number) {
     }
 
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for deleting accessory');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/accessories', {
+            method: 'DELETE',
+            body: { id }
+        });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to delete accessory');
         }
-        
-        // First, delete all accessory instances associated with this accessory
-        const { error: instancesError } = await supabase
-            .from('AccessoryInstance')
-            .delete()
-            .eq('accessoryId', id);
-            
-        if (instancesError) {
-            console.warn('Error deleting accessory instances:', instancesError);
-            // Continue anyway - maybe there were no instances
-        }
-        
-        // Then delete the accessory
-        const { error } = await supabase
-            .from('Accessory')
-            .delete()
-            .eq('id', id);
-        
-        if (error) throw error;
         
         await fetchAccessory();
         toast.add({ 
@@ -1697,7 +1502,7 @@ async function deleteAccessory(id: number) {
             }
         });
     } catch (error: any) {
-        console.error('Error deleting accessory from Supabase:', error);
+        console.error('Error deleting accessory:', error);
         toast.add({ 
             title: 'Fejl ved sletning af tilbehør',
             description: error?.message || 'Ukendt fejl opstod',

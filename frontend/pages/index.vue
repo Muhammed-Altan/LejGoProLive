@@ -12,8 +12,8 @@
         Professionelle actionkameraer til rejsende og eventyrere – nem booking, gratis levering og konkurrencedygtige priser.
       </p>
       <div class="flex gap-4 justify-center mb-8">
-  <button class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition cursor-pointer">Se Alle Produkter</button>
-  <button class="bg-white text-[#B8082A] font-semibold py-3 px-8 rounded-full shadow-lg border border-[#B8082A] hover:bg-[#B8082A] hover:text-white transition cursor-pointer">Få Et Tilbud</button>
+  <NuxtLink to="/products" class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition cursor-pointer">Se Alle Produkter</NuxtLink>
+  <NuxtLink to="/checkout" class="bg-white text-[#B8082A] font-semibold py-3 px-8 rounded-full shadow-lg border border-[#B8082A] hover:bg-[#B8082A] hover:text-white transition cursor-pointer">Book Nu</NuxtLink>
       </div>
         <!-- <div class="trustpilot-widget" data-locale="da-DK" data-template-id="5419b6a8b0d04a076446a9ad" data-businessunit-id="62240c648bfea00299062db0" data-style-height="24px" data-style-width="100%" data-token="e198704e-54dd-42ed-b62a-a7d7eba86031" data-min-review-count="10" data-style-alignment="center">
           <a href="https://dk.trustpilot.com/review/lejgopro.dk" target="_blank" rel="noopener">Trustpilot</a>
@@ -38,7 +38,7 @@
           <img src="/eventyr/cristian-palmer-RaOKzBtN8fI-unsplash.jpg" alt="Mountain climbing" class="rounded-2xl object-cover w-full h-80" />
         </div>
         <div class="flex justify-center mb-12">
-          <button class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition cursor-pointer">Fang dit eventyr her</button>
+          <NuxtLink to="/checkout" class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition cursor-pointer">Fang dit eventyr her</NuxtLink>
         </div>
       </div>
     </div>
