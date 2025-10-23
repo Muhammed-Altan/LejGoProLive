@@ -65,7 +65,7 @@
           >
             {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
-              <template v-if="availability[model.id] === 0">Udsolgt</template>
+              <template v-if="availability[model.id] === 0">Udsolgt i valgt periode</template>
               <template v-else>Tilgængelige</template>
             </span>
           </option>
