@@ -70,7 +70,7 @@
             </span>
           </option>
           <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
-            Har du brug for 3+ GoPros? Kontakt os på email for en specialpris
+            Har du brug for 7+ GoPros? Kontakt os på email for en specialpris
           </option>
         </select>
         <button
@@ -151,16 +151,15 @@
             :key="acc.name"
             :value="acc.name"
             :disabled="selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name)"
+            :class="{ 'text-gray-400': selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name) }"
           >
-            <span :class="{ 'text-gray-400': selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name) }">
-              {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
-              <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available > 0">
-                ({{ accessoryAvailability[acc.name.toLowerCase()].available }} tilgængelige)
-              </template>
-              <template v-else-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available === 0">
-                (Ikke tilgængelig)
-              </template>
-            </span>
+            {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
+            <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available > 0">
+              ({{ accessoryAvailability[acc.name.toLowerCase()].available }} tilgængelige)
+            </template>
+            <template v-else-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available === 0">
+              (Ikke tilgængelig)
+            </template>
           </option>
         </select>
         <button
@@ -330,12 +329,63 @@ const endDate = ref<Date | null>(
   store.endDate ? new Date(store.endDate) : null
 );
 
-// Watch startDate: if it changes, reset endDate
+// Watch startDate: if it changes, reset endDate and potentially clear basket
 watch(startDate, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     endDate.value = null;
+    // Check if user has items in basket and confirm clearing
+    checkAndClearBasketOnDateChange();
   }
 });
+
+// Watch endDate: if it changes and basket has items, confirm clearing
+watch(endDate, (newVal, oldVal) => {
+  if (newVal !== oldVal && newVal !== null) {
+    // Only check when endDate is actually set (not when being reset to null)
+    checkAndClearBasketOnDateChange();
+  }
+});
+
+// Function to check if basket has items and show confirmation dialog
+function checkAndClearBasketOnDateChange() {
+  const hasItems = selectedModels.value.length > 0 || selectedAccessories.value.length > 0;
+  
+  if (hasItems) {
+    const confirmed = confirm(
+      'Ændring af bookingperiode vil tømme din kurv.\n\n' +
+      'Du skal tilføje alle produkter og tilbehør igen.\n\n' +
+      'Vil du fortsætte?'
+    );
+    
+    if (confirmed) {
+      clearBasket();
+    } else {
+      // User cancelled - revert date changes
+      // Note: This creates a brief loop, but it's handled by the oldVal !== newVal check
+      setTimeout(() => {
+        if (startDate.value) {
+          startDate.value = store.startDate ? new Date(store.startDate) : null;
+        }
+        if (endDate.value) {
+          endDate.value = store.endDate ? new Date(store.endDate) : null;
+        }
+      }, 0);
+    }
+  }
+}
+
+// Function to clear the entire basket
+function clearBasket() {
+  selectedModels.value = [];
+  selectedAccessories.value = [];
+  selectedCameras.value = [];
+  
+  // Update store immediately
+  store.setSelectedModels([]);
+  store.setSelectedAccessories([]);
+  
+  console.log('🧹 Basket cleared due to booking period change');
+}
 
 // Computed: are dates selected?
 const datesSelected = computed(() => !!startDate.value && !!endDate.value);
