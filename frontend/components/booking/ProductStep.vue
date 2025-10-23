@@ -150,8 +150,9 @@
             v-for="acc in accessories"
             :key="acc.name"
             :value="acc.name"
-            :disabled="selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name)"
-            :class="{ 'text-gray-400': selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name) }"
+            :disabled="isAccessoryAtMaxQuantity(acc.name) || isAccessoryUnavailable(acc.name)"
+            :class="{ 'text-gray-400': isAccessoryAtMaxQuantity(acc.name) || isAccessoryUnavailable(acc.name) }"
+            :title="getAccessoryTooltipMessage(acc.name) || (isAccessoryUnavailable(acc.name) ? 'Ikke tilgængelig i denne periode' : '')"
           >
             {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
             <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available > 0">
@@ -162,13 +163,18 @@
             </template>
           </option>
         </select>
-        <button
-          :disabled="!selectedAccessoryName || !datesSelected"
-          @click="onAddSelectedAccessory"
-          class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
+        <div 
+          :title="selectedAccessoryName && (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) ? (getAccessoryTooltipMessage(selectedAccessoryName) || 'Ikke tilgængelig i denne periode') : ''"
+          class="inline-block"
         >
-          <span class="mr-1 text-xl plus-red">+</span> Tilføj
-        </button>
+          <button
+            :disabled="!selectedAccessoryName || !datesSelected || (selectedAccessoryName ? (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) : false)"
+            @click="onAddSelectedAccessory"
+            class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
+          >
+            <span class="mr-1 text-xl plus-red">+</span> Tilføj
+          </button>
+        </div>
       </div>
     </section>
 
@@ -177,7 +183,11 @@
       <div
         v-for="(item, idx) in selectedAccessories"
         :key="item.name"
-        class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
+        class="flex items-center gap-4 rounded-lg py-4 px-4"
+        :class="{
+          'bg-gray-100': !isAccessoryAtActualLimit(item),
+          'bg-orange-50 border-2 border-orange-300': isAccessoryAtActualLimit(item)
+        }"
       >
       <img 
         src="/eventyr/GoPro-MountainTop.jpg" 
@@ -186,8 +196,15 @@
 
         <div class="flex-1 font-medium">
           {{ item.name }}
+          <!-- Max quantity disclaimer - only show when at problematic limit -->
+          <div 
+            v-if="isAccessoryAtActualLimit(item)" 
+            class="text-xs text-orange-600 mt-1 font-normal"
+          >
+            {{ getAccessoryTooltipMessage(item.name) }}
+          </div>
         </div>
-        <div class="flex items-center justify-center gap-2 group relative">
+        <div class="flex items-center justify-center gap-2">
           <span>Antal</span>
           <input
             type="number"
@@ -195,16 +212,13 @@
             :max="getMaxAccessoryQuantity(item)"
             v-model.number="item.quantity"
             :disabled="getMaxAccessoryQuantity(item) <= 1"
-            class="w-12 text-center rounded border border-gray-300"
-            :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxAccessoryQuantity(item) <= 1 }"
+            class="w-12 text-center rounded border"
+            :class="{
+              'border-gray-300': !isAccessoryAtActualLimit(item),
+              'border-orange-300 bg-orange-50': isAccessoryAtActualLimit(item),
+              'cursor-not-allowed': getMaxAccessoryQuantity(item) <= 1
+            }"
           />
-          <span
-            v-if="item.quantity === getMaxAccessoryQuantity(item)"
-            class="absolute left-1/2 z-10 -translate-x-1/2 -top-14 w-56 rounded bg-white text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg"
-            style="color: #b90c2c; background: #FF8800"
-          >
-            Maksimum antal valgt
-          </span>
         </div>
         <button
           @click="removeAccessory(idx)"
@@ -253,6 +267,7 @@ function getMaxAccessoryQuantity(item: { name: string }) {
   // For ekstra batteri, use DB accessory.quantity field but also respect availability
   const EXTRA_BATTERY_NAME = 'ekstra batteri';
   const name = (item.name || '').toString().trim().toLowerCase();
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
   
   if (name === EXTRA_BATTERY_NAME) {
     const acc = accessories.value.find(a => a.name.toLowerCase() === EXTRA_BATTERY_NAME);
@@ -267,14 +282,16 @@ function getMaxAccessoryQuantity(item: { name: string }) {
     return dbQuantity; // fallback to DB quantity if no availability info
   }
   
-  // For other accessories, check availability for the booking period
-  const availInfo = accessoryAvailability.value[name];
-  if (availInfo && availInfo.available >= 0) {
-    return Math.min(1, availInfo.available); // max 1 for non-battery accessories
-  }
+  // For other accessories: max 1 per camera model, but respect availability and DB limits
+  const acc = accessories.value.find(a => a.name.toLowerCase() === name);
+  const dbQuantity = acc?.quantity ?? modelCount; // fallback to model count if no DB info
   
-  // Fallback to 1 if no availability info (assume available)
-  return 1;
+  // Check availability for the booking period
+  const availInfo = accessoryAvailability.value[name];
+  const availableQuantity = availInfo && availInfo.available >= 0 ? availInfo.available : dbQuantity;
+  
+  // Return minimum of: model count, DB quantity, and availability
+  return Math.min(modelCount, dbQuantity, availableQuantity);
 }
 
 interface Camera {
@@ -425,6 +442,134 @@ function isAccessoryUnavailable(accessoryName: string): boolean {
   return availInfo ? availInfo.available <= 0 : false;
 }
 
+function isAccessoryAtMaxQuantity(accessoryName: string): boolean {
+  const EXTRA_BATTERY_NAME = 'ekstra batteri';
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
+  const foundAccessory = selectedAccessories.value.find(sa => sa.name === accessoryName);
+  
+  if (!foundAccessory) return false; // Not selected yet, so not at max
+  
+  if ((accessoryName || '').toString().trim().toLowerCase() === EXTRA_BATTERY_NAME) {
+    // For ekstra batteri, check against its DB quantity or availability limit
+    const dbAcc = accessories.value.find(a => a.name.toLowerCase() === EXTRA_BATTERY_NAME);
+    const dbMaxQuantity = dbAcc?.quantity ?? 5;
+    const name = accessoryName.toLowerCase();
+    const availInfo = accessoryAvailability.value[name];
+    const availableQuantity = availInfo ? availInfo.available : dbMaxQuantity;
+    const maxQuantity = Math.min(dbMaxQuantity, availableQuantity);
+    
+    return foundAccessory.quantity >= maxQuantity;
+  } else {
+    // For other accessories, check against model count and availability
+    const name = accessoryName.toLowerCase();
+    const availInfo = accessoryAvailability.value[name];
+    const availableQuantity = availInfo ? availInfo.available : modelCount;
+    const maxQuantity = Math.min(modelCount, availableQuantity);
+    
+    return foundAccessory.quantity >= maxQuantity;
+  }
+}
+
+function getAccessoryTooltipMessage(accessoryName: string): string {
+  const EXTRA_BATTERY_NAME = 'ekstra batteri';
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
+  const foundAccessory = selectedAccessories.value.find(sa => sa.name === accessoryName);
+  
+  if (!foundAccessory || !isAccessoryAtMaxQuantity(accessoryName)) {
+    return ''; // No tooltip needed
+  }
+  
+  if ((accessoryName || '').toString().trim().toLowerCase() === EXTRA_BATTERY_NAME) {
+    // For ekstra batteri, check if limited by DB quantity or availability
+    const dbAcc = accessories.value.find(a => a.name.toLowerCase() === EXTRA_BATTERY_NAME);
+    const dbMaxQuantity = dbAcc?.quantity ?? 5;
+    const name = accessoryName.toLowerCase();
+    const availInfo = accessoryAvailability.value[name];
+    const availableQuantity = availInfo ? availInfo.available : dbMaxQuantity;
+    
+    if (availableQuantity < dbMaxQuantity) {
+      return `Kun ${availableQuantity} tilgængelige i denne periode`;
+    } else {
+      return `Maksimum ${dbMaxQuantity} ekstra batterier pr. bestilling`;
+    }
+  } else {
+    // For other accessories, check if limited by model count or availability
+    const name = accessoryName.toLowerCase();
+    const availInfo = accessoryAvailability.value[name];
+    const availableQuantity = availInfo ? availInfo.available : modelCount;
+    
+    if (availableQuantity < modelCount) {
+      return `Kun ${availableQuantity} tilgængelige i denne periode`;
+    } else {
+      return `Maksimum 1 pr. kamera (${modelCount} kameraer = ${modelCount} tilbehør)`;
+    }
+  }
+}
+
+function isAccessoryAtActualLimit(item: { name: string; quantity: number }): boolean {
+  const EXTRA_BATTERY_NAME = 'ekstra batteri';
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
+  const maxQuantity = getMaxAccessoryQuantity(item);
+  
+  if ((item.name || '').toString().trim().toLowerCase() === EXTRA_BATTERY_NAME) {
+    // For ekstra batteri, only show warning if limited by availability, not by DB max
+    const dbAcc = accessories.value.find(a => a.name.toLowerCase() === EXTRA_BATTERY_NAME);
+    const dbMaxQuantity = dbAcc?.quantity ?? 5;
+    const name = item.name.toLowerCase();
+    const availInfo = accessoryAvailability.value[name];
+    const availableQuantity = availInfo ? availInfo.available : dbMaxQuantity;
+    
+    // Only warn if limited by availability (not DB max) or if at DB max and it's higher than expected
+    return item.quantity >= maxQuantity && (availableQuantity < dbMaxQuantity || item.quantity >= dbMaxQuantity);
+  } else {
+    // For other accessories, only show warning if limited by availability (not by model count)
+    const name = item.name.toLowerCase();
+    const availInfo = accessoryAvailability.value[name];
+    const availableQuantity = availInfo ? availInfo.available : modelCount;
+    
+    // Only warn if quantity is limited by availability, not by normal model count matching
+    return item.quantity >= maxQuantity && availableQuantity < modelCount;
+  }
+}
+
+function calculateOptimalAccessoryQuantity(accessoryName: string, modelCount: number): number {
+  const EXTRA_BATTERY_NAME = 'ekstra batteri';
+  
+  if ((accessoryName || '').toString().trim().toLowerCase() === EXTRA_BATTERY_NAME) {
+    // For ekstra batteri, don't auto-adjust - let user control quantity
+    const foundAccessory = selectedAccessories.value.find(sa => sa.name === accessoryName);
+    return foundAccessory ? foundAccessory.quantity : 1;
+  } else {
+    // For other accessories, set quantity to match model count (up to availability)
+    const name = accessoryName.toLowerCase();
+    const availInfo = accessoryAvailability.value[name];
+    const availableQuantity = availInfo ? availInfo.available : modelCount;
+    return Math.min(modelCount, availableQuantity);
+  }
+}
+
+function adjustAccessoryQuantitiesForModelCount() {
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
+  
+  // If no models selected, don't adjust
+  if (modelCount === 0) return;
+  
+  // Update quantities for all existing accessories
+  let accessoriesChanged = false;
+  selectedAccessories.value.forEach((accessory) => {
+    const optimalQuantity = calculateOptimalAccessoryQuantity(accessory.name, modelCount);
+    if (accessory.quantity !== optimalQuantity) {
+      accessory.quantity = optimalQuantity;
+      accessoriesChanged = true;
+    }
+  });
+  
+  // If any accessories were changed, update the store
+  if (accessoriesChanged) {
+    store.setSelectedAccessories([...selectedAccessories.value], modelCount);
+  }
+}
+
 function selectModel(model: {
   name: string;
   price: number;
@@ -567,9 +712,11 @@ function addAccessory(acc: { name: string; price: number }) {
     return;
   }
 
-  // Allow multiple 'ekstra batteri' but keep other accessories to max 1.
+  // Calculate max allowed quantity: 1 accessory per camera model (except ekstra batteri)
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
   const EXTRA_BATTERY_NAME = 'ekstra batteri';
   const found = selectedAccessories.value.find((a) => a.name === acc.name);
+  
   if (found) {
     if ((acc.name || '').toString().trim().toLowerCase() === EXTRA_BATTERY_NAME) {
       // increment ekstra batteri up to DB quantity limit or available quantity
@@ -582,16 +729,26 @@ function addAccessory(acc: { name: string; price: number }) {
       
       found.quantity = (found.quantity || 0) + 1;
       if (found.quantity > maxQuantity) found.quantity = maxQuantity;
+    } else {
+      // For other accessories, increment up to model count or availability limit
+      const name = acc.name.toLowerCase();
+      const availInfo = accessoryAvailability.value[name];
+      const availableQuantity = availInfo ? availInfo.available : modelCount;
+      const maxQuantity = Math.min(modelCount, availableQuantity);
       
-      // Update the store with the modified accessories list
-      store.setSelectedAccessories([...selectedAccessories.value]);
+      found.quantity = (found.quantity || 0) + 1;
+      if (found.quantity > maxQuantity) found.quantity = maxQuantity;
     }
-    // for other accessories, do nothing when already present
-  } else {
-    selectedAccessories.value.push({ ...acc, quantity: 1 });
     
-    // Update the store with the new accessories list
-    store.setSelectedAccessories([...selectedAccessories.value]);
+    // Update the store with the modified accessories list (pass model count)
+    store.setSelectedAccessories([...selectedAccessories.value], modelCount);
+  } else {
+    // Calculate optimal initial quantity for new accessory
+    const optimalQuantity = calculateOptimalAccessoryQuantity(acc.name, modelCount);
+    selectedAccessories.value.push({ ...acc, quantity: optimalQuantity });
+    
+    // Update the store with the new accessories list (pass model count)
+    store.setSelectedAccessories([...selectedAccessories.value], modelCount);
   }
 }
 
@@ -612,8 +769,9 @@ function removeAccessory(idx: number) {
 watch(
   [selectedModels, selectedAccessories, insurance, startDate, endDate],
   () => {
+    const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
     store.setSelectedModels(selectedModels.value);
-    store.setSelectedAccessories(selectedAccessories.value);
+    store.setSelectedAccessories(selectedAccessories.value, modelCount);
     store.setInsurance(insurance.value);
     // Always store as ISO string or null
     const start = startDate.value ? startDate.value.toISOString() : null;
@@ -734,6 +892,17 @@ watch(selectedModels, async (newModels) => {
     selectedCameras.value = [];
   }
 }, { deep: true });
+
+// Auto-adjust accessory quantities when model count changes
+watch(
+  () => selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0),
+  (newModelCount, oldModelCount) => {
+    // Only adjust if model count actually changed and we have accessories
+    if (newModelCount !== oldModelCount && selectedAccessories.value.length > 0) {
+      adjustAccessoryQuantitiesForModelCount();
+    }
+  }
+);
 </script>
 <style scoped>
 * {
