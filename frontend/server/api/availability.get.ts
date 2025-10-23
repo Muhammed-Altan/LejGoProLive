@@ -1,14 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
+import { eventHandler, getQuery } from 'h3';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 if (!supabaseUrl || !supabaseAnonKey) throw new Error('Missing Supabase env vars');
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export default async (event: any) => {
-  const url = new URL(event.req.url, `http://${event.req.headers.host}`);
-  const startDate = url.searchParams.get('startDate');
-  const endDate = url.searchParams.get('endDate');
+export default eventHandler(async (event) => {
+  const query = getQuery(event);
+  const startDate = query.startDate as string;
+  const endDate = query.endDate as string;
 
   if (!startDate || !endDate) {
     return {
@@ -35,7 +36,7 @@ export default async (event: any) => {
   
   const { data: bookings, error: bookingsError } = await supabase
     .from('Booking')
-    .select('id, cameraId, selectedModels, selectedAccessories, accessoryInstanceIds, startDate, endDate')
+    .select('id, cameraId, startDate, endDate')
     .lte('startDate', end.toISOString())
     .gte('endDate', startMinus3Days.toISOString());
 
@@ -48,49 +49,16 @@ export default async (event: any) => {
   const bookedMap: Record<number, number> = {};
   const bookedCameraIds = new Set<number>();
   const bookedAccessoryMap: Record<string, number> = {}; // accessory name -> booked quantity
-  const bookedAccessoryInstanceIds = new Set<number>();
   
   // Only process bookings if we successfully fetched them
   if (!bookingsError && bookings) {
     (bookings || []).forEach((b: any) => {
       // If a booking references a specific camera, mark it as booked
       if (b.cameraId) bookedCameraIds.add(b.cameraId);
-
-      // Modern: if booking has selectedModels JSONB array, iterate entries
-      if (Array.isArray(b.selectedModels)) {
-        b.selectedModels.forEach((m: any) => {
-          const pid = m.productId ?? m.id;
-          const qty = typeof m.quantity === 'number' ? m.quantity : (m.quantity ? Number(m.quantity) : 1);
-          if (typeof pid === 'number') bookedMap[pid] = (bookedMap[pid] || 0) + (qty || 1);
-        });
-      }
-
-      // Modern: if booking has selectedAccessories JSONB array, iterate entries
-      if (Array.isArray(b.selectedAccessories)) {
-        b.selectedAccessories.forEach((a: any) => {
-          const name = (a.name || '').toString().trim().toLowerCase();
-          const qty = typeof a.quantity === 'number' ? a.quantity : (a.quantity ? Number(a.quantity) : 1);
-          if (name) bookedAccessoryMap[name] = (bookedAccessoryMap[name] || 0) + (qty || 1);
-        });
-      }
-
-      // Track booked accessory instance IDs
-      if (b.accessoryInstanceIds) {
-        let instanceIds: number[] = [];
-        if (Array.isArray(b.accessoryInstanceIds)) {
-          instanceIds = b.accessoryInstanceIds.filter((x: any) => typeof x === 'number');
-        } else if (typeof b.accessoryInstanceIds === 'string') {
-          try {
-            const parsed = JSON.parse(b.accessoryInstanceIds);
-            if (Array.isArray(parsed)) {
-              instanceIds = parsed.filter((x: any) => typeof x === 'number');
-            }
-          } catch (e) {
-            // ignore parsing errors
-          }
-        }
-        instanceIds.forEach(id => bookedAccessoryInstanceIds.add(id));
-      }
+      
+      // For now, since we don't have selectedModels/selectedAccessories columns,
+      // we'll rely on the basic availability calculation from Product.quantity
+      // TODO: Add proper JSONB column support when database schema is updated
     });
   }
 
@@ -167,4 +135,4 @@ export default async (event: any) => {
     status: 200,
     body: responseBody
   };
-};
+});

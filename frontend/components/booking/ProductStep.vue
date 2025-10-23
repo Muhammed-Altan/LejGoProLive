@@ -69,7 +69,7 @@
               <template v-else>Tilgængelige</template>
             </span>
           </option>
-          <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
+          <option disabled value="__large_order_info__" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
             Har du brug for 7+ GoPros? Kontakt os på email for en specialpris
           </option>
         </select>
@@ -151,16 +151,15 @@
             :key="acc.name"
             :value="acc.name"
             :disabled="selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name)"
+            :class="{ 'text-gray-400': selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name) }"
           >
-            <span :class="{ 'text-gray-400': selectedAccessories.some(sa => sa.name === acc.name && acc.name.toLowerCase() !== 'ekstra batteri') || isAccessoryUnavailable(acc.name) }">
-              {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
-              <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available > 0">
-                ({{ accessoryAvailability[acc.name.toLowerCase()].available }} tilgængelige)
-              </template>
-              <template v-else-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available === 0">
-                (Ikke tilgængelig)
-              </template>
-            </span>
+            {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
+            <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available > 0">
+              ({{ accessoryAvailability[acc.name.toLowerCase()].available }} tilgængelige)
+            </template>
+            <template v-else-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available === 0">
+              (Ikke tilgængelig)
+            </template>
           </option>
         </select>
         <button
