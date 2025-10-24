@@ -28,6 +28,11 @@
             >Ordrer</button>
             <button
                 class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                :class="activeTab === 'inventory' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
+                @click="activeTab = 'inventory'"
+            >Lager</button>
+            <button
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
                 :class="activeTab === 'integrations' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'integrations'"
             >Integrationer</button>
@@ -395,6 +400,35 @@
                                 <button type="submit" class="bg-[#B8082A] text-white px-6 py-2 rounded font-semibold shadow hover:bg-[#a10725] transition">Gem ændringer</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Tab -->
+        <div v-else-if="activeTab === 'inventory'">
+            <div class="max-w-7xl mx-auto">
+                <InventoryStatus />
+                
+                <!-- Additional admin inventory tools can go here -->
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-1 gap-6">
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Hurtige Handlinger</h3>
+                        <div class="space-y-3">
+                            <button 
+                                @click="exportInventoryReport"
+                                class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-700 transition text-sm"
+                            >
+                                Eksporter Lagerrapport
+                            </button>
+                            <button 
+                                @click="refreshAllInventory"
+                                class="w-full bg-green-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-green-700 transition text-sm"
+                            >
+                                Opdater Alt Lager
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1102,6 +1136,19 @@ function removeImage() {
 
 const activeTab = ref('products');
 
+// Inventory management data
+interface InventoryItem {
+  productId: number;
+  productName: string;
+  available: number;
+}
+
+const lowStockItems = ref<InventoryItem[]>([]);
+const outOfStockItems = ref<InventoryItem[]>([]);
+const utilizationRate = ref(0);
+const activeRentals = ref(0);
+const averageRentalDuration = ref(0);
+
 interface Booking {
     id: number;
     customerName?: string;
@@ -1574,6 +1621,94 @@ function clearDebugError() {
         }
     });
 }
+
+// Inventory Management Functions
+const exportInventoryReport = async () => {
+  try {
+    const response = await $fetch('/api/inventory-status');
+    if (response.success) {
+      // Create CSV content with proper formatting
+      const headers = ['Product Name', 'Total Stock', 'Available', 'In Use', 'Status'];
+      const csvRows = [
+        headers.join(';'), // Use semicolon as delimiter for better Excel compatibility
+        ...response.data.map((item: any) => [
+          `"${item.productName}"`,
+          item.inventory.total,
+          item.inventory.available,
+          item.inventory.inUse,
+          `"${item.availabilityStatus}"`
+        ].join(';'))
+      ];
+      
+      const csvContent = csvRows.join('\r\n');
+      
+      // Add BOM for proper Excel encoding
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csvContent;
+      
+      // Download CSV
+      const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      // Removed toast notification
+    }
+  } catch (error: any) {
+    console.error('Error exporting inventory report:', error);
+    // Removed toast notification
+  }
+};
+
+const refreshAllInventory = async () => {
+  try {
+    const response = await $fetch('/api/inventory-status');
+    if (response.success) {
+      // Update inventory statistics
+      const data = response.data;
+      
+      // Calculate low stock items (less than 2 available)
+      lowStockItems.value = data
+        .filter((item: any) => item.inventory.available > 0 && item.inventory.available < 2)
+        .map((item: any) => ({
+          productId: item.productId,
+          productName: item.productName,
+          available: item.inventory.available
+        }));
+      
+      // Calculate out of stock items
+      outOfStockItems.value = data
+        .filter((item: any) => item.inventory.available === 0)
+        .map((item: any) => ({
+          productId: item.productId,
+          productName: item.productName,
+          available: item.inventory.available
+        }));
+      
+      // Calculate utilization rate
+      const totalStock = data.reduce((sum: number, item: any) => sum + item.inventory.total, 0);
+      const inUse = data.reduce((sum: number, item: any) => sum + item.inventory.inUse, 0);
+      utilizationRate.value = totalStock > 0 ? Math.round((inUse / totalStock) * 100) : 0;
+      activeRentals.value = inUse;
+      
+      // Mock average rental duration (you might want to calculate this from actual booking data)
+      averageRentalDuration.value = 4; // Default to 4 days
+      
+      // Removed toast notification
+    }
+  } catch (error: any) {
+    console.error('Error refreshing inventory:', error);
+    // Removed toast notification
+  }
+};
+
+// Initialize inventory data on component mount  
+refreshAllInventory();
 </script>
 
 <style scoped>
