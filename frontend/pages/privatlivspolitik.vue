@@ -22,7 +22,7 @@
 					<div class="space-y-6">
 						<div>
 							<h3 class="font-semibold text-lg mb-2">1) Besøg på hjemmeside</h3>
-							<p class="mb-2">Når du besøger vores hjemmeside, anvender vi cookies for at siden kan fungere, til statistik og – hvis du accepterer det – til marketing. Du kan læse mere og ændre dine valg i vores cookiepolitik.</p>
+							<p class="mb-2">Når du besøger vores hjemmeside, anvender vi cookies for at siden kan fungere, til statistik og – hvis du accepterer det – til marketing. <button @click="openCookieBanner" class="text-blue-600 hover:text-blue-800 underline">Du kan læse mere og ændre dine valg i vores cookiepolitik</button>.</p>
 							<p class="mb-2"><strong>Kategorier af data:</strong> IP-adresse, enheds- og browseroplysninger, adfærdsdata (sidevisninger, klik m.v.).</p>
 							<p><strong>Hjemmel:</strong> Databeskyttelsesforordningens art. 6, stk. 1, litra f (legitim interesse i at sikre drift og forbedring af hjemmesiden) og – for ikke-nødvendige cookies – art. 6, stk. 1, litra a (samtykke).</p>
 						</div>
@@ -133,6 +133,13 @@
 <script setup>
 import Header from '~/components/Header.vue'
 import Footer from '~/components/Footer.vue'
+
+// Function to open the cookie banner
+const openCookieBanner = () => {
+  if (process.client && window.silktideCookieBannerManager) {
+    window.silktideCookieBannerManager.showPreferences()
+  }
+}
 
 useHead({
   title: 'Privatlivspolitik - LejGoPro',

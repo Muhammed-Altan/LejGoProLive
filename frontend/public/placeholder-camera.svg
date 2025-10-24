@@ -1,0 +1,9 @@
+<!-- Placeholder camera SVG -->
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="120" rx="8" fill="#f3f4f6"/>
+  <rect x="20" y="35" width="80" height="50" rx="4" fill="#d1d5db"/>
+  <circle cx="60" cy="60" r="15" fill="#9ca3af"/>
+  <circle cx="60" cy="60" r="8" fill="#6b7280"/>
+  <rect x="75" y="45" width="8" height="6" rx="2" fill="#9ca3af"/>
+  <text x="60" y="95" text-anchor="middle" fill="#6b7280" font-size="10" font-family="system-ui">GoPro</text>
+</svg>

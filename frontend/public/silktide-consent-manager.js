@@ -834,9 +834,17 @@ class SilktideCookieBanner {
     document.head.appendChild(script);
   }
 
+  function showPreferences() {
+    if (cookieBanner) {
+      cookieBanner.showBackdrop();
+      cookieBanner.toggleModal(true);
+    }
+  }
+
   window.silktideCookieBannerManager.initCookieBanner = initCookieBanner;
   window.silktideCookieBannerManager.updateCookieBannerConfig = updateCookieBannerConfig;
   window.silktideCookieBannerManager.injectScript = injectScript;
+  window.silktideCookieBannerManager.showPreferences = showPreferences;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initCookieBanner, {once: true});
