@@ -4,20 +4,40 @@
       <h2 class="text-2xl font-bold text-gray-900">
         📦 Aktuel Lagerstatus
       </h2>
-      <div class="flex items-center gap-2 text-sm text-gray-600">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <span>Opdateret: {{ formatTime(lastUpdated) }}</span>
-        <button 
-          @click="refreshInventory" 
-          :disabled="loading"
-          class="ml-2 p-1 text-blue-600 hover:text-blue-800 disabled:opacity-50"
-        >
-          <svg class="w-4 h-4" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+      <div class="flex items-center gap-4">
+        <!-- View Toggle -->
+        <div class="flex items-center gap-2">
+          <button 
+            @click="viewMode = 'grid'"
+            :class="viewMode === 'grid' ? 'bg-[#B8082A] text-white' : 'bg-gray-200 text-gray-700'"
+            class="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+          >
+            📊 Oversigt
+          </button>
+          <button 
+            @click="viewMode = 'calendar'"
+            :class="viewMode === 'calendar' ? 'bg-[#B8082A] text-white' : 'bg-gray-200 text-gray-700'"
+            class="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+          >
+            📅 Kalender
+          </button>
+        </div>
+        <!-- Refresh Button -->
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-        </button>
+          <span>Opdateret: {{ formatTime(lastUpdated) }}</span>
+          <button 
+            @click="refreshInventory" 
+            :disabled="loading"
+            class="ml-2 p-1 text-blue-600 hover:text-blue-800 disabled:opacity-50"
+          >
+            <svg class="w-4 h-4" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -39,8 +59,8 @@
       </div>
     </div>
 
-    <!-- Inventory Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <!-- Grid View -->
+    <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div 
         v-for="item in inventory" 
         :key="item.productId"
@@ -105,20 +125,48 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Quick Action -->
-        <div class="pt-2 border-t border-gray-200">
-          <NuxtLink 
-            :to="`/checkout?product=${item.productId}`"
-            class="w-full text-center block text-sm py-2 px-3 rounded-lg transition-colors"
-            :class="{
-              'bg-[#B8082A] text-white hover:bg-[#a10725]': item.availabilityStatus === 'available',
-              'bg-gray-300 text-gray-500 cursor-not-allowed': item.availabilityStatus === 'unavailable'
-            }"
-            :disabled="item.availabilityStatus === 'unavailable'"
-          >
-            {{ item.availabilityStatus === 'available' ? 'Lej Nu' : 'Ikke tilgængelig' }}
-          </NuxtLink>
+    <!-- Calendar View -->
+    <div v-else-if="viewMode === 'calendar'" class="space-y-6">
+      <div 
+        v-for="item in inventory" 
+        :key="item.productId"
+        class="bg-white rounded-xl border shadow-sm"
+      >
+        <!-- Product Header -->
+        <div class="p-4 border-b bg-gray-50 rounded-t-xl">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <img 
+                :src="item.imageUrl || '/placeholder-camera.svg'" 
+                :alt="item.productName"
+                class="w-10 h-10 object-cover rounded-lg"
+                @error="handleImageError"
+              />
+              <div>
+                <h3 class="font-semibold text-gray-900">{{ item.productName }}</h3>
+                <p class="text-sm text-gray-600">
+                  {{ item.inventory.available }}/{{ item.inventory.total }} tilgængelig
+                </p>
+              </div>
+            </div>
+            <div 
+              class="px-3 py-1 rounded-full text-xs font-medium"
+              :class="{
+                'bg-green-100 text-green-800': item.availabilityStatus === 'available',
+                'bg-red-100 text-red-800': item.availabilityStatus === 'unavailable'
+              }"
+            >
+              {{ item.availabilityStatus === 'available' ? 'Tilgængelig' : 'Optaget' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendar for this product -->
+        <div class="p-4">
+          <ProductAvailabilityCalendar :product-id="item.productId" />
         </div>
       </div>
     </div>
@@ -169,6 +217,7 @@ const inventory = ref<InventoryItem[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const lastUpdated = ref<string | null>(null)
+const viewMode = ref<'grid' | 'calendar'>('grid')
 
 // Computed stats
 const totalProducts = computed(() => inventory.value.length)
