@@ -11,27 +11,23 @@
           </svg>
         </div>
 
-        <!-- Success Message -->
-        <h1 class="text-3xl font-bold text-gray-900 mb-4">Betaling Gennemført!</h1>
-        <p class="text-lg text-gray-600 mb-4">
-          Tak for din betaling. Din booking er nu bekræftet og du vil modtage en email bekræftelse inden for få minutter.
-        </p>
-        
-        <!-- Auto redirect countdown -->
-        <div v-if="!redirectCancelled" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <p class="text-blue-700">
-            Du bliver automatisk omdirigeret til forsiden om <strong>{{ countdown }}</strong> sekunder.
+        <!-- Success Message - Only show for valid orders -->
+        <div v-if="orderDetails && !orderNotFound">
+          <h1 class="text-3xl font-bold text-gray-900 mb-4">Betaling Gennemført!</h1>
+          <p class="text-lg text-gray-600 mb-4">
+            Tak for din betaling. Din booking er nu bekræftet og du vil modtage en email bekræftelse inden for få minutter.
           </p>
-          <button 
-            @click="cancelRedirect"
-            class="mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
-          >
-            Annuller automatisk omdirigering
-          </button>
+          
+          <!-- Auto email sending status -->
+          <div v-if="emailSent" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <p class="text-green-700">
+              📧 Din faktura er blevet sendt til din email automatisk!
+            </p>
+          </div>
         </div>
 
         <!-- Order Details -->
-        <div v-if="orderDetails" class="bg-gray-50 rounded-lg p-6 mb-8 text-left">
+        <div v-if="orderDetails && !orderNotFound" class="bg-gray-50 rounded-lg p-6 mb-8 text-left">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Booking Detaljer:</h3>
           
           <div class="space-y-3">
@@ -56,8 +52,8 @@
             </div>
 
             <div class="flex justify-between">
-              <span class="text-gray-600">Mail</span>
-              <span class="font-medium">Du vil modtage en email, når PostNord modtager din pakke.</span>
+              <span class="text-gray-600">Mail:</span>
+              <span class="font-medium">Du vil modtage en mail når din pakke bliver sendt</span>
             </div>
           </div>
         </div>
@@ -71,14 +67,38 @@
           <span class="text-lg text-gray-600">Henter booking detaljer...</span>
         </div>
 
+        <!-- Order Not Found State -->
+        <div v-else-if="orderNotFound" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+          <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+              <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-red-900 mb-2">Ordre findes ikke</h2>
+            <p class="text-red-700 mb-4">Den angivne ordre kunne ikke findes i systemet.</p>
+            <p class="text-sm text-red-600">Kontroller venligst ordre ID'et og prøv igen, eller kontakt kundeservice hvis problemet fortsætter.</p>
+          </div>
+        </div>
+
         <!-- Error State -->
         <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
           <p class="text-red-700">{{ error }}</p>
         </div>
 
-        <!-- Email Receipt Section -->
-        <div v-if="orderDetails && bookingData" class="mb-8">
-          <ReceiptEmailActions :booking-data="bookingData" />
+        <!-- Automatic Email Status - Only show for valid orders -->
+        <div v-if="emailLoading && orderDetails && !orderNotFound" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div class="flex items-center">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-blue-700">Sender din faktura automatisk...</p>
+          </div>
+        </div>
+        
+        <div v-if="emailError && orderDetails && !orderNotFound" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <p class="text-red-700">❌ {{ emailError }}</p>
         </div>
 
         <!-- Action Buttons -->
@@ -91,6 +111,7 @@
           </button>
           
           <button
+            v-if="orderDetails && !orderNotFound"
             @click="printReceipt"
             class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
           >
@@ -105,25 +126,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { usePensoPay } from '@/composables/usePensoPay'
 import { useSupabase } from '@/composables/useSupabase'
+import { useEmail } from '@/composables/useEmail'
 import type { BookingEmailData } from '@/composables/useEmail'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import ReceiptEmailActions from '@/components/ReceiptEmailActions.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { getPayment, loading } = usePensoPay()
 const supabase = useSupabase()
+const { sendReceiptPDF, validateBookingData, isLoading: emailLoading, error: emailError, clearError } = useEmail()
 
 const orderDetails = ref<any>(null)
 const bookingDetails = ref<any>(null)
 const error = ref<string | null>(null)
-const countdown = ref(10) // 10 seconds countdown
-const redirectCancelled = ref(false)
-let redirectTimer: NodeJS.Timeout | null = null
+const emailSent = ref(false)
+const orderNotFound = ref(false)
 
 // Prepare booking data for email
 const bookingData = computed<BookingEmailData | null>(() => {
@@ -181,32 +202,31 @@ const formatDate = (dateString: string): string => {
   })
 }
 
-// Cancel the automatic redirect
-const cancelRedirect = () => {
-  redirectCancelled.value = true
-  if (redirectTimer) {
-    clearInterval(redirectTimer)
-    redirectTimer = null
-  }
-}
-
-// Start countdown timer for automatic redirect
-const startRedirectTimer = () => {
-  redirectTimer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      goToHome()
-    }
-  }, 1000)
-}
-
 // Go to home page
 const goToHome = () => {
-  if (redirectTimer) {
-    clearInterval(redirectTimer)
-    redirectTimer = null
-  }
   router.push('/')
+}
+
+// Automatically send email receipt
+const sendEmailAutomatically = async (bookingData: BookingEmailData) => {
+  clearError()
+  emailSent.value = false
+  
+  // Validate data first
+  if (!validateBookingData(bookingData)) {
+    console.error('Invalid booking data for email')
+    return
+  }
+
+  console.log('🔄 Sending PDF receipt automatically...')
+  const success = await sendReceiptPDF(bookingData)
+  
+  if (success) {
+    emailSent.value = true
+    console.log('✅ PDF receipt sent successfully!')
+  } else {
+    console.error('❌ Failed to send PDF receipt')
+  }
 }
 
 // Print receipt
@@ -238,66 +258,58 @@ const updatePaymentStatus = async (orderId: string) => {
 onMounted(async () => {
   const orderId = route.query.orderId as string
   
-  // If no order ID in URL, that's okay - we'll show a generic success message
-  if (orderId) {
-    // First, update payment status from PensoPay
+  // If no order ID in URL, redirect to home page
+  if (!orderId) {
+    console.log('No order ID in URL - redirecting to home')
+    await navigateTo('/')
+    return
+  }
+
+  try {
+    // Fetch the actual booking data from the database using server API (bypasses RLS)
+    console.log('🔍 Fetching booking data for orderId:', orderId)
+    const response = await $fetch(`/api/booking/${orderId}`)
+    
+    console.log('📋 Booking API response:', response)
+    
+    if (!response.success) {
+      console.error('Order not found:', response)
+      orderNotFound.value = true
+      return
+    }
+    
+    // Order exists - update payment status from PensoPay
     await updatePaymentStatus(orderId)
     
-    try {
-      // Fetch the actual booking data from the database
-      if (!supabase) {
-        throw new Error('Supabase client not available')
-      }
-      
-      const { data: booking, error } = await supabase
-        .from('Booking')
-        .select('*')
-        .eq('orderId', orderId)
-        .single()
-      
-      if (error) {
-        console.error('Error fetching booking from Supabase:', error)
-        // Fallback to generic data if booking not found
-        orderDetails.value = {
-          order_id: orderId,
-          amount: 0,
-          state: 'Bekræftet',
-          updated_at: new Date().toISOString()
-        }
-        bookingDetails.value = null
-      } else {
-        orderDetails.value = {
-          order_id: orderId,
-          amount: booking.totalPrice || 0, // Use actual price from database (in øre)
-          state: booking.paymentStatus === 'paid' ? 'Betalt' : 'Bekræftet',
-          updated_at: booking.paidAt || booking.created_at || new Date().toISOString()
-        }
-        bookingDetails.value = booking
-      }
-    } catch (err) {
-      console.error('Failed to load booking details:', err)
-      // Fallback to generic data
-      orderDetails.value = {
-        order_id: orderId,
-        amount: 0,
-        state: 'Bekræftet',
-        updated_at: new Date().toISOString()
-      }
-    }
-  } else {
-    console.log('No order ID in URL - showing generic success')
-    // Show generic success without specific order details
+    // Set up the success data
+    const booking = (response as any).data
     orderDetails.value = {
-      order_id: 'N/A',
-      amount: 0,
-      state: 'Bekræftet',
-      updated_at: new Date().toISOString()
+      order_id: orderId,
+      amount: booking.totalPrice || 0, // Use actual price from database (in øre)
+      state: booking.paymentStatus === 'paid' ? 'Betalt' : 'Bekræftet',
+      updated_at: booking.paidAt || booking.created_at || new Date().toISOString()
+    }
+    bookingDetails.value = booking
+    
+  } catch (err: any) {
+    console.error('Failed to load booking details:', err)
+    
+    // Check if it's a 404 error (order not found)
+    if (err.statusCode === 404 || err.status === 404) {
+      orderNotFound.value = true
+    } else {
+      // For other errors, set a general error message
+      error.value = 'Der opstod en fejl ved indlæsning af ordre detaljer'
     }
   }
-  
-  // Start the automatic redirect timer after loading details
-  startRedirectTimer()
 })
+
+// Watch for bookingData to become available and automatically send email
+watch(bookingData, async (newBookingData) => {
+  if (newBookingData && !emailSent.value && !emailLoading.value) {
+    await sendEmailAutomatically(newBookingData)
+  }
+}, { immediate: true })
 
 // Set page title
 useHead({

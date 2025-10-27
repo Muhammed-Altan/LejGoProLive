@@ -28,6 +28,11 @@
             >Ordrer</button>
             <button
                 class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                :class="activeTab === 'inventory' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
+                @click="activeTab = 'inventory'"
+            >Lager</button>
+            <button
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
                 :class="activeTab === 'integrations' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'integrations'"
             >Integrationer</button>
@@ -249,114 +254,180 @@
         <div v-else-if="activeTab === 'orders'">
             <div class="max-w-4xl mx-auto py-8">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-semibold text-center">Ordrer</h2>
+                    <h2 class="text-xl font-semibold text-center">Produktinformation</h2>
                     <button 
                         @click="fixBookingCameraIds" 
                         class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
                     >
-                        Fix Camera IDs
+                        Distribute Bookings
                     </button>
                 </div>
-                <div v-if="bookings.length === 0" class="text-center text-gray-500 py-12">
-                    <p>Ingen ordrer at vise endnu.</p>
+                
+                <div v-if="products.length === 0" class="text-center text-gray-500 py-12">
+                    <p>Ingen produkter at vise endnu.</p>
                 </div>
+                
                 <div v-else class="space-y-6">
-                    <div v-for="booking in bookings" :key="booking.id" class="border rounded-xl p-6 bg-white shadow">
-                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div>
-                                <h3 class="text-lg font-bold mb-1">{{ booking.fullName || booking.customerName || booking.name || 'Ukendt kunde' }}</h3>
-                                <p class="text-gray-600 mb-2">{{ booking.email }}</p>
-                                <div class="flex flex-wrap gap-2 mb-2">
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Start: {{ booking.startDate }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Slut: {{ booking.endDate }}</span>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mb-2">
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Adresse: {{ booking.address }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Lejlighed: {{ booking.apartment }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">By: {{ booking.city }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Postnummer: {{ booking.postalCode }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Telefon: {{ booking.phone }}</span>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mb-2">
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Produkt: {{ booking.productName || booking.product || 'Ukendt produkt' }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Kamera: {{ booking.cameraName }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Kamera ID: {{ booking.cameraId }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Tilbehør enheder: {{ booking.accessoryInstanceIds ? booking.accessoryInstanceIds.join(', ') : 'Ingen' }}</span>
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-xs">Total pris: {{ (booking.totalPrice / 100).toFixed(2) }} kr</span>
-                                </div>
-                                <div class="flex gap-2 mt-2">
-                                    <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="openEditBooking(booking)">Rediger</button>
-                                    <button class="bg-green-600 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="createInvoice(booking)" :disabled="creatingInvoice === booking.id">
-                                        {{ creatingInvoice === booking.id ? 'Opretter...' : 'Opret Faktura' }}
-                                    </button>
-                                    <button class="bg-red-500 text-white px-3 py-1 rounded text-xs cursor-pointer" @click="deleteBooking(booking.id)">Slet</button>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-1 min-w-[150px]">
-                                <span class="font-semibold">Status: <span class="text-[#B8082A]">{{ booking.status || 'Ukendt' }}</span></span>
-                                <span class="font-semibold">Booking ID: <span class="text-[#B8082A]">{{ booking.id }}</span></span>
+                    <!-- Debug info -->
+                    <div class="bg-yellow-50 border border-yellow-200 p-4 rounded mb-4">
+                        <h4 class="font-bold mb-2">Debug Info:</h4>
+                        <p>Total bookings: {{ bookings.length }}</p>
+                        <div v-for="product in products" :key="product.id">
+                            <p><strong>{{ product.name }} (Product ID: {{ product.id }}):</strong></p>
+                            <div v-for="(camera, index) in product.cameras" :key="camera.id" class="ml-4">
+                                <p>Camera ID {{ camera.id }} (Kamera {{ index + 1 }}): {{ getBookingsForCamera(camera.id).length }} bookings</p>
                             </div>
                         </div>
                     </div>
-                    <div v-if="showEditBookingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                                    <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative overflow-y-auto" style="max-height: 90vh;">
-                            <button @click="closeEditBooking" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold">&times;</button>
-                            <h2 class="mb-1 text-xl font-semibold cursor-pointer">Rediger Booking</h2>
-                            <form @submit.prevent="submitEditBooking" class="space-y-7">
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Navn</label>
-                                    <input v-model="editBookingForm.fullName" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                    
+                    <div v-for="product in products" :key="product.id" class="border rounded-xl p-6 bg-white shadow">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-bold text-red-600 mb-2">Produktinformation</h3>
+                        </div>
+                        
+                        <!-- Loop through each camera for this product -->
+                        <div v-for="(camera, cameraIndex) in product.cameras" :key="camera.id" class="mb-6">
+                            <div class="border-l-4 border-gray-300 pl-4">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h4 class="font-bold text-lg">Kamera: Kamera {{ cameraIndex + 1 }} (ID: {{ camera.id }})</h4>
+                                        <p class="text-gray-600">Produkt: {{ product.name }} (ID: {{ product.id }})</p>
+                                    </div>
                                 </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Email</label>
-                                    <input v-model="editBookingForm.email" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                                
+                                <div class="ml-4">
+                                    <h5 class="font-semibold text-red-600 mb-3">Bookinger:</h5>
+                                    
+                                    <!-- Get bookings for this specific camera -->
+                                    <div v-if="getBookingsForCamera(camera.id).length === 0" class="text-gray-500 italic">
+                                        Ingen bookinger for dette kamera.
+                                    </div>
+                                    
+                                    <div v-else class="space-y-3">
+                                        <div v-for="booking in getBookingsForCamera(camera.id)" :key="booking.id" 
+                                             class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex-1">
+                                                    <div class="font-medium text-sm">
+                                                        {{ booking.startDate && booking.endDate ? formatDateRange(booking.startDate, booking.endDate) : 'Ukendt periode' }} 
+                                                        <span class="text-red-600">{{ booking.fullName || booking.customerName || booking.name || 'Ukendt kunde' }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="flex gap-2 ml-4">
+                                                    <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs cursor-pointer" @click="openEditBooking(booking)">Rediger</button>
+                                                    <button class="bg-green-600 text-white px-2 py-1 rounded text-xs cursor-pointer" @click="createInvoice(booking)" :disabled="creatingInvoice === booking.id">
+                                                        {{ creatingInvoice === booking.id ? 'Opretter...' : 'Faktura' }}
+                                                    </button>
+                                                    <button class="bg-red-500 text-white px-2 py-1 rounded text-xs cursor-pointer" @click="deleteBooking(booking.id)">Slet</button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Additional booking details -->
+                                            <div class="mt-2 text-xs text-gray-600 space-y-1">
+                                                <div>Email: {{ booking.email }}</div>
+                                                <div>Telefon: {{ booking.phone }}</div>
+                                                <div>Adresse: {{ booking.address }}, {{ booking.city }} {{ booking.postalCode }}</div>
+                                                <div>Total pris: {{ booking.totalPrice ? (booking.totalPrice / 100).toFixed(2) : '0.00' }} kr</div>
+                                                <div v-if="booking.accessoryInstanceNames && booking.accessoryInstanceNames.length > 0">
+                                                    Tilbehør: {{ booking.accessoryInstanceNames.join(', ') }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Telefon</label>
-                                    <input v-model="editBookingForm.phone" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Adresse</label>
-                                    <input v-model="editBookingForm.address" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Lejlighed</label>
-                                    <input v-model="editBookingForm.apartment" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">By</label>
-                                    <input v-model="editBookingForm.city" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Postnummer</label>
-                                    <input v-model="editBookingForm.postalCode" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <!-- Status field removed -->
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Produkt navn</label>
-                                    <select v-model="editBookingForm.productName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base">
-                                        <option v-for="product in products" :key="product.id" :value="product.name">{{ product.name }}</option>
-                                    </select>
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Kamera navn</label>
-                                    <select v-model="editBookingForm.cameraName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" @change="updateCameraId">
-                                        <option v-for="camera in selectedProductCameras" :key="camera.id" :value="`Kamera ${camera.id}`">Kamera {{ camera.id }}</option>
-                                    </select>
-                                </div>
-                                <!-- Kamera ID field removed -->
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Tilbehør enheder (kommasepareret)</label>
-                                    <input v-model="editBookingForm.accessoryInstanceIds" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" placeholder="fx: 1,2,3" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Total pris</label>
-                                    <input v-model="editBookingForm.totalPrice" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
-                                </div>
-                                <div class="flex justify-end">
-                                    <button type="submit" class="bg-[#B8082A] text-white px-6 py-2 rounded font-semibold shadow hover:bg-[#a10725] transition">Gem ændringer</button>
-                                </div>
-                            </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Edit Booking Modal -->
+                <div v-if="showEditBookingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative overflow-y-auto" style="max-height: 90vh;">
+                        <button @click="closeEditBooking" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold">&times;</button>
+                        <h2 class="mb-1 text-xl font-semibold cursor-pointer">Rediger Booking</h2>
+                        <form @submit.prevent="submitEditBooking" class="space-y-7">
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Navn</label>
+                                <input v-model="editBookingForm.fullName" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Email</label>
+                                <input v-model="editBookingForm.email" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Telefon</label>
+                                <input v-model="editBookingForm.phone" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Adresse</label>
+                                <input v-model="editBookingForm.address" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Lejlighed</label>
+                                <input v-model="editBookingForm.apartment" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">By</label>
+                                <input v-model="editBookingForm.city" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Postnummer</label>
+                                <input v-model="editBookingForm.postalCode" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <!-- Status field removed -->
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Produkt navn</label>
+                                <select v-model="editBookingForm.productName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base">
+                                    <option v-for="product in products" :key="product.id" :value="product.name">{{ product.name }}</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Kamera navn</label>
+                                <select v-model="editBookingForm.cameraName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" @change="updateCameraId">
+                                    <option v-for="camera in selectedProductCameras" :key="camera.id" :value="`Kamera ${camera.id}`">Kamera {{ camera.id }}</option>
+                                </select>
+                            </div>
+                            <!-- Kamera ID field removed -->
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Tilbehør enheder (kommasepareret)</label>
+                                <input v-model="editBookingForm.accessoryInstanceIds" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" placeholder="fx: 1,2,3" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Total pris</label>
+                                <input v-model="editBookingForm.totalPrice" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="bg-[#B8082A] text-white px-6 py-2 rounded font-semibold shadow hover:bg-[#a10725] transition">Gem ændringer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Tab -->
+        <div v-else-if="activeTab === 'inventory'">
+            <div class="max-w-7xl mx-auto">
+                <InventoryStatus />
+                
+                <!-- Additional admin inventory tools can go here -->
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-1 gap-6">
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Hurtige Handlinger</h3>
+                        <div class="space-y-3">
+                            <button 
+                                @click="exportInventoryReport"
+                                class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-700 transition text-sm"
+                            >
+                                Eksporter Lagerrapport
+                            </button>
+                            <button 
+                                @click="refreshAllInventory"
+                                class="w-full bg-green-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-green-700 transition text-sm"
+                            >
+                                Opdater Alt Lager
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -407,11 +478,11 @@ definePageMeta({
 })
 
 const toast = useToast();
+const auth = useAuth(); // Add auth composable at top level
 
 // Add logout functionality
 const handleLogout = async () => {
     try {
-        const auth = useAuth()
         await auth.logout()
     } catch (error) {
         console.error('Logout error:', error)
@@ -428,9 +499,16 @@ async function deleteBooking(id: number) {
     }
 
     try {
-        await fetch(`http://localhost:3001/bookings/${id}`, {
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/bookings', {
             method: 'DELETE',
+            body: { id }
         });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to delete booking');
+        }
+        
         await fetchBookings();
         toast.add({
             title: 'Booking slettet!',
@@ -445,7 +523,7 @@ async function deleteBooking(id: number) {
         console.error('Error deleting booking:', error);
         toast.add({
             title: 'Fejl ved sletning af booking',
-            description: 'Kunne ikke slette bookingen. Prøv igen.',
+            description: error?.message || 'Kunne ikke slette bookingen. Prøv igen.',
             color: 'error',
             ui: {
                 title: 'text-gray-900 font-semibold',
@@ -530,6 +608,12 @@ async function createInvoice(booking: any) {
     } finally {
         creatingInvoice.value = null;
     }
+}
+
+// Helper function to get bookings for a specific camera
+function getBookingsForCamera(cameraId: number) {
+    const result = bookings.value.filter(booking => booking.cameraId === cameraId);
+    return result;
 }
 
 // Helper function to format date range
@@ -647,20 +731,34 @@ function closeEditBooking() {
 async function submitEditBooking() {
     try {
         const id = editBookingForm.value.id;
-        // Build PATCH payload with correct types
-        const { id: _, status: __, ...patchPayload } = {
-            ...editBookingForm.value,
-            cameraId: Number(editBookingForm.value.cameraId),
+        // Build payload with correct field mapping based on the actual booking schema
+        const payload = {
+            id,
+            fullName: editBookingForm.value.fullName,
+            email: editBookingForm.value.email,
+            phone: editBookingForm.value.phone,
+            address: editBookingForm.value.address,
+            city: editBookingForm.value.city,
+            postalCode: editBookingForm.value.postalCode,
+            cameraId: editBookingForm.value.cameraId ? Number(editBookingForm.value.cameraId) : null,
             accessoryInstanceIds: editBookingForm.value.accessoryInstanceIds
                 ? editBookingForm.value.accessoryInstanceIds.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x))
                 : [],
-            totalPrice: Number(editBookingForm.value.totalPrice),
+            totalPrice: Number(editBookingForm.value.totalPrice) || 0,
+            status: editBookingForm.value.status,
+            productName: editBookingForm.value.productName
         };
-        await fetch(`http://localhost:3001/bookings/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patchPayload)
+        
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/bookings', {
+            method: 'POST',
+            body: payload
         });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to update booking');
+        }
+        
         showEditBookingModal.value = false;
         await fetchBookings();
         toast.add({ 
@@ -676,7 +774,7 @@ async function submitEditBooking() {
         console.error('Error updating booking:', error);
         toast.add({ 
             title: 'Fejl ved opdatering af booking',
-            description: 'Kunne ikke opdatere bookingen. Prøv igen.',
+            description: error?.message || 'Kunne ikke opdatere bookingen. Prøv igen.',
             color: 'error',
             ui: {
                 title: 'text-gray-900 font-semibold',
@@ -689,22 +787,12 @@ const accessoryInstances = reactive<Record<number, AccessoryInstance[]>>({});
 
 async function fetchAccessoryInstances(accessoryId: number) {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for accessory instances');
-            accessoryInstances[accessoryId] = [];
-            return;
-        }
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch(`/api/admin/accessory-instances?accessoryId=${accessoryId}`);
         
-        const { data, error } = await supabase
-            .from('AccessoryInstance')
-            .select('*')
-            .eq('accessoryId', accessoryId)
-            .order('serialNumber');
-        
-        if (error) {
-            console.warn('AccessoryInstance table not found, creating mock instances:', error);
-            // Create mock instances if table doesn't exist
+        if (!response.success) {
+            console.warn('Failed to fetch accessory instances, creating mock instances');
+            // Create mock instances if API fails
             accessoryInstances[accessoryId] = Array.from({ length: accessory.value.find(a => a.id === accessoryId)?.quantity || 1 }, (_, i) => ({
                 id: accessoryId * 100 + i + 1,
                 accessoryId,
@@ -712,7 +800,7 @@ async function fetchAccessoryInstances(accessoryId: number) {
                 isAvailable: true
             }));
         } else {
-            accessoryInstances[accessoryId] = data || [];
+            accessoryInstances[accessoryId] = response.data || [];
         }
     } catch (error) {
         console.error('Error fetching accessory instances:', error);
@@ -763,23 +851,18 @@ const products = ref<Product[]>([]);
 
 async function fetchProducts() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            products.value = [];
-            return;
+        console.log('🔄 Fetching products from server API...')
+        // Use authenticated fetch with JWT token
+        const response = await auth.authenticatedFetch('/api/admin/products')
+        
+        console.log('📦 Products API response:', response)
+        
+        if (!response.success) {
+            throw new Error('Failed to fetch products')
         }
         
-        // First, get the products without the Camera relationship
-        const { data, error } = await supabase
-            .from('Product')
-            .select('*')
-            .order('id', { ascending: false});
-        
-        if (error) throw error;
-        
         // Transform the data to match the expected interface
-        products.value = (data || []).map(p => ({
+        products.value = (response.data || []).map(p => ({
             id: p.id,
             name: p.name || '',
             description: '', // No description column in your table
@@ -792,22 +875,27 @@ async function fetchProducts() {
             cameras: [] // We'll load cameras separately if needed
         }));
         
-        // Optionally, load cameras for each product separately
-        for (const product of products.value) {
-            try {
-                const { data: cameras } = await supabase
-                    .from('Camera')
-                    .select('*')
-                    .eq('productId', product.id);
+        console.log('✅ Products loaded:', products.value.length);
+        
+        // Load cameras for each product using server API
+        try {
+            const cameraResponse = await auth.authenticatedFetch('/api/admin/cameras')
+            if (cameraResponse.success) {
+                const cameras = cameraResponse.data || []
+                console.log('📷 All cameras loaded:', cameras.length)
                 
-                product.cameras = cameras || [];
-            } catch (cameraError) {
-                console.warn(`Could not load cameras for product ${product.id}:`, cameraError);
-                product.cameras = [];
+                // Group cameras by product
+                products.value.forEach(product => {
+                    product.cameras = cameras.filter(camera => camera.productId === product.id)
+                    console.log(`📷 Product ${product.name} has ${product.cameras.length} cameras`)
+                })
             }
+        } catch (cameraError) {
+            console.warn('Could not load cameras:', cameraError)
         }
+        
     } catch (error) {
-        console.error('Error fetching products from Supabase:', error);
+        console.error('Error fetching products from server:', error);
         products.value = [];
     }
 }
@@ -815,78 +903,46 @@ async function fetchProducts() {
 // Only fetch data on client side to avoid SSR issues
 if (process.client) {
     fetchProducts();
+    fetchBookings();
+    fetchAccessory();
 }
 
 async function createProduct() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for creating product');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
-        }
-        
         // Upload image if a new file is selected
         let imageUrl = form.value.imageUrl;
         if (selectedImageFile.value) {
-            imageUrl = await uploadImageToSupabase(selectedImageFile.value);
+            const supabase = useSupabase();
+            if (supabase) {
+                imageUrl = await uploadImageToSupabase(selectedImageFile.value);
+            }
         }
         
-        // Prepare the payload for Supabase (matching your actual table structure)
-        const payload = {
+        // Prepare the payload for the API
+        const payload: any = {
             name: form.value.name,
-            features: form.value.features || '', // Ensure it's not null
+            features: form.value.features || '',
             dailyPrice: form.value.dailyPrice,
             weeklyPrice: form.value.weeklyPrice,
             twoWeekPrice: form.value.twoWeekPrice,
             popular: form.value.popular,
-            quantity: form.value.quantity || 1, // Ensure it's not null
+            quantity: form.value.quantity || 1,
             imageUrl: imageUrl
         };
         
+        // Add ID if editing
         if (editingId.value) {
-            // Update existing product
-            const { error } = await supabase
-                .from('Product')
-                .update(payload)
-                .eq('id', editingId.value);
-            
-            if (error) throw error;
-        } else {
-            // Create new product
-            const { data: newProduct, error } = await supabase
-                .from('Product')
-                .insert([payload])
-                .select()
-                .single();
-            
-            if (error) throw error;
-            
-            // Create cameras for the new product (assuming you want to create 4 cameras per product)
-            if (newProduct && form.value.quantity > 0) {
-                const cameras = [];
-                for (let i = 1; i <= form.value.quantity; i++) {
-                    cameras.push({
-                        productId: newProduct.id,
-                        dailyPrice: form.value.dailyPrice,
-                        weeklyPrice: form.value.weeklyPrice,
-                        twoWeekPrice: form.value.twoWeekPrice
-                    });
-                }
-                
-                const { error: camerasError } = await supabase
-                    .from('Camera')
-                    .insert(cameras);
-                
-                if (camerasError) {
-                    console.warn('Error creating cameras:', camerasError);
-                    // Don't throw error here, product was created successfully
-                }
-            }
+            payload.id = editingId.value;
+        }
+        
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/products', {
+            method: 'POST',
+            body: payload
+        });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to save product');
         }
         
         // Save the product name before resetting the form
@@ -916,7 +972,7 @@ async function createProduct() {
             }
         });
     } catch (error: any) {
-        console.error('Error saving product to Supabase:', error);
+        console.error('Error saving product:', error);
         toast.add({ 
             title: 'Fejl ved gem af produkt',
             description: error?.message || 'Ukendt fejl opstod',
@@ -937,35 +993,15 @@ async function deleteProduct(product: any) {
     }
 
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for deleting product');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/products', {
+            method: 'DELETE',
+            body: { id: product.id }
+        });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to delete product');
         }
-        
-        // First, delete all cameras associated with this product
-        const { error: camerasError } = await supabase
-            .from('Camera')
-            .delete()
-            .eq('productId', product.id);
-            
-        if (camerasError) {
-            console.warn('Error deleting cameras for product:', camerasError);
-            // Continue anyway - maybe there were no cameras
-        }
-        
-        // Then delete the product
-        const { error } = await supabase
-            .from('Product')
-            .delete()
-            .eq('id', product.id);
-        
-        if (error) throw error;
         
         await fetchProducts();
         toast.add({ 
@@ -978,7 +1014,7 @@ async function deleteProduct(product: any) {
             }
         });
     } catch (error: any) {
-        console.error('Error deleting product from Supabase:', error);
+        console.error('Error deleting product:', error);
         toast.add({ 
             title: 'Fejl ved sletning af produkt',
             description: error?.message || 'Ukendt fejl opstod',
@@ -1100,6 +1136,19 @@ function removeImage() {
 
 const activeTab = ref('products');
 
+// Inventory management data
+interface InventoryItem {
+  productId: number;
+  productName: string;
+  available: number;
+}
+
+const lowStockItems = ref<InventoryItem[]>([]);
+const outOfStockItems = ref<InventoryItem[]>([]);
+const utilizationRate = ref(0);
+const activeRentals = ref(0);
+const averageRentalDuration = ref(0);
+
 interface Booking {
     id: number;
     customerName?: string;
@@ -1120,6 +1169,7 @@ interface Booking {
     cameraName?: string;
     cameraId?: number;
     accessoryInstanceIds?: number[];
+    accessoryInstanceNames?: string[];
     totalPrice?: number;
 }
 const bookings = ref<Booking[]>([]);
@@ -1129,32 +1179,100 @@ const oauthTestResult = ref<any>(null);
 
 async function fetchBookings() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            bookings.value = [];
-            return;
+        console.log('🔄 Fetching bookings from server API...')
+        // Use authenticated fetch with JWT token
+        const response = await auth.authenticatedFetch('/api/admin/bookings')
+        
+        console.log('📋 Bookings API response:', response)
+        
+        if (!response.success) {
+            throw new Error('Failed to fetch bookings')
         }
         
-        const { data, error } = await supabase
-            .from('Booking')
-            .select('*')
-            .order('id', { ascending: false });
+        bookings.value = response.data || [];
         
-        if (error) {
-            console.error('Error fetching bookings:', error);
-            bookings.value = [];
-            return;
-        }
+        console.log('✅ Bookings loaded:', bookings.value.length)
         
-        bookings.value = data || [];
+        // Enrich bookings with accessory instance names
+        await enrichBookingsWithAccessoryNames();
     } catch (e) {
         console.error('Error fetching bookings:', e);
         bookings.value = [];
     }
 }
 
+async function enrichBookingsWithAccessoryNames() {
+    try {
+        const supabase = useSupabase();
+        if (!supabase) return;
+        
+        console.log('🔍 Enriching bookings with accessory names...');
+        
+        // Get all accessory instances
+        const { data: accessoryInstances, error: instanceError } = await supabase
+            .from('AccessoryInstance')
+            .select('id, serialNumber, accessoryId');
+            
+        if (instanceError) {
+            console.error('Error fetching accessory instances:', instanceError);
+            return;
+        }
+        
+        // Get all accessories
+        const { data: accessories, error: accessoryError } = await supabase
+            .from('Accessory')
+            .select('id, name');
+            
+        if (accessoryError) {
+            console.error('Error fetching accessories:', accessoryError);
+            return;
+        }
+        
+        console.log('📦 Found accessories:', accessories);
+        console.log('🔧 Found accessory instances:', accessoryInstances);
+        
+        // Create lookup maps
+        const accessoryLookup = new Map();
+        accessories?.forEach(accessory => {
+            accessoryLookup.set(accessory.id, accessory.name);
+        });
+        
+        const instanceLookup = new Map();
+        accessoryInstances?.forEach(instance => {
+            const accessoryName = accessoryLookup.get(instance.accessoryId) || 'Unknown';
+            instanceLookup.set(instance.id, {
+                serialNumber: instance.serialNumber,
+                accessoryName: accessoryName
+            });
+        });
+        
+        console.log('🗂️ Instance lookup map:', instanceLookup);
+        
+        // Enrich each booking with accessory instance names
+        bookings.value.forEach(booking => {
+            if (booking.accessoryInstanceIds && booking.accessoryInstanceIds.length > 0) {
+                console.log(`📋 Processing booking with accessory IDs: ${booking.accessoryInstanceIds}`);
+                booking.accessoryInstanceNames = booking.accessoryInstanceIds.map(id => {
+                    const instance = instanceLookup.get(id);
+                    const result = instance ? `${instance.accessoryName} (${instance.serialNumber})` : `ID: ${id}`;
+                    console.log(`🏷️ ID ${id} -> ${result}`);
+                    return result;
+                });
+            } else {
+                booking.accessoryInstanceNames = [];
+            }
+        });
+        
+        console.log('✅ Enrichment complete');
+        
+    } catch (e) {
+        console.error('Error enriching bookings with accessory names:', e);
+    }
+}
+
 async function fixBookingCameraIds() {
+    console.log('🔄 Starting booking distribution...');
+    
     try {
         const supabase = useSupabase();
         if (!supabase) {
@@ -1162,73 +1280,124 @@ async function fixBookingCameraIds() {
             return;
         }
         
+        // Get all products first
+        const { data: allProducts, error: productsError } = await supabase
+            .from('Product')
+            .select('id, name')
+            .order('id');
+            
+        if (productsError) {
+            console.error('Error fetching products:', productsError);
+            return;
+        }
+        
+        // Get all cameras
+        const { data: allCameras, error: camerasError } = await supabase
+            .from('Camera')
+            .select('id, productId')
+            .order('id');
+            
+        if (camerasError) {
+            console.error('Error fetching cameras:', camerasError);
+            return;
+        }
+        
+        // Group cameras by productId
+        const camerasByProduct: Record<number, any[]> = {};
+        for (const camera of allCameras || []) {
+            if (!camerasByProduct[camera.productId]) {
+                camerasByProduct[camera.productId] = [];
+            }
+            camerasByProduct[camera.productId].push(camera);
+        }
+        
+        console.log('📦 Products:', allProducts);
+        console.log('📷 Cameras by product:', camerasByProduct);
+        
         // Get all bookings
         const { data: allBookings, error: bookingsError } = await supabase
             .from('Booking')
-            .select('id, cameraId, productName');
+            .select('id, productName, cameraId, startDate, endDate')
+            .order('startDate');
             
         if (bookingsError) {
-            console.error('Error fetching bookings for fixing:', bookingsError);
+            console.error('Error fetching bookings:', bookingsError);
             return;
         }
         
-        // Get all products and their cameras
-        const { data: allProducts, error: productsError } = await supabase
-            .from('Product')
-            .select('id, name');
-            
-        if (productsError) {
-            console.error('Error fetching products for fixing:', productsError);
-            return;
-        }
+        console.log('📋 All bookings:', allBookings?.length || 0);
         
-        // For each booking, try to find the correct camera ID
-        for (const booking of allBookings || []) {
-            // Find the product that matches the booking's productName
-            const matchingProduct = allProducts?.find(p => p.name === booking.productName);
+        // Group bookings by product name and redistribute
+        for (const product of allProducts || []) {
+            const productBookings = allBookings?.filter(b => b.productName === product.name) || [];
+            const productCameras = camerasByProduct[product.id] || [];
             
-            if (matchingProduct) {
-                // Get the first camera for this product
-                const { data: cameras, error: camerasError } = await supabase
-                    .from('Camera')
-                    .select('id')
-                    .eq('productId', matchingProduct.id)
-                    .limit(1);
+            if (productBookings.length === 0) {
+                console.log(`📦 ${product.name}: No bookings to redistribute`);
+                continue;
+            }
+            
+            if (productCameras.length === 0) {
+                console.log(`📦 ${product.name}: No cameras available`);
+                continue;
+            }
+            
+            console.log(`📦 ${product.name}: Redistributing ${productBookings.length} bookings across ${productCameras.length} cameras`);
+            
+            // Sort bookings chronologically
+            productBookings.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+            
+            // Redistribute using round-robin
+            for (let i = 0; i < productBookings.length; i++) {
+                const booking = productBookings[i];
+                const cameraIndex = i % productCameras.length;
+                const targetCamera = productCameras[cameraIndex];
                 
-                if (!camerasError && cameras && cameras.length > 0) {
-                    const correctCameraId = cameras[0].id;
+                if (booking.cameraId !== targetCamera.id) {
+                    console.log(`🔄 Moving booking ${booking.id} from camera ${booking.cameraId} to camera ${targetCamera.id} (${product.name})`);
                     
-                    if (booking.cameraId !== correctCameraId) {
-                        console.log(`Updating booking ${booking.id}: camera ID ${booking.cameraId} → ${correctCameraId}`);
+                    const { error: updateError } = await supabase
+                        .from('Booking')
+                        .update({
+                            cameraId: targetCamera.id,
+                            cameraName: `Kamera ${cameraIndex + 1}`
+                        })
+                        .eq('id', booking.id);
                         
-                        const { error: updateError } = await supabase
-                            .from('Booking')
-                            .update({ cameraId: correctCameraId })
-                            .eq('id', booking.id);
-                            
-                        if (updateError) {
-                            console.error(`Error updating booking ${booking.id}:`, updateError);
-                        }
+                    if (updateError) {
+                        console.error(`❌ Failed to update booking ${booking.id}:`, updateError);
+                    } else {
+                        console.log(`✅ Updated booking ${booking.id}`);
                     }
+                } else {
+                    console.log(`✓ Booking ${booking.id} already correctly assigned to camera ${targetCamera.id}`);
                 }
             }
         }
         
-        // Refresh bookings after fixing
         await fetchBookings();
+        console.log('✅ Distribution complete!');
         
         toast.add({
-            title: 'Booking camera IDs fixed',
-            description: 'All booking camera IDs have been updated to match existing cameras',
-            color: 'success'
+            title: 'Bookings redistributed!',
+            description: 'All bookings have been properly assigned to cameras within their products',
+            color: 'success',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
         });
         
     } catch (error) {
-        console.error('Error fixing booking camera IDs:', error);
+        console.error('Error redistributing bookings:', error);
         toast.add({
-            title: 'Error fixing bookings',
-            description: 'Could not update booking camera IDs',
-            color: 'error'
+            title: 'Error redistributing bookings',
+            description: 'Could not redistribute bookings properly',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
         });
     }
 }
@@ -1266,27 +1435,15 @@ const accessoryForm = ref({ name: '', description: '', price: 0, quantity: 1 });
 
 async function fetchAccessory() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available. Please check your environment configuration.');
-            accessory.value = [];
-            return;
-        }
+        // Use authenticated fetch with JWT token
+        const response = await auth.authenticatedFetch('/api/admin/accessories')
         
-        const { data, error } = await supabase
-            .from('Accessory')
-            .select('*')
-            .order('id', { ascending: false });
-        
-        if (error) {
-            // If accessories table doesn't exist, create some default ones
-            console.warn('Accessory table not found, using defaults:', error);
-            accessory.value = [];
-            return;
+        if (!response.success) {
+            throw new Error('Failed to fetch accessories')
         }
         
         // Transform the data and load instances for each accessory
-        accessory.value = (data || []).map(a => ({
+        accessory.value = (response.data || []).map((a: any) => ({
             id: a.id,
             name: a.name,
             description: a.description || '',
@@ -1311,67 +1468,29 @@ if (process.client) {
 
 async function createAccessory() {
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for creating accessory');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
-        }
-        
         const isEditing = !!editingAccessoryId.value;
         const accessoryName = accessoryForm.value.name;
         
-        const payload = { 
+        const payload: any = { 
             name: accessoryForm.value.name, 
             description: accessoryForm.value.description, 
             price: accessoryForm.value.price, 
             quantity: accessoryForm.value.quantity 
         };
         
-        let accessoryId: number;
-        
+        // Add ID if editing
         if (editingAccessoryId.value) {
-            // Update existing accessory
-            const { error } = await supabase
-                .from('Accessory')
-                .update(payload)
-                .eq('id', editingAccessoryId.value);
-            
-            if (error) throw error;
-            accessoryId = editingAccessoryId.value;
-        } else {
-            // Create new accessory
-            const { data, error } = await supabase
-                .from('Accessory')
-                .insert([payload])
-                .select()
-                .single();
-            
-            if (error) throw error;
-            accessoryId = data.id;
-            
-            // Create instances for the new accessory
-            const instances = Array.from({ length: accessoryForm.value.quantity }, (_, i) => ({
-                accessoryId,
-                serialNumber: `${accessoryForm.value.name} #${i + 1}`,
-                isAvailable: true
-            }));
-            
-            try {
-                const { error: instancesError } = await supabase
-                    .from('AccessoryInstance')
-                    .insert(instances);
-                
-                if (instancesError) {
-                    console.warn('Could not create accessory instances:', instancesError);
-                }
-            } catch (instanceError) {
-                console.warn('AccessoryInstance table may not exist:', instanceError);
-            }
+            payload.id = editingAccessoryId.value;
+        }
+        
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/accessories', {
+            method: 'POST',
+            body: payload
+        });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to save accessory');
         }
         
         showAccessoryModal.value = false;
@@ -1388,7 +1507,7 @@ async function createAccessory() {
             }
         });
     } catch (error: any) {
-        console.error('Error saving accessory to Supabase:', error);
+        console.error('Error saving accessory:', error);
         toast.add({ 
             title: 'Fejl ved gem af tilbehør',
             description: error?.message || 'Ukendt fejl opstod',
@@ -1409,35 +1528,15 @@ async function deleteAccessory(id: number) {
     }
 
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available for deleting accessory');
-            toast.add({ 
-                title: 'Forbindelsesfejl',
-                description: 'Kan ikke oprette forbindelse til databasen',
-                color: 'error'
-            });
-            return;
+        // Use authenticated API endpoint
+        const response = await auth.authenticatedFetch('/api/admin/accessories', {
+            method: 'DELETE',
+            body: { id }
+        });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to delete accessory');
         }
-        
-        // First, delete all accessory instances associated with this accessory
-        const { error: instancesError } = await supabase
-            .from('AccessoryInstance')
-            .delete()
-            .eq('accessoryId', id);
-            
-        if (instancesError) {
-            console.warn('Error deleting accessory instances:', instancesError);
-            // Continue anyway - maybe there were no instances
-        }
-        
-        // Then delete the accessory
-        const { error } = await supabase
-            .from('Accessory')
-            .delete()
-            .eq('id', id);
-        
-        if (error) throw error;
         
         await fetchAccessory();
         toast.add({ 
@@ -1450,7 +1549,7 @@ async function deleteAccessory(id: number) {
             }
         });
     } catch (error: any) {
-        console.error('Error deleting accessory from Supabase:', error);
+        console.error('Error deleting accessory:', error);
         toast.add({ 
             title: 'Fejl ved sletning af tilbehør',
             description: error?.message || 'Ukendt fejl opstod',
@@ -1522,6 +1621,94 @@ function clearDebugError() {
         }
     });
 }
+
+// Inventory Management Functions
+const exportInventoryReport = async () => {
+  try {
+    const response = await $fetch('/api/inventory-status');
+    if (response.success) {
+      // Create CSV content with proper formatting
+      const headers = ['Product Name', 'Total Stock', 'Available', 'In Use', 'Status'];
+      const csvRows = [
+        headers.join(';'), // Use semicolon as delimiter for better Excel compatibility
+        ...response.data.map((item: any) => [
+          `"${item.productName}"`,
+          item.inventory.total,
+          item.inventory.available,
+          item.inventory.inUse,
+          `"${item.availabilityStatus}"`
+        ].join(';'))
+      ];
+      
+      const csvContent = csvRows.join('\r\n');
+      
+      // Add BOM for proper Excel encoding
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csvContent;
+      
+      // Download CSV
+      const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      // Removed toast notification
+    }
+  } catch (error: any) {
+    console.error('Error exporting inventory report:', error);
+    // Removed toast notification
+  }
+};
+
+const refreshAllInventory = async () => {
+  try {
+    const response = await $fetch('/api/inventory-status');
+    if (response.success) {
+      // Update inventory statistics
+      const data = response.data;
+      
+      // Calculate low stock items (less than 2 available)
+      lowStockItems.value = data
+        .filter((item: any) => item.inventory.available > 0 && item.inventory.available < 2)
+        .map((item: any) => ({
+          productId: item.productId,
+          productName: item.productName,
+          available: item.inventory.available
+        }));
+      
+      // Calculate out of stock items
+      outOfStockItems.value = data
+        .filter((item: any) => item.inventory.available === 0)
+        .map((item: any) => ({
+          productId: item.productId,
+          productName: item.productName,
+          available: item.inventory.available
+        }));
+      
+      // Calculate utilization rate
+      const totalStock = data.reduce((sum: number, item: any) => sum + item.inventory.total, 0);
+      const inUse = data.reduce((sum: number, item: any) => sum + item.inventory.inUse, 0);
+      utilizationRate.value = totalStock > 0 ? Math.round((inUse / totalStock) * 100) : 0;
+      activeRentals.value = inUse;
+      
+      // Mock average rental duration (you might want to calculate this from actual booking data)
+      averageRentalDuration.value = 4; // Default to 4 days
+      
+      // Removed toast notification
+    }
+  } catch (error: any) {
+    console.error('Error refreshing inventory:', error);
+    // Removed toast notification
+  }
+};
+
+// Initialize inventory data on component mount  
+refreshAllInventory();
 </script>
 
 <style scoped>
