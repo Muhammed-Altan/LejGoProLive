@@ -58,7 +58,7 @@ export default defineNuxtConfig({
                 showBackground: true
               },
               cookieIcon: {
-                position: "bottomRight"
+                position: "bottomLeft"
               },
               text: {
                 banner: {

@@ -33,14 +33,15 @@ export const useCheckoutStore = defineStore('checkout', {
   }),
   actions: {
     logState() {
-      const state = this.$state;
-      Object.entries(state).forEach(([key, val]) => {
-        if (val && typeof val === 'object') {
-          console.log(`[Pinia checkout] ${key}:`, val, 'type:', Object.prototype.toString.call(val));
-        } else {
-          console.log(`[Pinia checkout] ${key}:`, val, 'type:', typeof val);
-        }
-      });
+      // Debug logging disabled for production
+      // const state = this.$state;
+      // Object.entries(state).forEach(([key, val]) => {
+      //   if (val && typeof val === 'object') {
+      //     console.log(`[Pinia checkout] ${key}:`, val, 'type:', Object.prototype.toString.call(val));
+      //   } else {
+      //     console.log(`[Pinia checkout] ${key}:`, val, 'type:', typeof val);
+      //   }
+      // });
     },
   setDates(start: Date | string | null, end: Date | string | null) {
       if (start && typeof start !== 'string' && !(start instanceof Date)) {
@@ -61,11 +62,25 @@ export const useCheckoutStore = defineStore('checkout', {
       this.selectedModels = Array.isArray(items) ? items : [];
   this.logState();
     },
-    setSelectedAccessories(items: SelectedItem[]) {
+    setSelectedAccessories(items: SelectedItem[], modelCount?: number) {
       if (!Array.isArray(items)) {
         console.error('Non-array passed to setSelectedAccessories:', items);
       }
-      this.selectedAccessories = Array.isArray(items) ? items : [];
+      // Calculate max quantity: 1 accessory per camera model (default to current logic if modelCount not provided)
+      const maxAccessoryQuantity = modelCount && modelCount > 0 ? modelCount : 1;
+      
+      // Clamp accessory quantities to the number of camera models for most accessories, but allow
+      // 'ekstra batteri' to use its configured quantity (no clamping for ekstra batteri).
+      const EXTRA_BATTERY_NAME = 'ekstra batteri';
+      this.selectedAccessories = Array.isArray(items) ? items.map(i => {
+        const name = (i.name || '').toString().trim().toLowerCase();
+        if (name === EXTRA_BATTERY_NAME) {
+          // keep provided quantity for ekstra batteri (ensure at least 1)
+          return { ...i, quantity: i.quantity > 0 ? i.quantity : 1 };
+        }
+        // For other accessories, clamp quantity to number of camera models
+        return { ...i, quantity: i.quantity > 0 ? Math.min(maxAccessoryQuantity, i.quantity) : 1 };
+      }) : [];
   this.logState();
     },
     setInsurance(val: boolean) { this.insurance = val },

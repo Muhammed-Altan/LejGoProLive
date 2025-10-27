@@ -41,6 +41,93 @@ export default defineEventHandler(async (event) => {
         })
       }
       
+      // Handle AccessoryInstance updates when quantity changes
+      if (payload.quantity) {
+        // Get current instances count
+        const { data: currentInstances, error: instancesError } = await supabase
+          .from('AccessoryInstance')
+          .select('id')
+          .eq('accessoryId', body.id)
+          
+        if (instancesError) {
+          console.error('Failed to fetch current instances:', instancesError)
+        } else {
+          const currentCount = currentInstances?.length || 0
+          const targetCount = payload.quantity
+          
+          if (targetCount > currentCount) {
+            // Need to add more instances
+            const instancesToAdd = []
+            for (let i = currentCount + 1; i <= targetCount; i++) {
+              instancesToAdd.push({
+                accessoryId: body.id,
+                isAvailable: true,
+                serialNumber: `${payload.name} #${i}`
+              })
+            }
+            
+            const { error: addError } = await supabase
+              .from('AccessoryInstance')
+              .insert(instancesToAdd)
+              
+            if (addError) {
+              console.error('Failed to add accessory instances:', addError)
+            }
+          } else if (targetCount < currentCount) {
+            // Need to remove excess instances (remove available ones first)
+            const instancesToRemove = currentCount - targetCount
+            const { data: availableInstances, error: availableError } = await supabase
+              .from('AccessoryInstance')
+              .select('id')
+              .eq('accessoryId', body.id)
+              .eq('isAvailable', true)
+              .limit(instancesToRemove)
+              
+            if (availableError) {
+              console.error('Failed to fetch available instances:', availableError)
+            } else if (availableInstances && availableInstances.length > 0) {
+              const idsToRemove = availableInstances.map(instance => instance.id)
+              const { error: removeError } = await supabase
+                .from('AccessoryInstance')
+                .delete()
+                .in('id', idsToRemove)
+                
+              if (removeError) {
+                console.error('Failed to remove accessory instances:', removeError)
+              }
+            }
+          }
+        }
+      }
+      
+      // Update serialNumbers of existing instances when name changes
+      if (payload.name) {
+        // Get all current instances to update their serial numbers
+        const { data: allInstances, error: allInstancesError } = await supabase
+          .from('AccessoryInstance')
+          .select('id')
+          .eq('accessoryId', body.id)
+          .order('id')
+          
+        if (allInstancesError) {
+          console.error('Failed to fetch instances for name update:', allInstancesError)
+        } else if (allInstances && allInstances.length > 0) {
+          // Update each instance with new serial number
+          for (let i = 0; i < allInstances.length; i++) {
+            const { error: updateError } = await supabase
+              .from('AccessoryInstance')
+              .update({ 
+                serialNumber: `${payload.name} #${i + 1}` 
+              })
+              .eq('id', allInstances[i].id)
+              
+            if (updateError) {
+              console.error(`Failed to update serial number for instance ${allInstances[i].id}:`, updateError)
+            }
+          }
+        }
+      }
+      
       return { success: true, data, message: 'Accessory updated successfully' }
     } else {
       // Create new accessory
