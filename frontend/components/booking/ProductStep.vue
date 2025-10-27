@@ -50,10 +50,17 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
         <span>Vælg venligst bookingperiode først for at vælge model.</span>
       </div>
+      <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
+        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Checking availability...</span>
+      </div>
       <div class="flex items-center gap-3">
         <select
           v-model="selectedModelName"
-          :disabled="!datesSelected"
+          :disabled="!datesSelected || availabilityLoading"
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">Vælg en model…</option>
@@ -61,12 +68,17 @@
             v-for="model in models"
             :key="model.name"
             :value="model.name"
-            :disabled="availability[model.id] === 0 || selectedModels.some(sm => sm.name === model.name)"
+            :disabled="!isProductAvailable(model.id, 1)"
+            :class="{
+              'text-gray-400': !isProductAvailable(model.id, 1),
+              'text-red-600': datesSelected && getMaxProductQuantity(model.id) === 0
+            }"
           >
             {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
-              <template v-if="availability[model.id] === 0">Udsolgt i valgt periode</template>
-              <template v-else>Tilgængelige</template>
+              <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
+              <template v-else> - {{ getMaxProductQuantity(model.id) }} tilgængelige</template>
+
             </span>
           </option>
           <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
@@ -74,14 +86,26 @@
           </option>
         </select>
         <button
-          :disabled="!selectedModelName || !datesSelected || selectedModels.length >= 2"
+          :disabled="!selectedModelName || !datesSelected || selectedModels.length >= 2 || availabilityLoading || !canAddSelectedModel"
           @click="onAddSelectedModel"
           class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
+          :title="getAddButtonTooltip()"
         >
           <span class="mr-1 text-xl plus-red">+</span> Tilføj
         </button>
       </div>
     </section>
+
+    <!-- Availability Error Display -->
+    <div v-if="availabilityError" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+      <div class="flex items-center gap-2">
+        <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span class="text-red-700 font-medium">Availability Issue</span>
+      </div>
+      <p class="text-red-600 mt-1">{{ availabilityError }}</p>
+    </div>
 
     <!-- Selected Model and Quantity (Unified) -->
     <section v-if="selectedModels && selectedModels.length" class="space-y-2">
@@ -101,20 +125,22 @@
         <div class="flex items-center justify-center gap-2 group relative">
           <span>
             Antal
-            <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantity(item) }})</small>
+            <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantityForItem(item) }})</small>
             <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small>
           </span>
           <input
             type="number"
             min="1"
-            :max="getMaxProductQuantity(item)"
+            :max="item.productId !== undefined ? getMaxProductQuantity(item.productId) : 1"
+
             v-model.number="item.quantity"
-            :disabled="getMaxProductQuantity(item) <= 1"
+            :disabled="getMaxProductQuantityForItem(item) <= 1"
             class="w-12 text-center rounded border border-gray-300"
-            :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxProductQuantity(item) <= 1 }"
+            :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxProductQuantityForItem(item) <= 1 }"
           />
           <span
-            v-if="item.productId !== undefined && item.quantity === getMaxProductQuantity(item)"
+            v-if="item.productId !== undefined && item.quantity === getMaxProductQuantity(item.productId)"
+
             class="absolute left-1/2 z-10 -translate-x-1/2 -top-14 w-56 rounded bg-white text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg"
             style="color: #b90c2c; background: #FF8800"
           >
@@ -139,6 +165,13 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
         <span>Vælg venligst bookingperiode først for at vælge tilbehør.</span>
       </div>
+      <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
+        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Checking availability...</span>
+      </div>
       <div class="flex items-center gap-3">
         <select
           v-model="selectedAccessoryName"
@@ -155,12 +188,9 @@
             :title="getAccessoryTooltipMessage(acc.name) || (isAccessoryUnavailable(acc.name) ? 'Ikke tilgængelig i denne periode' : '')"
           >
             {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
-            <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available > 0">
-              ({{ accessoryAvailability[acc.name.toLowerCase()].available }} tilgængelige)
-            </template>
-            <template v-else-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available === 0">
-              (Ikke tilgængelig)
-            </template>
+            <span v-if="datesSelected && acc.id">
+              ({{ isAccessoryAvailable(acc.id, 1) ? 'Available' : 'Not available' }})
+            </span>
           </option>
         </select>
         <div 
@@ -240,6 +270,7 @@ function sanitizeInput(value: string): string {
 }
 import { ref, watch, onMounted, computed } from "vue";
 import { useCheckoutStore } from "@/stores/checkout";
+import { useAvailability } from "@/composables/useAvailability";
 import { useNuxtApp } from "#app";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
@@ -255,13 +286,12 @@ interface ProductOption {
 }
 
 // Only keep max quantity helpers for UI input validation
-function getMaxProductQuantity(item: { name: string; productId?: number }) {
+function getMaxProductQuantityForItem(item: { name: string; productId?: number }) {
   const arr = models.value as ProductOption[];
   const id = item.productId ?? arr.find((m: ProductOption) => m.name === item.name)?.id;
   if (id === undefined) return 0;
-  const product = arr.find((m: ProductOption) => m.id === id);
-  // Prefer server availability; fall back to DB-configured product.quantity, then 0
-  return availability.value[id] ?? product?.quantity ?? 0;
+  // Use the availability composable instead of old local state
+  return getMaxProdQty(id);
 }
 
 function getMaxAccessoryQuantity(item: { name: string }) {
@@ -315,12 +345,17 @@ interface SelectedCamera {
 
 const models = ref<ProductOption[]>([]);
 const accessories = ref<{ id?: number; name: string; price: number; quantity?: number }[]>([]);
-const availability = ref<Record<number, number>>({});
 const accessoryAvailability = ref<Record<string, { total: number; available: number; booked: number }>>({});
-const availabilityLoading = ref<boolean>(false);
 const availableCameras = ref<Camera[]>([]);
 const selectedCameras = ref<SelectedCamera[]>([]);
 const selectedCameraId = ref<number | null>(null);
+
+// Use availability composable
+const availabilityComposable = useAvailability();
+const { loading: availabilityLoading, checkAvailability, isProductAvailable, isAccessoryAvailable, getMaxProductQuantity: getMaxProdQty, getMaxAccessoryQuantity: getMaxAccQty, getAvailabilityMessage } = availabilityComposable;
+
+// Error handling for availability
+const availabilityError = ref<string | null>(null);
 
 // SSR-safe Pinia usage
 const store = useCheckoutStore();
@@ -407,6 +442,36 @@ function clearBasket() {
 
 // Computed: are dates selected?
 const datesSelected = computed(() => !!startDate.value && !!endDate.value);
+
+// Computed: can we add the selected model?
+const canAddSelectedModel = computed(() => {
+  if (!selectedModelName.value || !datesSelected.value) return false;
+  const model = models.value.find(m => m.name === selectedModelName.value);
+  if (!model) return false;
+  return isProductAvailable(model.id, 1);
+});
+
+const canAddSelectedAccessory = computed(() => {
+  if (!selectedAccessoryName.value || !datesSelected.value) return false;
+  const accessory = accessories.value.find(a => a.name === selectedAccessoryName.value);
+  if (!accessory || !accessory.id) return false;
+  return isAccessoryAvailable(accessory.id, 1);
+});
+
+// Computed: tooltip for add button
+const getAddButtonTooltip = () => {
+  if (!selectedModelName.value) return '';
+  if (!datesSelected.value) return 'Select dates first';
+  const model = models.value.find(m => m.name === selectedModelName.value);
+  if (!model) return '';
+  if (!isProductAvailable(model.id, 1)) return 'Not available for selected dates';
+  return '';
+};
+
+// Helper to get max quantity for a product by ID
+const getMaxProductQuantity = (productId: number): number => {
+  return getMaxProdQty(productId);
+};
 
 // Minimum selectable start date: 3 days from today
 const minStartDate = computed(() => {
@@ -583,31 +648,59 @@ function selectModel(model: {
   }
 }
 
-function onAddSelectedModel() {
+async function onAddSelectedModel() {
+  availabilityError.value = null;
+  
   if (selectedModels.value.length >= 2) {
     // Hardcap: do not add more than 2 model types
     selectedModelName.value = "";
     return;
   }
+  
   const model = models.value.find((m) => m.name === selectedModelName.value);
-  if (model) {
-    // Only add if not already selected
-    const alreadySelected = selectedModels.value.some(m => m.name === model.name);
-    if (!alreadySelected) {
-      selectModel({
-        name: model.name,
-        price: model.price,
-        productId: model.id,
-        config: {
-          dailyPrice: model.price,
-          weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
-          twoWeekPrice: (model as any).twoWeekPrice ?? model.price * 14,
-        },
-      });
-      // also keep legacy field updated with first product id for compatibility
-      if (!store.productId) store.setProductId(model.id);
-    }
+  if (!model) return;
+
+  // Check availability immediately
+  if (!isProductAvailable(model.id, 1)) {
+    availabilityError.value = `${model.name} is not available for the selected dates. Available: ${getMaxProductQuantity(model.id)}`;
+    
+    // Show toast notification
+    const toast = useToast();
+    toast.add({
+      title: 'Product Not Available',
+      description: `${model.name} is not available for the selected dates`,
+      color: 'error'
+    });
+    
+    selectedModelName.value = "";
+    return;
   }
+  
+  // Only add if not already selected
+  const alreadySelected = selectedModels.value.some(m => m.name === model.name);
+  if (!alreadySelected) {
+    selectModel({
+      name: model.name,
+      price: model.price,
+      productId: model.id,
+      config: {
+        dailyPrice: model.price,
+        weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
+        twoWeekPrice: (model as any).twoWeekPrice ?? model.price * 14,
+      },
+    });
+    // also keep legacy field updated with first product id for compatibility
+    if (!store.productId) store.setProductId(model.id);
+    
+    // Show success message
+    const toast = useToast();
+    toast.add({
+      title: 'Product Added',
+      description: `${model.name} has been added to your booking`,
+      color: 'success'
+    });
+  }
+  
   // reset selection to allow adding the same again
   selectedModelName.value = "";
 }
@@ -753,12 +846,35 @@ function addAccessory(acc: { name: string; price: number }) {
   }
 }
 
-function onAddSelectedAccessory() {
+async function onAddSelectedAccessory() {
+  availabilityError.value = null;
+  
   const acc = accessories.value.find(
     (a) => a.name === selectedAccessoryName.value
   );
-  if (acc) addAccessory(acc);
+  if (!acc || !acc.id) return;
+
+  // Check availability before adding
+  if (!isAccessoryAvailable(acc.id, 1)) {
+    const toast = useToast();
+    toast.add({
+      title: 'Accessory Not Available',
+      description: `${acc.name} is not available for the selected dates`,
+      color: 'error'
+    });
+    return;
+  }
+
+  addAccessory(acc);
   selectedAccessoryName.value = "";
+  
+  // Show success message
+  const toast = useToast();
+  toast.add({
+    title: 'Accessory Added',
+    description: `${acc.name} has been added to your booking`,
+    color: 'success'
+  });
 }
 
 function removeAccessory(idx: number) {
@@ -812,8 +928,6 @@ onMounted(async () => {
       twoWeekPrice: p.twoWeekPrice,
       quantity: typeof p.quantity === "number" ? p.quantity : 5,
     }));
-    // Seed availability from DB-configured product quantities so UI shows non-magic defaults immediately
-    availability.value = Object.fromEntries(models.value.map(m => [m.id, m.quantity ?? 0]));
   } catch (e) {
     console.error("Error fetching products from Supabase:", e);
   }
@@ -837,51 +951,38 @@ onMounted(async () => {
     console.error("Error fetching accessories from Supabase:", e);
   }
 
+  // Check availability if dates are already selected
+  if (startDate.value && endDate.value && (models.value.length > 0 || accessories.value.length > 0)) {
+    const productIds = models.value.map(m => m.id).filter((id): id is number => id !== undefined);
+    const accessoryIds = accessories.value.map(a => a.id).filter((id): id is number => id !== undefined);
+    try {
+      await checkAvailability(startDate.value, endDate.value, productIds, accessoryIds);
+    } catch (error) {
+      console.error('Error checking initial availability:', error);
+    }
+  }
 });
 
+// Check availability when dates change
 watch([startDate, endDate], async () => {
+  availabilityError.value = null;
+  
   if (!startDate.value || !endDate.value) {
-    availability.value = {};
-    accessoryAvailability.value = {};
-    availabilityLoading.value = false;
+    availabilityComposable.clearAvailability();
     return;
   }
 
-  availabilityLoading.value = true;
-  try {
-    const params = new URLSearchParams({ startDate: startDate.value!.toISOString(), endDate: endDate.value!.toISOString() });
-    const resp = await fetch(`/api/availability?${params.toString()}`);
-    if (!resp.ok) {
-      console.error('Availability API error', resp.statusText);
-      availability.value = {};
-      accessoryAvailability.value = {};
-      return;
+  // Get all product IDs and accessory IDs to check
+  const productIds = models.value.map(m => m.id).filter((id): id is number => id !== undefined);
+  const accessoryIds = accessories.value.map(a => a.id).filter((id): id is number => id !== undefined);
+  
+  if (productIds.length > 0 || accessoryIds.length > 0) {
+    try {
+      await checkAvailability(startDate.value, endDate.value, productIds, accessoryIds);
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      availabilityError.value = 'Failed to check availability';
     }
-    const body = await resp.json();
-    console.log('Full availability API response:', body);
-    
-    // Extract the actual data from the nested response structure
-    const data = body.body || body;
-    
-    if (data && data.availability) {
-      availability.value = data.availability;
-    } else {
-      availability.value = {};
-    }
-    
-    if (data && data.accessoryAvailability) {
-      accessoryAvailability.value = data.accessoryAvailability;
-      console.log('Accessory availability loaded:', data.accessoryAvailability);
-    } else {
-      accessoryAvailability.value = {};
-      console.log('No accessory availability data received');
-    }
-  } catch (err) {
-    console.error('Error fetching availability', err);
-    availability.value = {};
-    accessoryAvailability.value = {};
-  } finally {
-    availabilityLoading.value = false;
   }
 });
 
