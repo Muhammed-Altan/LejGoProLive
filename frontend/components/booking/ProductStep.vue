@@ -50,17 +50,10 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
         <span>Vælg venligst bookingperiode først for at vælge model.</span>
       </div>
-      <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
-        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span>Checking availability...</span>
-      </div>
       <div class="flex items-center gap-3">
         <select
           v-model="selectedModelName"
-          :disabled="!datesSelected || availabilityLoading"
+          :disabled="!datesSelected"
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">Vælg en model…</option>
@@ -68,17 +61,12 @@
             v-for="model in models"
             :key="model.name"
             :value="model.name"
-            :disabled="!isProductAvailable(model.id, 1)"
-            :class="{
-              'text-gray-400': !isProductAvailable(model.id, 1),
-              'text-red-600': datesSelected && getMaxProductQuantity(model.id) === 0
-            }"
+            :disabled="availability[model.id] === 0 || selectedModels.some(sm => sm.name === model.name)"
           >
             {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
-              <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
-              <template v-else> - {{ getMaxProductQuantity(model.id) }} tilgængelige</template>
-
+              <template v-if="availability[model.id] === 0">Udsolgt i valgt periode</template>
+              <template v-else>Tilgængelige</template>
             </span>
           </option>
           <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
@@ -86,26 +74,14 @@
           </option>
         </select>
         <button
-          :disabled="!selectedModelName || !datesSelected || selectedModels.length >= 2 || availabilityLoading || !canAddSelectedModel"
+          :disabled="!selectedModelName || !datesSelected || selectedModels.length >= 2"
           @click="onAddSelectedModel"
           class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
-          :title="getAddButtonTooltip()"
         >
           <span class="mr-1 text-xl plus-red">+</span> Tilføj
         </button>
       </div>
     </section>
-
-    <!-- Availability Error Display -->
-    <div v-if="availabilityError" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-      <div class="flex items-center gap-2">
-        <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <span class="text-red-700 font-medium">Availability Issue</span>
-      </div>
-      <p class="text-red-600 mt-1">{{ availabilityError }}</p>
-    </div>
 
     <!-- Selected Model and Quantity (Unified) -->
     <section v-if="selectedModels && selectedModels.length" class="space-y-2">
@@ -131,14 +107,14 @@
           <input
             type="number"
             min="1"
-            :max="item.productId !== undefined ? getMaxProductQuantity(item.productId) : 1"
+            :max="getMaxProductQuantity(item)"
             v-model.number="item.quantity"
             :disabled="getMaxProductQuantity(item) <= 1"
             class="w-12 text-center rounded border border-gray-300"
             :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxProductQuantity(item) <= 1 }"
           />
           <span
-            v-if="item.productId !== undefined && item.quantity === getMaxProductQuantity(item.productId)"
+            v-if="item.productId !== undefined && item.quantity === getMaxProductQuantity(item)"
             class="absolute left-1/2 z-10 -translate-x-1/2 -top-14 w-56 rounded bg-white text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg"
             style="color: #b90c2c; background: #FF8800"
           >
@@ -163,13 +139,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
         <span>Vælg venligst bookingperiode først for at vælge tilbehør.</span>
       </div>
-      <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
-        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span>Checking availability...</span>
-      </div>
       <div class="flex items-center gap-3">
         <select
           v-model="selectedAccessoryName"
@@ -177,21 +146,26 @@
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">Vælg tilbehør…</option>
-          <option v-for="acc in accessories" :key="acc.name" :value="acc.name"
-            :class="{
-              'text-gray-400': datesSelected && !isAccessoryAvailable(acc.id, 1),
-              'text-red-600': datesSelected && getMaxAccQty(acc.id) === 0
-            }">
+          <option
+            v-for="acc in accessories"
+            :key="acc.name"
+            :value="acc.name"
+            :disabled="isAccessoryAtMaxQuantity(acc.name) || isAccessoryUnavailable(acc.name)"
+            :class="{ 'text-gray-400': isAccessoryAtMaxQuantity(acc.name) || isAccessoryUnavailable(acc.name) }"
+            :title="getAccessoryTooltipMessage(acc.name) || (isAccessoryUnavailable(acc.name) ? 'Ikke tilgængelig i denne periode' : '')"
+          >
             {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
-            <span v-if="datesSelected">
-              ({{ isAccessoryAvailable(acc.id, 1) ? 'Available' : 'Not available' }})
-            </span>
+            <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available > 0">
+              ({{ accessoryAvailability[acc.name.toLowerCase()].available }} tilgængelige)
+            </template>
+            <template v-else-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available === 0">
+              (Ikke tilgængelig)
+            </template>
           </option>
         </select>
-        <button
-          :disabled="!selectedAccessoryName || !datesSelected || availabilityLoading || !canAddSelectedAccessory"
-          @click="onAddSelectedAccessory"
-          class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
+        <div 
+          :title="selectedAccessoryName && (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) ? (getAccessoryTooltipMessage(selectedAccessoryName) || 'Ikke tilgængelig i denne periode') : ''"
+          class="inline-block"
         >
           <button
             :disabled="!selectedAccessoryName || !datesSelected || (selectedAccessoryName ? (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) : false)"
@@ -266,7 +240,6 @@ function sanitizeInput(value: string): string {
 }
 import { ref, watch, onMounted, computed } from "vue";
 import { useCheckoutStore } from "@/stores/checkout";
-import { useAvailability } from "@/composables/useAvailability";
 import { useNuxtApp } from "#app";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
@@ -282,18 +255,44 @@ interface ProductOption {
 }
 
 // Only keep max quantity helpers for UI input validation
-function getMaxProductQuantityForItem(item: { name: string; productId?: number }) {
+function getMaxProductQuantity(item: { name: string; productId?: number }) {
   const arr = models.value as ProductOption[];
   const id = item.productId ?? arr.find((m: ProductOption) => m.name === item.name)?.id;
-  return id !== undefined ? getMaxProdQty(id) : 0;
+  if (id === undefined) return 0;
+  const product = arr.find((m: ProductOption) => m.id === id);
+  // Prefer server availability; fall back to DB-configured product.quantity, then 0
+  return availability.value[id] ?? product?.quantity ?? 0;
 }
 
 function getMaxAccessoryQuantity(item: { name: string }) {
-  const acc = accessories.value.find(a => a.name === item.name);
-  if (!acc) return 0;
+  // For ekstra batteri, use DB accessory.quantity field but also respect availability
+  const EXTRA_BATTERY_NAME = 'ekstra batteri';
+  const name = (item.name || '').toString().trim().toLowerCase();
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
   
-  // Use real availability data from the composable
-  return getMaxAccQty(acc.id);
+  if (name === EXTRA_BATTERY_NAME) {
+    const acc = accessories.value.find(a => a.name.toLowerCase() === EXTRA_BATTERY_NAME);
+    const dbQuantity = acc?.quantity ?? 5;
+    
+    // Also check availability for the booking period
+    const availInfo = accessoryAvailability.value[name];
+    if (availInfo && availInfo.available >= 0) {
+      return Math.min(dbQuantity, availInfo.available);
+    }
+    
+    return dbQuantity; // fallback to DB quantity if no availability info
+  }
+  
+  // For other accessories: max 1 per camera model, but respect availability and DB limits
+  const acc = accessories.value.find(a => a.name.toLowerCase() === name);
+  const dbQuantity = acc?.quantity ?? modelCount; // fallback to model count if no DB info
+  
+  // Check availability for the booking period
+  const availInfo = accessoryAvailability.value[name];
+  const availableQuantity = availInfo && availInfo.available >= 0 ? availInfo.available : dbQuantity;
+  
+  // Return minimum of: model count, DB quantity, and availability
+  return Math.min(modelCount, dbQuantity, availableQuantity);
 }
 
 interface Camera {
@@ -315,14 +314,13 @@ interface SelectedCamera {
 }
 
 const models = ref<ProductOption[]>([]);
-const accessories = ref<{ id: number; name: string; price: number }[]>([]);
+const accessories = ref<{ id?: number; name: string; price: number; quantity?: number }[]>([]);
+const availability = ref<Record<number, number>>({});
+const accessoryAvailability = ref<Record<string, { total: number; available: number; booked: number }>>({});
+const availabilityLoading = ref<boolean>(false);
 const availableCameras = ref<Camera[]>([]);
 const selectedCameras = ref<SelectedCamera[]>([]);
 const selectedCameraId = ref<number | null>(null);
-
-// Use availability composable
-const availability = useAvailability();
-const { loading: availabilityLoading, checkAvailability, isProductAvailable, isAccessoryAvailable, getMaxProductQuantity: getMaxProdQty, getMaxAccessoryQuantity: getMaxAccQty, getAvailabilityMessage } = availability;
 
 // SSR-safe Pinia usage
 const store = useCheckoutStore();
@@ -349,10 +347,7 @@ const endDate = ref<Date | null>(
   store.endDate ? new Date(store.endDate) : null
 );
 
-// Error handling for availability
-const availabilityError = ref<string | null>(null);
-
-// Watch startDate: if it changes, reset endDate
+// Watch startDate: if it changes, reset endDate and potentially clear basket
 watch(startDate, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     endDate.value = null;
@@ -412,36 +407,6 @@ function clearBasket() {
 
 // Computed: are dates selected?
 const datesSelected = computed(() => !!startDate.value && !!endDate.value);
-
-// Computed: can we add the selected model?
-const canAddSelectedModel = computed(() => {
-  if (!selectedModelName.value || !datesSelected.value) return false;
-  const model = models.value.find(m => m.name === selectedModelName.value);
-  if (!model) return false;
-  return isProductAvailable(model.id, 1);
-});
-
-const canAddSelectedAccessory = computed(() => {
-  if (!selectedAccessoryName.value || !datesSelected.value) return false;
-  const accessory = accessories.value.find(a => a.name === selectedAccessoryName.value);
-  if (!accessory) return false;
-  return isAccessoryAvailable(accessory.id, 1);
-});
-
-// Computed: tooltip for add button
-const getAddButtonTooltip = () => {
-  if (!selectedModelName.value) return '';
-  if (!datesSelected.value) return 'Select dates first';
-  const model = models.value.find(m => m.name === selectedModelName.value);
-  if (!model) return '';
-  if (!isProductAvailable(model.id, 1)) return 'Not available for selected dates';
-  return '';
-};
-
-// Helper to get max quantity for a product by ID
-const getMaxProductQuantity = (productId: number): number => {
-  return getMaxProdQty(productId);
-};
 
 // Minimum selectable start date: 3 days from today
 const minStartDate = computed(() => {
@@ -618,59 +583,31 @@ function selectModel(model: {
   }
 }
 
-async function onAddSelectedModel() {
-  availabilityError.value = null;
-  
+function onAddSelectedModel() {
   if (selectedModels.value.length >= 2) {
     // Hardcap: do not add more than 2 model types
     selectedModelName.value = "";
     return;
   }
-  
   const model = models.value.find((m) => m.name === selectedModelName.value);
-  if (!model) return;
-
-  // Check availability immediately
-  if (!isProductAvailable(model.id, 1)) {
-    availabilityError.value = `${model.name} is not available for the selected dates. Available: ${getMaxProductQuantity(model.id)}`;
-    
-    // Show toast notification
-    const toast = useToast();
-    toast.add({
-      title: 'Product Not Available',
-      description: `${model.name} is not available for the selected dates`,
-      color: 'error'
-    });
-    
-    selectedModelName.value = "";
-    return;
+  if (model) {
+    // Only add if not already selected
+    const alreadySelected = selectedModels.value.some(m => m.name === model.name);
+    if (!alreadySelected) {
+      selectModel({
+        name: model.name,
+        price: model.price,
+        productId: model.id,
+        config: {
+          dailyPrice: model.price,
+          weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
+          twoWeekPrice: (model as any).twoWeekPrice ?? model.price * 14,
+        },
+      });
+      // also keep legacy field updated with first product id for compatibility
+      if (!store.productId) store.setProductId(model.id);
+    }
   }
-  
-  // Only add if not already selected
-  const alreadySelected = selectedModels.value.some(m => m.name === model.name);
-  if (!alreadySelected) {
-    selectModel({
-      name: model.name,
-      price: model.price,
-      productId: model.id,
-      config: {
-        dailyPrice: model.price,
-        weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
-        twoWeekPrice: (model as any).twoWeekPrice ?? model.price * 14,
-      },
-    });
-    // also keep legacy field updated with first product id for compatibility
-    if (!store.productId) store.setProductId(model.id);
-    
-    // Show success message
-    const toast = useToast();
-    toast.add({
-      title: 'Product Added',
-      description: `${model.name} has been added to your booking`,
-      color: 'success'
-    });
-  }
-  
   // reset selection to allow adding the same again
   selectedModelName.value = "";
 }
@@ -816,66 +753,24 @@ function addAccessory(acc: { name: string; price: number }) {
   }
 }
 
-async function onAddSelectedAccessory() {
-  availabilityError.value = null;
-  
+function onAddSelectedAccessory() {
   const acc = accessories.value.find(
     (a) => a.name === selectedAccessoryName.value
   );
-  if (!acc) return;
-
-  // Check availability before adding
-  if (!isAccessoryAvailable(acc.id, 1)) {
-    const toast = useToast();
-    toast.add({
-      title: 'Accessory Not Available',
-      description: `${acc.name} is not available for the selected dates`,
-      color: 'error'
-    });
-    return;
-  }
-
-  addAccessory(acc);
+  if (acc) addAccessory(acc);
   selectedAccessoryName.value = "";
-  
-  // Show success message
-  const toast = useToast();
-  toast.add({
-    title: 'Accessory Added',
-    description: `${acc.name} has been added to your booking`,
-    color: 'success'
-  });
 }
 
 function removeAccessory(idx: number) {
   selectedAccessories.value.splice(idx, 1);
 }
 
-// Check availability when dates change
-watch([startDate, endDate], async () => {
-  availabilityError.value = null;
-  
-  if (!startDate.value || !endDate.value) {
-    availability.clearAvailability();
-    return;
-  }
+function onAccessoryQuantityChange() {
+  // Sync accessory quantity changes to the store
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
+  store.setSelectedAccessories([...selectedAccessories.value], modelCount);
+}
 
-  // Get all product IDs and accessory IDs to check
-  const productIds = models.value.map(m => m.id);
-  const accessoryIds = accessories.value.map(a => a.id);
-  
-  console.log('🔍 Component: Checking availability for productIds:', productIds);
-  console.log('🔍 Component: Checking availability for accessoryIds:', accessoryIds);
-  
-  if (productIds.length > 0 || accessoryIds.length > 0) {
-    try {
-      await checkAvailability(startDate.value, endDate.value, productIds, accessoryIds);
-    } catch (error) {
-      console.error('Error checking availability:', error);
-      availabilityError.value = 'Failed to check availability';
-    }
-  }
-});
 
 // Sync to store (no business logic)
 watch(
@@ -942,15 +837,51 @@ onMounted(async () => {
     console.error("Error fetching accessories from Supabase:", e);
   }
 
-  // Check availability if dates are already selected
-  if (startDate.value && endDate.value && (models.value.length > 0 || accessories.value.length > 0)) {
-    const productIds = models.value.map(m => m.id);
-    const accessoryIds = accessories.value.map(a => a.id);
-    try {
-      await checkAvailability(startDate.value, endDate.value, productIds, accessoryIds);
-    } catch (error) {
-      console.error('Error checking initial availability:', error);
+});
+
+watch([startDate, endDate], async () => {
+  if (!startDate.value || !endDate.value) {
+    availability.value = {};
+    accessoryAvailability.value = {};
+    availabilityLoading.value = false;
+    return;
+  }
+
+  availabilityLoading.value = true;
+  try {
+    const params = new URLSearchParams({ startDate: startDate.value!.toISOString(), endDate: endDate.value!.toISOString() });
+    const resp = await fetch(`/api/availability?${params.toString()}`);
+    if (!resp.ok) {
+      console.error('Availability API error', resp.statusText);
+      availability.value = {};
+      accessoryAvailability.value = {};
+      return;
     }
+    const body = await resp.json();
+    console.log('Full availability API response:', body);
+    
+    // Extract the actual data from the nested response structure
+    const data = body.body || body;
+    
+    if (data && data.availability) {
+      availability.value = data.availability;
+    } else {
+      availability.value = {};
+    }
+    
+    if (data && data.accessoryAvailability) {
+      accessoryAvailability.value = data.accessoryAvailability;
+      console.log('Accessory availability loaded:', data.accessoryAvailability);
+    } else {
+      accessoryAvailability.value = {};
+      console.log('No accessory availability data received');
+    }
+  } catch (err) {
+    console.error('Error fetching availability', err);
+    availability.value = {};
+    accessoryAvailability.value = {};
+  } finally {
+    availabilityLoading.value = false;
   }
 });
 
