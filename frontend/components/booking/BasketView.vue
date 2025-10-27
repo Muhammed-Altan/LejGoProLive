@@ -25,8 +25,14 @@
         </div>
       </div>
       <div v-if="backendBreakdown && backendBreakdown.discountTotal > 0" class="flex justify-between text-base mt-5 font-medium">
-        <span class="text-green-700">Du sparer</span>
+        <span class="text-green-700">Du sparer (flere modeller)</span>
         <span class="font-semibold text-green-700">-{{ formatCurrency(backendBreakdown.discountTotal) }}</span>
+      </div>
+      
+      <!-- Weekly/Bi-weekly pricing savings -->
+      <div v-if="weeklyDiscountSavings > 0" class="flex justify-between text-base mt-2 font-medium">
+        <span class="text-green-700">Du sparer ({{ weeklyDiscountType }})</span>
+        <span class="font-semibold text-green-700">-{{ formatCurrency(weeklyDiscountSavings) }}</span>
       </div>
       <div v-if="insurance" class="flex justify-between text-base mt-5">
         <span>Forsikring</span>
@@ -95,6 +101,36 @@ function diffDaysInclusive(start: Date | string | null | undefined, end: Date | 
   return diff > 0 ? diff : 0;
 }
 const rentalDays = computed(() => diffDaysInclusive(store.startDate, store.endDate));
+
+// Calculate savings from weekly/bi-weekly pricing vs daily pricing
+const weeklyDiscountSavings = computed(() => {
+  if (!backendBreakdown.value || rentalDays.value < 7) return 0;
+  
+  // Calculate what it would cost with daily pricing for the entire period
+  const dailyPriceTotal = models.value.reduce((total, model) => {
+    const config = model.config || {
+      dailyPrice: model.price || 0,
+      weeklyPrice: (model.price || 0) * 6.5, 
+      twoWeekPrice: (model.price || 0) * 12
+    };
+    const quantity = model.quantity || 1;
+    return total + (config.dailyPrice * rentalDays.value * quantity);
+  }, 0);
+  
+  // Get the actual total from the breakdown (excluding discounts from multiple models)
+  const actualModelTotal = backendBreakdown.value.models.reduce((sum: number, m: any) => {
+    return sum + (m.pricePerDay * m.days * m.quantity);
+  }, 0);
+  
+  // The savings is the difference
+  return Math.max(0, dailyPriceTotal - actualModelTotal);
+});
+
+const weeklyDiscountType = computed(() => {
+  if (rentalDays.value >= 14) return 'bi-ugerabat';
+  if (rentalDays.value >= 7) return 'ugerabat';
+  return '';
+});
 
 const backendTotal = ref<number|null>(null);
 const backendBreakdown = ref<any|null>(null);
@@ -181,7 +217,9 @@ async function fetchBackendTotal() {
   breakdown.discountTotal = breakdown.models.reduce((sum: number, m: any) => sum + ((m.discount || 0) * m.quantity * m.days), 0);
 
     // Calculate accessory prices
-    for (const accessory of accessories.value) {
+    const accessoriesArray = Array.from(accessories.value || []);
+    
+    for (const accessory of accessoriesArray) {
       const quantity = accessory.quantity || 1;
       // Accessory price is for the entire booking, not per day
       const accessoryTotal = accessory.price * quantity;
@@ -210,7 +248,6 @@ async function fetchBackendTotal() {
     
     // Update the store with the calculated total
     store.setBackendTotal(total);
-    console.log('🛒 BasketView: Updated store backendTotal to:', total);
   } catch (e: any) {
     error.value = (typeof e === 'object' && e && 'message' in e) ? (e as any).message : 'Ukendt fejl ved prisberegning';
     backendTotal.value = null;
