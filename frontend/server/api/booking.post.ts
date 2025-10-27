@@ -68,7 +68,6 @@ async function checkAccessoryAvailability(accessories: Array<{ name: string; qua
   }
   
   return true;
-=======
 // Helper function to find available camera for a product
 async function findAvailableCamera(productId: number, startDate: string, endDate: string): Promise<{ cameraId: number; cameraName: string } | null> {
   console.log(`Finding available camera for product ${productId} from ${startDate} to ${endDate}`);
