@@ -125,7 +125,7 @@
         <div class="flex items-center justify-center gap-2 group relative">
           <span>
             Antal
-            <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantity(item) }})</small>
+            <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantityForItem(item) }})</small>
             <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small>
           </span>
           <input
@@ -134,9 +134,9 @@
             :max="item.productId !== undefined ? getMaxProductQuantity(item.productId) : 1"
 
             v-model.number="item.quantity"
-            :disabled="getMaxProductQuantity(item) <= 1"
+            :disabled="getMaxProductQuantityForItem(item) <= 1"
             class="w-12 text-center rounded border border-gray-300"
-            :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxProductQuantity(item) <= 1 }"
+            :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxProductQuantityForItem(item) <= 1 }"
           />
           <span
             v-if="item.productId !== undefined && item.quantity === getMaxProductQuantity(item.productId)"
@@ -188,12 +188,9 @@
             :title="getAccessoryTooltipMessage(acc.name) || (isAccessoryUnavailable(acc.name) ? 'Ikke tilgængelig i denne periode' : '')"
           >
             {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
-            <template v-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available > 0">
-              ({{ accessoryAvailability[acc.name.toLowerCase()].available }} tilgængelige)
-            </template>
-            <template v-else-if="datesSelected && accessoryAvailability[acc.name.toLowerCase()] && accessoryAvailability[acc.name.toLowerCase()].available === 0">
-              (Ikke tilgængelig)
-            </template>
+            <span v-if="datesSelected && acc.id">
+              ({{ isAccessoryAvailable(acc.id, 1) ? 'Available' : 'Not available' }})
+            </span>
           </option>
         </select>
         <div 
@@ -293,9 +290,8 @@ function getMaxProductQuantityForItem(item: { name: string; productId?: number }
   const arr = models.value as ProductOption[];
   const id = item.productId ?? arr.find((m: ProductOption) => m.name === item.name)?.id;
   if (id === undefined) return 0;
-  const product = arr.find((m: ProductOption) => m.id === id);
-  // Prefer server availability; fall back to DB-configured product.quantity, then 0
-  return availability.value[id] ?? product?.quantity ?? 0;
+  // Use the availability composable instead of old local state
+  return getMaxProdQty(id);
 }
 
 function getMaxAccessoryQuantity(item: { name: string }) {
@@ -349,16 +345,17 @@ interface SelectedCamera {
 
 const models = ref<ProductOption[]>([]);
 const accessories = ref<{ id?: number; name: string; price: number; quantity?: number }[]>([]);
-const availability = ref<Record<number, number>>({});
 const accessoryAvailability = ref<Record<string, { total: number; available: number; booked: number }>>({});
-const availabilityLoading = ref<boolean>(false);
 const availableCameras = ref<Camera[]>([]);
 const selectedCameras = ref<SelectedCamera[]>([]);
 const selectedCameraId = ref<number | null>(null);
 
 // Use availability composable
-const availability = useAvailability();
-const { loading: availabilityLoading, checkAvailability, isProductAvailable, isAccessoryAvailable, getMaxProductQuantity: getMaxProdQty, getMaxAccessoryQuantity: getMaxAccQty, getAvailabilityMessage } = availability;
+const availabilityComposable = useAvailability();
+const { loading: availabilityLoading, checkAvailability, isProductAvailable, isAccessoryAvailable, getMaxProductQuantity: getMaxProdQty, getMaxAccessoryQuantity: getMaxAccQty, getAvailabilityMessage } = availabilityComposable;
+
+// Error handling for availability
+const availabilityError = ref<string | null>(null);
 
 // SSR-safe Pinia usage
 const store = useCheckoutStore();
@@ -457,7 +454,7 @@ const canAddSelectedModel = computed(() => {
 const canAddSelectedAccessory = computed(() => {
   if (!selectedAccessoryName.value || !datesSelected.value) return false;
   const accessory = accessories.value.find(a => a.name === selectedAccessoryName.value);
-  if (!accessory) return false;
+  if (!accessory || !accessory.id) return false;
   return isAccessoryAvailable(accessory.id, 1);
 });
 
@@ -855,7 +852,7 @@ async function onAddSelectedAccessory() {
   const acc = accessories.value.find(
     (a) => a.name === selectedAccessoryName.value
   );
-  if (!acc) return;
+  if (!acc || !acc.id) return;
 
   // Check availability before adding
   if (!isAccessoryAvailable(acc.id, 1)) {
@@ -931,8 +928,6 @@ onMounted(async () => {
       twoWeekPrice: p.twoWeekPrice,
       quantity: typeof p.quantity === "number" ? p.quantity : 5,
     }));
-    // Seed availability from DB-configured product quantities so UI shows non-magic defaults immediately
-    availability.value = Object.fromEntries(models.value.map(m => [m.id, m.quantity ?? 0]));
   } catch (e) {
     console.error("Error fetching products from Supabase:", e);
   }
@@ -956,51 +951,38 @@ onMounted(async () => {
     console.error("Error fetching accessories from Supabase:", e);
   }
 
+  // Check availability if dates are already selected
+  if (startDate.value && endDate.value && (models.value.length > 0 || accessories.value.length > 0)) {
+    const productIds = models.value.map(m => m.id).filter((id): id is number => id !== undefined);
+    const accessoryIds = accessories.value.map(a => a.id).filter((id): id is number => id !== undefined);
+    try {
+      await checkAvailability(startDate.value, endDate.value, productIds, accessoryIds);
+    } catch (error) {
+      console.error('Error checking initial availability:', error);
+    }
+  }
 });
 
+// Check availability when dates change
 watch([startDate, endDate], async () => {
+  availabilityError.value = null;
+  
   if (!startDate.value || !endDate.value) {
-    availability.value = {};
-    accessoryAvailability.value = {};
-    availabilityLoading.value = false;
+    availabilityComposable.clearAvailability();
     return;
   }
 
-  availabilityLoading.value = true;
-  try {
-    const params = new URLSearchParams({ startDate: startDate.value!.toISOString(), endDate: endDate.value!.toISOString() });
-    const resp = await fetch(`/api/availability?${params.toString()}`);
-    if (!resp.ok) {
-      console.error('Availability API error', resp.statusText);
-      availability.value = {};
-      accessoryAvailability.value = {};
-      return;
+  // Get all product IDs and accessory IDs to check
+  const productIds = models.value.map(m => m.id).filter((id): id is number => id !== undefined);
+  const accessoryIds = accessories.value.map(a => a.id).filter((id): id is number => id !== undefined);
+  
+  if (productIds.length > 0 || accessoryIds.length > 0) {
+    try {
+      await checkAvailability(startDate.value, endDate.value, productIds, accessoryIds);
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      availabilityError.value = 'Failed to check availability';
     }
-    const body = await resp.json();
-    console.log('Full availability API response:', body);
-    
-    // Extract the actual data from the nested response structure
-    const data = body.body || body;
-    
-    if (data && data.availability) {
-      availability.value = data.availability;
-    } else {
-      availability.value = {};
-    }
-    
-    if (data && data.accessoryAvailability) {
-      accessoryAvailability.value = data.accessoryAvailability;
-      console.log('Accessory availability loaded:', data.accessoryAvailability);
-    } else {
-      accessoryAvailability.value = {};
-      console.log('No accessory availability data received');
-    }
-  } catch (err) {
-    console.error('Error fetching availability', err);
-    availability.value = {};
-    accessoryAvailability.value = {};
-  } finally {
-    availabilityLoading.value = false;
   }
 });
 
