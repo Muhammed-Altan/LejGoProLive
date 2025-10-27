@@ -211,6 +211,7 @@
             min="1"
             :max="getMaxAccessoryQuantity(item)"
             v-model.number="item.quantity"
+            @input="onAccessoryQuantityChange"
             :disabled="getMaxAccessoryQuantity(item) <= 1"
             class="w-12 text-center rounded border"
             :class="{
@@ -762,6 +763,12 @@ function onAddSelectedAccessory() {
 
 function removeAccessory(idx: number) {
   selectedAccessories.value.splice(idx, 1);
+}
+
+function onAccessoryQuantityChange() {
+  // Sync accessory quantity changes to the store
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
+  store.setSelectedAccessories([...selectedAccessories.value], modelCount);
 }
 
 
