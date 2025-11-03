@@ -77,7 +77,7 @@
             {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
-              <template v-else> - {{ getMaxProductQuantity(model.id) }} tilgængelige</template>
+              <!-- <template v-else> - {{ getMaxProductQuantity(model.id) }} tilgængelige</template> -->
 
             </span>
           </option>
@@ -115,7 +115,7 @@
         class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
       >
       <img 
-        src="/eventyr/GoPro-MountainTop.jpg" 
+        :src="placeholderImage" 
         alt="" 
         class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
 
@@ -125,7 +125,7 @@
         <div class="flex items-center justify-center gap-2 group relative">
           <span>
             Antal
-            <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantityForItem(item) }})</small>
+            <!-- <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantityForItem(item) }})</small> -->
             <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small>
           </span>
           <input
@@ -165,6 +165,10 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
         <span>Vælg venligst bookingperiode først for at vælge tilbehør.</span>
       </div>
+      <div v-else-if="datesSelected && selectedModels.length === 0" class="mb-3 p-3 rounded bg-yellow-100 border border-yellow-300 text-yellow-900 flex items-center gap-2 animate-pulse">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
+        <span>Vælg venligst en GoPro model først for at vælge tilbehør.</span>
+      </div>
       <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
         <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -175,7 +179,7 @@
       <div class="flex items-center gap-3">
         <select
           v-model="selectedAccessoryName"
-          :disabled="!datesSelected"
+          :disabled="!datesSelected || selectedModels.length === 0"
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">Vælg tilbehør…</option>
@@ -189,16 +193,16 @@
           >
             {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
             <span v-if="datesSelected && acc.id">
-              ({{ isAccessoryAvailable(acc.id, 1) ? 'Available' : 'Not available' }})
+              {{ isAccessoryAvailable(acc.id, 1) ? '' : 'Ikke tilgængelig' }}
             </span>
           </option>
         </select>
         <div 
-          :title="selectedAccessoryName && (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) ? (getAccessoryTooltipMessage(selectedAccessoryName) || 'Ikke tilgængelig i denne periode') : ''"
+          :title="selectedModels.length === 0 ? 'Vælg først en GoPro model' : (selectedAccessoryName && (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) ? (getAccessoryTooltipMessage(selectedAccessoryName) || 'Ikke tilgængelig i denne periode') : '')"
           class="inline-block"
         >
           <button
-            :disabled="!selectedAccessoryName || !datesSelected || (selectedAccessoryName ? (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) : false)"
+            :disabled="!selectedAccessoryName || !datesSelected || selectedModels.length === 0 || (selectedAccessoryName ? (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) : false)"
             @click="onAddSelectedAccessory"
             class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
           >
@@ -219,10 +223,10 @@
           'bg-orange-50 border-2 border-orange-300': isAccessoryAtActualLimit(item)
         }"
       >
-      <img 
-        src="/eventyr/GoPro-MountainTop.jpg" 
+      <!-- <img 
+        :src="placeholderImage" 
         alt="" 
-        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
+        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white"> -->
 
         <div class="flex-1 font-medium">
           {{ item.name }}
@@ -274,6 +278,9 @@ import { useAvailability } from "@/composables/useAvailability";
 import { useNuxtApp } from "#app";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
+
+// Placeholder image for camera models
+const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/blt6ff9ada3eca94bbc/643ee100b1f4db27b0203e9d/pdp-h10-image01-1920-2x.png';
 
 // Models are now fetched from the backend Product table
 interface ProductOption {
@@ -452,7 +459,7 @@ const canAddSelectedModel = computed(() => {
 });
 
 const canAddSelectedAccessory = computed(() => {
-  if (!selectedAccessoryName.value || !datesSelected.value) return false;
+  if (!selectedAccessoryName.value || !datesSelected.value || selectedModels.value.length === 0) return false;
   const accessory = accessories.value.find(a => a.name === selectedAccessoryName.value);
   if (!accessory || !accessory.id) return false;
   return isAccessoryAvailable(accessory.id, 1);
