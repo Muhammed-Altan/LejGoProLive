@@ -77,7 +77,7 @@
             {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
-              <template v-else> - {{ getMaxProductQuantity(model.id) }} tilgængelige</template>
+              <!-- <template v-else> - {{ getMaxProductQuantity(model.id) }} tilgængelige</template> -->
 
             </span>
           </option>
@@ -115,7 +115,7 @@
         class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
       >
       <img 
-        src="/eventyr/GoPro-MountainTop.jpg" 
+        :src="placeholderImage" 
         alt="" 
         class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
 
@@ -125,7 +125,7 @@
         <div class="flex items-center justify-center gap-2 group relative">
           <span>
             Antal
-            <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantityForItem(item) }})</small>
+            <!-- <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantityForItem(item) }})</small> -->
             <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small>
           </span>
           <input
@@ -189,7 +189,7 @@
           >
             {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
             <span v-if="datesSelected && acc.id">
-              ({{ isAccessoryAvailable(acc.id, 1) ? 'Available' : 'Not available' }})
+              {{ isAccessoryAvailable(acc.id, 1) ? '' : 'Ikke tilgængelig' }}
             </span>
           </option>
         </select>
@@ -219,10 +219,10 @@
           'bg-orange-50 border-2 border-orange-300': isAccessoryAtActualLimit(item)
         }"
       >
-      <img 
-        src="/eventyr/GoPro-MountainTop.jpg" 
+      <!-- <img 
+        :src="placeholderImage" 
         alt="" 
-        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
+        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white"> -->
 
         <div class="flex-1 font-medium">
           {{ item.name }}
@@ -274,6 +274,9 @@ import { useAvailability } from "@/composables/useAvailability";
 import { useNuxtApp } from "#app";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
+
+// Placeholder image for camera models
+const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/blt6ff9ada3eca94bbc/643ee100b1f4db27b0203e9d/pdp-h10-image01-1920-2x.png';
 
 // Models are now fetched from the backend Product table
 interface ProductOption {

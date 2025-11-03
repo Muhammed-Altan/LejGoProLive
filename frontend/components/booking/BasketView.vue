@@ -6,9 +6,9 @@
     <div v-else>
       <div v-for="(line, idx) in backendBreakdown.models" :key="idx" class="mb-5 text-lg flex items-center">
         <img
-          :src="line.image || '/eventyr/GoPro-MountainTop.jpg'"
+          :src="line.image || placeholderImage"
           :alt="line.name"
-          class="w-12 h-12 object-cover rounded mr-3 border border-gray-200 bg-white"
+          class="w-12 h-12 object-cover rounded mr-3 bg-white"
           style="flex-shrink:0;"
         />
         <span>{{ line.quantity }}x <span class="font-semibold">{{ line.name }}</span></span>
@@ -82,6 +82,8 @@ const discountTip = computed(() => {
 import { computed, ref, watch } from 'vue';
 import { useCheckoutStore } from '@/stores/checkout';
 import { useNuxtApp } from '#app';
+
+const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/blt6ff9ada3eca94bbc/643ee100b1f4db27b0203e9d/pdp-h10-image01-1920-2x.png';
 
 const store = useCheckoutStore();
 const stickyClasses = computed(() => 'lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:overflow-auto');
