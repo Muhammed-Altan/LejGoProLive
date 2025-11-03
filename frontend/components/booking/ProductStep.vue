@@ -165,6 +165,10 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
         <span>Vælg venligst bookingperiode først for at vælge tilbehør.</span>
       </div>
+      <div v-else-if="datesSelected && selectedModels.length === 0" class="mb-3 p-3 rounded bg-yellow-100 border border-yellow-300 text-yellow-900 flex items-center gap-2 animate-pulse">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
+        <span>Vælg venligst en GoPro model først for at vælge tilbehør.</span>
+      </div>
       <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
         <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -175,7 +179,7 @@
       <div class="flex items-center gap-3">
         <select
           v-model="selectedAccessoryName"
-          :disabled="!datesSelected"
+          :disabled="!datesSelected || selectedModels.length === 0"
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">Vælg tilbehør…</option>
@@ -194,11 +198,11 @@
           </option>
         </select>
         <div 
-          :title="selectedAccessoryName && (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) ? (getAccessoryTooltipMessage(selectedAccessoryName) || 'Ikke tilgængelig i denne periode') : ''"
+          :title="selectedModels.length === 0 ? 'Vælg først en GoPro model' : (selectedAccessoryName && (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) ? (getAccessoryTooltipMessage(selectedAccessoryName) || 'Ikke tilgængelig i denne periode') : '')"
           class="inline-block"
         >
           <button
-            :disabled="!selectedAccessoryName || !datesSelected || (selectedAccessoryName ? (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) : false)"
+            :disabled="!selectedAccessoryName || !datesSelected || selectedModels.length === 0 || (selectedAccessoryName ? (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) : false)"
             @click="onAddSelectedAccessory"
             class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
           >
@@ -455,7 +459,7 @@ const canAddSelectedModel = computed(() => {
 });
 
 const canAddSelectedAccessory = computed(() => {
-  if (!selectedAccessoryName.value || !datesSelected.value) return false;
+  if (!selectedAccessoryName.value || !datesSelected.value || selectedModels.value.length === 0) return false;
   const accessory = accessories.value.find(a => a.name === selectedAccessoryName.value);
   if (!accessory || !accessory.id) return false;
   return isAccessoryAvailable(accessory.id, 1);
