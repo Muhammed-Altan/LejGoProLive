@@ -3,7 +3,7 @@
 
   <!-- Hero Section -->
   <section class="relative flex flex-col items-center justify-center min-h-[90vh] bg-cover bg-center" style="background-image: url('/hero-bg/federico-persiani-XvPuZ2Q71GA-unsplash.jpg');">
-  <div class="absolute inset-0 bg-white/30"></div>
+  <div class="absolute inset-0 bg-white/50"></div>
     <div class="relative z-10 flex flex-col items-center justify-center py-24">
       <h1 class="text-4xl md:text-5xl font-bold text-center text-black mb-8">
   Lej dit <span class="text-[#B8082A]">GoPro</span> til næste eventyr
@@ -127,23 +127,23 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
       <div class="flex flex-col items-center">
         <span class="text-5xl mb-4">📅</span>
-        <h3 class="font-bold mb-2">1. booking</h3>
-        <p class="text-center text-gray-600">Udfyld kontaktformularen, og vi sender dig et tilbud.</p>
+        <h3 class="font-bold mb-2">1. Vælg udstyr</h3>
+        <p class="text-center text-gray-600">Vælg din booking periode og den GoPro model du ønsker plus tilbehør.</p>
       </div>
       <div class="flex flex-col items-center">
         <span class="text-5xl mb-4">🚚</span>
-        <h3 class="font-bold mb-2">2. fragt</h3>
-        <p class="text-center text-gray-600">Når du accepterer tilbuddet, sender vi kameraet til dig med den nærmeste pakkeshop og altid inkluderet.</p>
+        <h3 class="font-bold mb-2">2. Levering</h3>
+        <p class="text-center text-gray-600">Udfyld dine kontaktoplysninger og leveringsadresse for levering.</p>
       </div>
       <div class="flex flex-col items-center">
         <span class="text-5xl mb-4">💳</span>
-        <h3 class="font-bold mb-2">3. betaling</h3>
-        <p class="text-center text-gray-600">Bekræft via SMS og betal med MobilePay inden du tager afsted på din rejse.</p>
+        <h3 class="font-bold mb-2">3. Betaling</h3>
+        <p class="text-center text-gray-600">Betal sikkert med Google Pay, Apple Pay eller betalingskort.</p>
       </div>
       <div class="flex flex-col items-center">
         <span class="text-5xl mb-4">🎥</span>
-        <h3 class="font-bold mb-2">4. GoPro</h3>
-        <p class="text-center text-gray-600">Når betalingen er på plads, er alt klar til at starte din oplevelse og indfange dine eventyr.</p>
+        <h3 class="font-bold mb-2">4. Bekræftelse</h3>
+        <p class="text-center text-gray-600">Modtag bekræftelse og kameraet leveres til dig på den valgte adresse.</p>
       </div>
     </div>
   </section>
@@ -151,11 +151,11 @@
   <!-- FAQ Section -->
   <section class="bg-white py-16 ">
     <h2 class="text-2xl md:text-3xl font-bold text-center mb-12">Frequently asked <span class="text-[#B8082A]">questions.</span></h2>
-    <div class="flex flex-row gap-10 justify-center items-center mx-auto mb-10">
-      <UAccordion class = "!w-64" :items="[items[0]]" :ui="{ ...ui, item: ui.item + '  min-h-[100px] py-1 border-b-2 border-[#B8082A] !border-b-2 !border-[#B8082A]' }" />
-      <UAccordion class = "!w-64" :items="[items[1]]" :ui="{ ...ui, item: ui.item + '  min-h-[100px] py-1 border-b-2 border-[#B8082A] !border-b-2 !border-[#B8082A]' }" />
-      <UAccordion class = "!w-64" :items="[items[2]]" :ui="{ ...ui, item: ui.item + '  min-h-[100px] py-1 border-b-2 border-[#B8082A] !border-b-2 !border-[#B8082A]' }" />
-      <UAccordion class = "!w-64" :items="[items[3]]" :ui="{ ...ui, item: ui.item + '  min-h-[100px] py-1 border-b-2 border-[#B8082A] !border-b-2 !border-[#B8082A]' }" />
+    <div class="flex flex-col md:flex-row gap-4 md:gap-10 justify-center items-center mx-auto mb-10 px-4">
+      <UAccordion class = "!w-full md:!w-64" :items="[items[0]]" :ui="{ ...ui, item: ui.item + '  min-h-[100px] py-1 border-b-2 border-[#B8082A] !border-b-2 !border-[#B8082A]' }" />
+      <UAccordion class = "!w-full md:!w-64" :items="[items[1]]" :ui="{ ...ui, item: ui.item + '  min-h-[100px] py-1 border-b-2 border-[#B8082A] !border-b-2 !border-[#B8082A]' }" />
+      <UAccordion class = "!w-full md:!w-64" :items="[items[2]]" :ui="{ ...ui, item: ui.item + '  min-h-[100px] py-1 border-b-2 border-[#B8082A] !border-b-2 !border-[#B8082A]' }" />
+      <UAccordion class = "!w-full md:!w-64" :items="[items[3]]" :ui="{ ...ui, item: ui.item + '  min-h-[100px] py-1 border-b-2 border-[#B8082A] !border-b-2 !border-[#B8082A]' }" />
     </div>
     <div class="flex justify-center">
       <NuxtLink to="/faq" class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition">Læs mere</NuxtLink>

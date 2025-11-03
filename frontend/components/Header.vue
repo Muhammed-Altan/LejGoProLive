@@ -1,6 +1,6 @@
 
 <template>
-  <header class="flex items-center justify-between flex-row py-2 px-10 bg-white border-b border-gray-200 sticky top-0 z-40">
+  <header class="flex items-center justify-between flex-row py-2 px-4 md:px-10 bg-white border-b border-gray-200 sticky top-0 z-40">
     <div class="flex items-center gap-2">
       <NuxtLink to="/" class="flex items-center h-10 w-auto p-0 m-0">
         <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="120" height="32" viewBox="0 0 683 178" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd; display:block;" aria-label="LejGoPro logo">
@@ -16,17 +16,102 @@
         </svg>
       </NuxtLink>
     </div>
-    <nav class="flex items-center gap-8">
+
+    <!-- Desktop Navigation -->
+    <nav class="hidden md:flex items-center gap-8">
       <NuxtLink to="/products" class="text-gray-900 no-underline font-normal text-base transition-colors duration-200 hover:text-[#B8082A]">Produkter</NuxtLink>
       <NuxtLink to="/hvorfor" class="text-gray-900 no-underline font-normal text-base transition-colors duration-200 hover:text-[#B8082A]">Hvorfor leje?</NuxtLink>
       <NuxtLink to="/kontakt" class="text-gray-900 no-underline font-normal text-base transition-colors duration-200 hover:text-[#B8082A]">Kontakt</NuxtLink>
       <UButton to="/checkout" size="md" class="font-semibold rounded-lg px-5 py-2 ml-4 bg-[#B8082A] border border-transparent text-white hover:bg-white hover:text-[#B8082A] hover:border-[#B8082A] cursor-pointer transition-colors duration-200">Book Nu</UButton>
     </nav>
+
+    <!-- Mobile Burger Menu Button -->
+    <button 
+      @click="toggleMobileMenu" 
+      class="md:hidden flex flex-col items-center justify-center w-8 h-8 space-y-1.5 focus:outline-none"
+      :class="{ 'open': mobileMenuOpen }"
+    >
+      <span class="w-6 h-0.5 bg-gray-900 transition-all duration-300 ease-in-out" :class="{ 'rotate-45 translate-y-2': mobileMenuOpen }"></span>
+      <span class="w-6 h-0.5 bg-gray-900 transition-all duration-300 ease-in-out" :class="{ 'opacity-0': mobileMenuOpen }"></span>
+      <span class="w-6 h-0.5 bg-gray-900 transition-all duration-300 ease-in-out" :class="{ '-rotate-45 -translate-y-2': mobileMenuOpen }"></span>
+    </button>
+
+    <!-- Mobile Menu Overlay -->
+    <div 
+      v-if="mobileMenuOpen" 
+      class="fixed inset-0 z-50 md:hidden"
+      @click="mobileMenuOpen = false"
+    >
+      <!-- Background overlay -->
+      <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+      
+      <!-- Menu content -->
+      <div class="absolute top-0 right-0 w-64 h-full bg-white shadow-lg">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <span class="font-semibold text-lg">Menu</span>
+          <button 
+            @click="mobileMenuOpen = false"
+            class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <nav class="flex flex-col p-4 space-y-4">
+          <NuxtLink 
+            to="/products" 
+            @click="mobileMenuOpen = false"
+            class="text-gray-900 no-underline font-normal text-base py-2 transition-colors duration-200 hover:text-[#B8082A]"
+          >
+            Produkter
+          </NuxtLink>
+          <NuxtLink 
+            to="/hvorfor" 
+            @click="mobileMenuOpen = false"
+            class="text-gray-900 no-underline font-normal text-base py-2 transition-colors duration-200 hover:text-[#B8082A]"
+          >
+            Hvorfor leje?
+          </NuxtLink>
+          <NuxtLink 
+            to="/kontakt" 
+            @click="mobileMenuOpen = false"
+            class="text-gray-900 no-underline font-normal text-base py-2 transition-colors duration-200 hover:text-[#B8082A]"
+          >
+            Kontakt
+          </NuxtLink>
+          <UButton 
+            to="/checkout" 
+            @click="mobileMenuOpen = false"
+            size="md" 
+            class="font-semibold rounded-lg px-5 py-2 mt-4 bg-[#B8082A] border border-transparent text-white hover:bg-white hover:text-[#B8082A] hover:border-[#B8082A] cursor-pointer transition-colors duration-200 w-full"
+          >
+            Book Nu
+          </UButton>
+        </nav>
+      </div>
+    </div>
   </header>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 
+const mobileMenuOpen = ref(false)
+
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
+
+// Close mobile menu when clicking outside or navigating
+onMounted(() => {
+  // Close menu on route change
+  const router = useRouter()
+  router.afterEach(() => {
+    mobileMenuOpen.value = false
+  })
+})
 </script>
 
 
