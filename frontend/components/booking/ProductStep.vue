@@ -60,12 +60,13 @@
       <div class="flex items-center gap-3">
         <select
           v-model="selectedModelName"
+          @change="onModelSelect"
           :disabled="!datesSelected || availabilityLoading"
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
-          <option disabled value="">Vælg en model…</option>
+          <option disabled value="">Vælg en model for at tilføje…</option>
           <option
-            v-for="model in models"
+            v-for="model in availableModelsForSelection"
             :key="model.name"
             :value="model.name"
             :disabled="!isProductAvailable(model.id, 1)"
@@ -83,14 +84,6 @@
             Har du brug for 7+ GoPros? Kontakt os på email for en specialpris
           </option>
         </select>
-        <button
-          :disabled="!selectedModelName || !datesSelected || selectedModels.length >= 2 || availabilityLoading || !canAddSelectedModel"
-          @click="onAddSelectedModel"
-          class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
-          :title="getAddButtonTooltip()"
-        >
-          <span class="mr-1 text-xl plus-red">+</span> Tilføj
-        </button>
       </div>
     </section>
 
@@ -176,12 +169,13 @@
       <div class="flex items-center gap-3">
         <select
           v-model="selectedAccessoryName"
+          @change="onAccessorySelect"
           :disabled="!datesSelected || selectedModels.length === 0"
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
-          <option disabled value="">Vælg tilbehør…</option>
+          <option disabled value="">Vælg tilbehør for at tilføje…</option>
           <option
-            v-for="acc in accessories"
+            v-for="acc in availableAccessoriesForSelection"
             :key="acc.name"
             :value="acc.name"
             :disabled="isAccessoryAtMaxQuantity(acc.name) || isAccessoryUnavailable(acc.name)"
@@ -194,18 +188,6 @@
             </span>
           </option>
         </select>
-        <div 
-          :title="selectedModels.length === 0 ? 'Vælg først en GoPro model' : (selectedAccessoryName && (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) ? (getAccessoryTooltipMessage(selectedAccessoryName) || 'Ikke tilgængelig i denne periode') : '')"
-          class="inline-block"
-        >
-          <button
-            :disabled="!selectedAccessoryName || !datesSelected || selectedModels.length === 0 || (selectedAccessoryName ? (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) : false)"
-            @click="onAddSelectedAccessory"
-            class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
-          >
-            <span class="mr-1 text-xl plus-red">+</span> Tilføj
-          </button>
-        </div>
       </div>
     </section>
 
@@ -254,7 +236,7 @@
         </div>
         <button
           @click="removeAccessory(idx)"
-          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer"
+          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer tilfoej-btn"
         >
           Fjern
         </button>
@@ -449,12 +431,29 @@ function clearBasket() {
 // Computed: are dates selected?
 const datesSelected = computed(() => !!startDate.value && !!endDate.value);
 
+// Computed: available models for selection (exclude already selected models)
+const availableModelsForSelection = computed(() => {
+  return models.value.filter(model => {
+    // Exclude models that are already selected
+    const alreadySelected = selectedModels.value.some(m => m.name === model.name);
+    return !alreadySelected;
+  });
+});
+
 // Computed: can we add the selected model?
 const canAddSelectedModel = computed(() => {
   if (!selectedModelName.value || !datesSelected.value) return false;
   const model = models.value.find(m => m.name === selectedModelName.value);
   if (!model) return false;
   return isProductAvailable(model.id, 1);
+});
+
+// Computed: available accessories for selection (exclude already selected ones or those at max quantity)
+const availableAccessoriesForSelection = computed(() => {
+  return accessories.value.filter(accessory => {
+    // Include accessories that are not at max quantity or unavailable
+    return !isAccessoryAtMaxQuantity(accessory.name) && !isAccessoryUnavailable(accessory.name);
+  });
 });
 
 const canAddSelectedAccessory = computed(() => {
@@ -655,6 +654,11 @@ function selectModel(model: {
   }
 }
 
+function onModelSelect() {
+  if (!selectedModelName.value) return;
+  onAddSelectedModel();
+}
+
 async function onAddSelectedModel() {
   availabilityError.value = null;
   
@@ -852,6 +856,11 @@ function addAccessory(acc: { name: string; price: number }) {
     // Update the store with the new accessories list (pass model count)
     store.setSelectedAccessories([...selectedAccessories.value], modelCount);
   }
+}
+
+function onAccessorySelect() {
+  if (!selectedAccessoryName.value) return;
+  onAddSelectedAccessory();
 }
 
 async function onAddSelectedAccessory() {
