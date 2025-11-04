@@ -487,14 +487,14 @@ const minStartDate = computed(() => {
   return date;
 });
 
-// Minimum selectable end date: at least 3 days after the selected start date (or minStartDate if not set)
+// Minimum selectable end date: 3-day minimum booking period (start date + 2 days)
 const minEndDate = computed(() => {
   let baseDate = minStartDate.value;
   if (startDate.value && startDate.value > minStartDate.value) {
     baseDate = startDate.value;
   }
   const date = new Date(baseDate);
-  date.setDate(date.getDate() + 3);
+  date.setDate(date.getDate() + 2);
   return date;
 });
 
