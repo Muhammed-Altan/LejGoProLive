@@ -212,7 +212,8 @@ async function fetchBackendTotal() {
         days: rentalDays.value,
         total: modelTotal,
         originalTotal: pricePerDay * rentalDays.value * quantity,
-        priceType
+        priceType,
+        image: (model as any).imageUrl
       });
     });
     // Calculate total discount for all models

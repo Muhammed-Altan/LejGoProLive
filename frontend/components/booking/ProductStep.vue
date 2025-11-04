@@ -74,11 +74,9 @@
               'text-red-600': datesSelected && getMaxProductQuantity(model.id) === 0
             }"
           >
-            {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
+            {{ model.name }} fra {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
-              <!-- <template v-else> - {{ getMaxProductQuantity(model.id) }} tilgængelige</template> -->
-
             </span>
           </option>
           <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
@@ -115,7 +113,7 @@
         class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
       >
       <img 
-        :src="placeholderImage" 
+        :src="item.imageUrl || placeholderImage" 
         alt="" 
         class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
 
@@ -125,7 +123,6 @@
         <div class="flex items-center justify-center gap-2 group relative">
           <span>
             Antal
-            <!-- <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantityForItem(item) }})</small> -->
             <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small>
           </span>
           <input
@@ -191,7 +188,7 @@
             :class="{ 'text-gray-400': isAccessoryAtMaxQuantity(acc.name) || isAccessoryUnavailable(acc.name) }"
             :title="getAccessoryTooltipMessage(acc.name) || (isAccessoryUnavailable(acc.name) ? 'Ikke tilgængelig i denne periode' : '')"
           >
-            {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
+            {{ acc.name }} fra {{ Math.ceil(acc.price) }} kr./Booking
             <span v-if="datesSelected && acc.id">
               {{ isAccessoryAvailable(acc.id, 1) ? '' : 'Ikke tilgængelig' }}
             </span>
@@ -290,6 +287,7 @@ interface ProductOption {
   weeklyPrice?: number;
   twoWeekPrice?: number;
   quantity?: number;
+  imageUrl?: string;
 }
 
 // Only keep max quantity helpers for UI input validation
@@ -372,6 +370,7 @@ const selectedModels = ref<
     price: number;
     quantity: number;
     productId?: number;
+    imageUrl?: string;
     config?: { dailyPrice: number; weeklyPrice: number; twoWeekPrice: number };
   }[]
 >(Array.isArray(store.selectedModels) ? store.selectedModels : []);
@@ -647,6 +646,7 @@ function selectModel(model: {
   name: string;
   price: number;
   productId?: number;
+  imageUrl?: string;
   config?: { dailyPrice: number; weeklyPrice: number; twoWeekPrice: number };
 }) {
   const found = selectedModels.value.find((m) => m.name === model.name);
@@ -690,6 +690,7 @@ async function onAddSelectedModel() {
       name: model.name,
       price: model.price,
       productId: model.id,
+      imageUrl: model.imageUrl,
       config: {
         dailyPrice: model.price,
         weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
@@ -934,6 +935,7 @@ onMounted(async () => {
       weeklyPrice: p.weeklyPrice,
       twoWeekPrice: p.twoWeekPrice,
       quantity: typeof p.quantity === "number" ? p.quantity : 5,
+      imageUrl: p.imageUrl,
     }));
   } catch (e) {
     console.error("Error fetching products from Supabase:", e);
