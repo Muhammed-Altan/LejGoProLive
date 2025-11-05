@@ -70,9 +70,9 @@
       <div v-if="products.length === 0" class="col-span-full text-center text-gray-500">
         Ingen produkter fundet
       </div>
-      <div v-else class="col-span-full text-center text-sm text-gray-500 mb-4">
+      <!-- <div v-else class="col-span-full text-center text-sm text-gray-500 mb-4">
         {{ products.length }} produkter fundet
-      </div>
+      </div> -->
       
       <ProductCard
         v-for="product in products"
@@ -80,7 +80,7 @@
         :title="product.name"
         :description="''"
         :img="product.imageUrl || placeholderImage"
-        :features="product.features ? product.features.split(',').map(f => f.trim()) : []"
+        :features="product.features ? product.features.split(',').map(f => f.trim()).slice(0, 3) : []"
         :priceDay="product.dailyPrice"
         :priceWeek="product.weeklyPrice"
         :popular="false"
