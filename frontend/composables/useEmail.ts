@@ -15,8 +15,13 @@ export interface BookingEmailData {
   items?: Array<{
     name: string
     quantity: number
-    price: number
+    unitPrice: number
+    totalPrice: number
   }>
+  // Fields for booking updates with price differences
+  priceDifference?: number
+  paymentUrl?: string
+  isUpdate?: boolean
 }
 
 export const useEmail = () => {
@@ -100,7 +105,17 @@ export const useEmail = () => {
    * Generate a mailto link for manual email sending
    */
   const generateMailtoLink = (bookingData: BookingEmailData): string => {
-    const subject = encodeURIComponent(`Booking Receipt - Order #${bookingData.orderNumber}`)
+        const subject = encodeURIComponent(`LejGoPro ${bookingData.isUpdate ? 'Opdateret ' : ''}Faktura - Order ${bookingData.orderNumber}`)
+    
+    // Debug email template data
+    console.log('📧 Email template debug:', {
+      isUpdate: bookingData.isUpdate,
+      priceDifference: bookingData.priceDifference,
+      paymentUrl: bookingData.paymentUrl,
+      willShowUpdate: bookingData.isUpdate,
+      willShowPaymentLink: bookingData.paymentUrl,
+      customerEmail: bookingData.customerEmail
+    })
     
     const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat('da-DK', {
@@ -148,7 +163,27 @@ Address: ${bookingData.deliveryAddress}
 ${bookingData.items && bookingData.items.length > 0 ? `
 ITEMS:
 ======
-${bookingData.items.map(item => `${item.name} x${item.quantity} - ${formatCurrency(item.price * item.quantity)}`).join('\n')}
+        ${bookingData.items.map(item => `${item.name} x${item.quantity} - ${formatCurrency(item.totalPrice)}`).join('\n')}
+` : ''}
+
+${bookingData.isUpdate ? `
+
+====================
+BOOKING UPDATE
+====================
+${bookingData.priceDifference && bookingData.priceDifference > 0 ? `ADDITIONAL PAYMENT REQUIRED: ${formatCurrency(bookingData.priceDifference)}` : ''}
+${bookingData.priceDifference && bookingData.priceDifference < 0 ? `REFUND AMOUNT: ${formatCurrency(Math.abs(bookingData.priceDifference))}` : ''}
+${bookingData.paymentUrl ? `
+
+*** PAYMENT LINK ***
+To complete payment for the additional amount, please click this secure link:
+
+${bookingData.paymentUrl}
+
+*** IMPORTANT ***
+This link will expire in 10 minutes. Please complete your payment promptly.
+` : ''}
+====================
 ` : ''}
 
 If you have any questions, please don't hesitate to contact us.

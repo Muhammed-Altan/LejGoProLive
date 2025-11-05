@@ -12,9 +12,14 @@
         </div>
 
         <!-- Cancelled Message -->
-        <h1 class="text-3xl font-bold text-gray-900 mb-4">Betaling Annulleret</h1>
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">
+          {{ paymentType === 'difference' ? 'Ekstra Betaling Annulleret' : 'Betaling Annulleret' }}
+        </h1>
         <p class="text-lg text-gray-600 mb-8">
-          Din betaling blev annulleret. Din booking er ikke blevet oprettet. Du kan prøve igen eller kontakte os hvis du har brug for hjælp.
+          {{ paymentType === 'difference' 
+            ? 'Den ekstra betaling blev annulleret. Du kan prøve igen eller kontakte os hvis du har brug for hjælp.'
+            : 'Din betaling blev annulleret. Din booking er ikke blevet oprettet. Du kan prøve igen eller kontakte os hvis du har brug for hjælp.'
+          }}
         </p>
 
         <!-- Order Details -->
@@ -43,9 +48,12 @@
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8 text-left">
           <h4 class="font-semibold text-blue-900 mb-2">Hvad sker der nu?</h4>
           <ul class="text-blue-800 space-y-1 text-sm">
-            <li>• Der er ikke oprettet nogen booking</li>
-            <li>• Der er ikke trukket penge fra din konto</li>
-            <li>• Du kan prøve at bestille igen</li>
+            <li v-if="paymentType === 'difference'">• Den ekstra betaling blev ikke gennemført</li>
+            <li v-if="paymentType === 'difference'">• Din oprindelige booking er stadig aktiv</li>
+            <li v-if="paymentType === 'difference'">• Du kan prøve den ekstra betaling igen</li>
+            <li v-if="paymentType !== 'difference'">• Der er ikke oprettet nogen booking</li>
+            <li v-if="paymentType !== 'difference'">• Der er ikke trukket penge fra din konto</li>
+            <li v-if="paymentType !== 'difference'">• Du kan prøve at bestille igen</li>
             <li>• Kontakt os hvis du oplever problemer</li>
           </ul>
         </div>
@@ -89,6 +97,7 @@ const route = useRoute()
 const router = useRouter()
 
 const orderId = ref<string | null>(null)
+const paymentType = ref<string | null>(null)
 
 // Current date formatted
 const currentDate = computed(() => {
@@ -119,6 +128,7 @@ const contactSupport = () => {
 // Load order details on mount
 onMounted(() => {
   orderId.value = route.query.orderId as string || null
+  paymentType.value = route.query.type as string || null
 })
 
 // Set page title
