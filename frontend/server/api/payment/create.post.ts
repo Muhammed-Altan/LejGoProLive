@@ -364,51 +364,132 @@ export default defineEventHandler(async (event) => {
     
     console.log('🔧 Assigned accessory instances:', assignedAccessoryInstances)
 
-    // Create booking in database with correct camera and accessory instance assignment
-    const bookingPayload = {
-      // Only include fields that exist in the Booking table
-      productName: bookingData.productName,
-      startDate: bookingData.startDate,
-      endDate: bookingData.endDate,
-      fullName: bookingData.fullName,
-      email: bookingData.email,
-      phone: bookingData.phone,
-      address: bookingData.address,
-      apartment: bookingData.apartment,
-      city: bookingData.city,
-      postalCode: bookingData.postalCode,
-      cameraId: assignedCamera.cameraId,
-      cameraName: assignedCamera.cameraName,
-      accessoryInstanceIds: assignedAccessoryInstances,
-      totalPrice: totalAmount, // Store price in øre (integer) to match database schema
-      orderId,
-      paymentStatus: 'pending'
+    console.log('📋 Creating booking with multiple camera support...')
+    
+    // Handle multiple camera booking logic
+    const models = bookingData.models || [{ name: bookingData.productName, quantity: 1, productId: assignedCamera.productId }];
+    const bookingRecords = [];
+    
+    // Get all existing bookings that overlap with requested period to track which cameras are taken
+    const { data: existingBookings, error: existingBookingsError } = await supabase
+      .from('Booking')
+      .select('cameraId, startDate, endDate')
+      .lte('startDate', bookingData.endDate)
+      .gte('endDate', bookingData.startDate);
+
+    if (existingBookingsError) {
+      console.error('Error fetching existing bookings:', existingBookingsError);
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to check camera availability'
+      });
     }
 
-    console.log('✅ Creating booking with correct camera and accessory assignment:', {
-      productName: bookingPayload.productName,
-      cameraId: bookingPayload.cameraId,
-      cameraName: bookingPayload.cameraName,
-      accessoryInstanceIds: bookingPayload.accessoryInstanceIds
-    })
+    // Find which cameras are booked during the requested period
+    const bookedCameraIds = new Set(
+      (existingBookings || []).map((b: any) => b.cameraId).filter(Boolean)
+    );
     
-    const { data: booking, error: bookingError } = await supabase
+    // Get all cameras for each requested model
+    for (const model of models) {
+      // Find the product ID if not provided
+      let productId = model.productId;
+      if (!productId) {
+        const { data: product } = await supabase
+          .from('Product')
+          .select('id')
+          .eq('name', model.name)
+          .single();
+        productId = product?.id;
+      }
+      
+      if (!productId) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: `Product not found: ${model.name}`
+        });
+      }
+      
+      // Get cameras for this product
+      const { data: productCameras, error: camerasError } = await supabase
+        .from('Camera')
+        .select('id, productId')
+        .eq('productId', productId);
+
+      if (camerasError || !productCameras) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch cameras'
+        });
+      }
+
+      // Find available cameras for this model
+      const availableCameras = productCameras.filter((c: any) => !bookedCameraIds.has(c.id));
+      
+      if (availableCameras.length < model.quantity) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: `Not enough cameras available for ${model.name}. Requested: ${model.quantity}, Available: ${availableCameras.length}`
+        });
+      }
+
+      // Create one booking record per camera
+      for (let i = 0; i < model.quantity; i++) {
+        const camera = availableCameras[i];
+        const bookingRecord: any = {
+          productName: model.name,
+          startDate: bookingData.startDate,
+          endDate: bookingData.endDate,
+          fullName: bookingData.fullName,
+          email: bookingData.email,
+          phone: bookingData.phone,
+          address: bookingData.address,
+          apartment: bookingData.apartment,
+          city: bookingData.city,
+          postalCode: bookingData.postalCode,
+          cameraId: camera.id,
+          cameraName: `Kamera ${i + 1}`,
+          accessoryInstanceIds: assignedAccessoryInstances,
+          totalPrice: Math.round((totalAmount / models.reduce((sum: number, m: any) => sum + m.quantity, 0)) * 100), // Proportional pricing in øre (cents)
+          orderId: `${orderId}-${bookingRecords.length + 1}`, // Make each booking record have unique orderId
+          paymentStatus: 'pending'
+        };
+        
+        console.log('Creating booking record:', {
+          productName: bookingRecord.productName,
+          cameraId: bookingRecord.cameraId,
+          cameraName: bookingRecord.cameraName,
+          totalPrice: bookingRecord.totalPrice
+        });
+        
+        bookingRecords.push(bookingRecord);
+        bookedCameraIds.add(camera.id); // Mark this camera as taken for subsequent iterations
+      }
+    }
+
+    // Insert all booking records
+    console.log(`Attempting to insert ${bookingRecords.length} booking records...`);
+    
+    const { data: createdBookings, error: bookingError } = await supabase
       .from('Booking')
-      .insert([bookingPayload])
-      .select()
-      .single()
+      .insert(bookingRecords)
+      .select();
 
     if (bookingError) {
-      console.error('Detailed booking error:', {
-        message: bookingError.message,
-        details: bookingError.details,
-        hint: bookingError.hint,
-        code: bookingError.code
-      })
+      console.error('Booking insertion error:', bookingError);
       throw createError({
         statusCode: 500,
         statusMessage: `Failed to create booking: ${bookingError.message}`
-      })
+      });
+    }
+    
+    console.log(`✅ Created ${bookingRecords.length} booking records for ${models.reduce((sum: number, m: any) => sum + m.quantity, 0)} cameras`);
+    
+    // For compatibility, create a mock booking object for the rest of the payment flow
+    const booking = { 
+      id: createdBookings?.[0]?.id || 'multiple-cameras',
+      orderId,
+      productName: bookingData.productName 
     }
 
     const isTestMode = true
