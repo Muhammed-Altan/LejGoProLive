@@ -13,6 +13,7 @@ interface BookingData {
   service: string
   startDate: string
   endDate: string
+  duration?: string
   totalAmount: number
   items?: Array<{
     name: string
@@ -20,12 +21,25 @@ interface BookingData {
     unitPrice: number
     totalPrice: number
   }>
+  // Booking update fields
+  isUpdate?: boolean
+  priceDifference?: number
+  paymentUrl?: string
 }
 
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
     const { bookingData }: { bookingData: BookingData } = body
+
+    // Debug: Log the booking data received
+    console.log('📧 Server-side email API received booking data:', {
+      orderNumber: bookingData.orderNumber,
+      isUpdate: bookingData.isUpdate,
+      priceDifference: bookingData.priceDifference,
+      paymentUrl: bookingData.paymentUrl,
+      customerEmail: bookingData.customerEmail
+    })
 
     // Validate required fields
     if (!bookingData || !bookingData.customerEmail || !bookingData.orderNumber) {
@@ -105,19 +119,45 @@ export default defineEventHandler(async (event) => {
 
 function generateEmailHTML(booking: BookingData): string {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('da-DK', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    if (!dateString) return 'Ikke angivet'
+    
+    // Handle different date formats
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) {
+        return dateString // Return as-is if can't parse
+      }
+      return date.toLocaleDateString('da-DK', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    } catch {
+      return dateString // Return as-is if error
+    }
   }
 
   const formatCurrency = (amount: number) => {
+    if (typeof amount !== 'number' || isNaN(amount)) {
+      return 'Ikke angivet'
+    }
     return new Intl.NumberFormat('da-DK', {
       style: 'currency',
       currency: 'DKK'
     }).format(amount)
   }
+
+  // Debug the actual data being used
+  console.log('📧 Email template data:', {
+    service: booking.service,
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    totalAmount: booking.totalAmount,
+    typeof_totalAmount: typeof booking.totalAmount,
+    isUpdate: booking.isUpdate,
+    priceDifference: booking.priceDifference,
+    paymentUrl: booking.paymentUrl
+  })
 
   return `
     <!DOCTYPE html>
@@ -176,10 +216,34 @@ function generateEmailHTML(booking: BookingData): string {
         
         <div class="highlight">
           <h3>Booking detaljer:</h3>
-          <p><strong>Service:</strong> ${booking.service}</p>
-          <p><strong>Periode:</strong> ${formatDate(booking.startDate)} - ${formatDate(booking.endDate)}</p>
+          <p><strong>Kamera:</strong> ${booking.service || 'LejGoPro Service'}</p>
+          <p><strong>Periode:</strong> ${booking.startDate && booking.endDate ? `${formatDate(booking.startDate)} - ${formatDate(booking.endDate)}` : booking.duration || 'Se vedhæftet PDF'}</p>
           <p><strong>Total beløb:</strong> ${formatCurrency(booking.totalAmount)}</p>
         </div>
+
+        ${booking.isUpdate ? `
+          <div class="highlight" style="border-left: 4px solid #f59e0b; background-color: #fffbeb;">
+            <h3 style="color: #d97706;">📋 BOOKING OPDATERING</h3>
+            ${booking.priceDifference && booking.priceDifference > 0 ? `
+              <p style="color: #dc2626;"><strong>YDERLIGERE BETALING PÅKRÆVET:</strong> ${formatCurrency(booking.priceDifference)}</p>
+            ` : ''}
+            ${booking.priceDifference && booking.priceDifference < 0 ? `
+              <p style="color: #059669;"><strong>REFUNDERINGSBELØB:</strong> ${formatCurrency(Math.abs(booking.priceDifference))}</p>
+            ` : ''}
+            ${booking.paymentUrl ? `
+              <div style="margin: 15px 0; padding: 15px; background-color: #dbeafe; border-radius: 5px; border: 2px solid #3b82f6;">
+                <h4 style="color: #1e40af; margin: 0 0 10px 0;">💳 BETALINGSLINK</h4>
+                <p style="margin: 5px 0;">For at gennemføre betalingen af det yderligere beløb, brug venligst dette sikre link:</p>
+                <p style="margin: 10px 0;">
+                  <a href="${booking.paymentUrl}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    BETAL NU - ${formatCurrency(booking.priceDifference || 0)}
+                  </a>
+                </p>
+                <p style="margin: 5px 0; color: #dc2626; font-size: 14px;"><strong>VIGTIGT:</strong> Dette link udløber om 10 minutter. Gennemfør venligst din betaling hurtigt.</p>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
 
         ${booking.address ? `
           <div class="highlight">
