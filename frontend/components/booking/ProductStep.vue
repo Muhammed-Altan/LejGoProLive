@@ -81,7 +81,7 @@
             </span>
           </option>
           <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
-            Har du brug for 7+ GoPros? Kontakt os på email for en specialpris
+            Har du brug for 2+ GoPros? Kontakt os på email for en specialpris
           </option>
         </select>
       </div>
