@@ -123,27 +123,27 @@
 
   <!-- Booking Steps -->
   <section class="bg-white py-16">
-  <h2 class="text-2xl md:text-3xl font-bold text-center mb-12">Sådan <span class="text-[#B8082A]">booker</span> du</h2>
+  <h2 class="text-2xl md:text-3xl font-bold text-center mb-12">Sådan <span class="text-[#B8082A]">fungerer</span> det</h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
       <div class="flex flex-col items-center">
-        <span class="text-5xl mb-4">📅</span>
-        <h3 class="font-bold mb-2">1. Vælg udstyr</h3>
-        <p class="text-center text-gray-600">Vælg din booking periode og den GoPro model du ønsker plus tilbehør.</p>
+        <span class="text-5xl mb-4">🛒</span>
+        <h3 class="font-bold mb-2">1. Book online</h3>
+        <p class="text-center text-gray-600">Vælg din booking periode, GoPro model og tilbehør. Betal sikkert online.</p>
       </div>
       <div class="flex flex-col items-center">
-        <span class="text-5xl mb-4">🚚</span>
-        <h3 class="font-bold mb-2">2. Levering</h3>
-        <p class="text-center text-gray-600">Udfyld dine kontaktoplysninger og leveringsadresse for levering.</p>
-      </div>
-      <div class="flex flex-col items-center">
-        <span class="text-5xl mb-4">💳</span>
-        <h3 class="font-bold mb-2">3. Betaling</h3>
-        <p class="text-center text-gray-600">Betal sikkert med Google Pay, Apple Pay eller betalingskort.</p>
+        <span class="text-5xl mb-4" style="transform: scaleX(-1);">🚚</span>
+        <h3 class="font-bold mb-2">2. Få leveret</h3>
+        <p class="text-center text-gray-600">Vi leverer dit GoPro udstyr direkte til din adresse på den valgte dato.</p>
       </div>
       <div class="flex flex-col items-center">
         <span class="text-5xl mb-4">🎥</span>
-        <h3 class="font-bold mb-2">4. Bekræftelse</h3>
-        <p class="text-center text-gray-600">Modtag bekræftelse og kameraet leveres til dig på den valgte adresse.</p>
+        <h3 class="font-bold mb-2">3. Fang eventyret</h3>
+        <p class="text-center text-gray-600">Brug dit GoPro til at filme alle dine eventyr og oplevelser i høj kvalitet.</p>
+      </div>
+      <div class="flex flex-col items-center">
+        <span class="text-5xl mb-4">🚚</span>
+        <h3 class="font-bold mb-2">4. Send tilbage</h3>
+        <p class="text-center text-gray-600">Send udstyret tilbage med den medfølgende returlabel på slutdatoen.</p>
       </div>
     </div>
   </section>
