@@ -60,12 +60,13 @@
       <div class="flex items-center gap-3">
         <select
           v-model="selectedModelName"
+          @change="onModelSelect"
           :disabled="!datesSelected || availabilityLoading"
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
-          <option disabled value="">Vælg en model…</option>
+          <option disabled value="">Vælg en model for at tilføje…</option>
           <option
-            v-for="model in models"
+            v-for="model in availableModelsForSelection"
             :key="model.name"
             :value="model.name"
             :disabled="!isProductAvailable(model.id, 1)"
@@ -74,25 +75,15 @@
               'text-red-600': datesSelected && getMaxProductQuantity(model.id) === 0
             }"
           >
-            {{ model.name }} — {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
+            {{ model.name }} fra {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
-              <!-- <template v-else> - {{ getMaxProductQuantity(model.id) }} tilgængelige</template> -->
-
             </span>
           </option>
           <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
-            Har du brug for 7+ GoPros? Kontakt os på email for en specialpris
+            Har du brug for 2+ GoPros? Kontakt os på email for en specialpris
           </option>
         </select>
-        <button
-          :disabled="!selectedModelName || !datesSelected || selectedModels.length >= 2 || availabilityLoading || !canAddSelectedModel"
-          @click="onAddSelectedModel"
-          class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
-          :title="getAddButtonTooltip()"
-        >
-          <span class="mr-1 text-xl plus-red">+</span> Tilføj
-        </button>
       </div>
     </section>
 
@@ -115,7 +106,7 @@
         class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
       >
       <img 
-        :src="placeholderImage" 
+        :src="item.imageUrl || placeholderImage" 
         alt="" 
         class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
 
@@ -125,7 +116,6 @@
         <div class="flex items-center justify-center gap-2 group relative">
           <span>
             Antal
-            <!-- <small class="text-xs text-gray-500">(max: {{ getMaxProductQuantityForItem(item) }})</small> -->
             <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small>
           </span>
           <input
@@ -179,36 +169,25 @@
       <div class="flex items-center gap-3">
         <select
           v-model="selectedAccessoryName"
+          @change="onAccessorySelect"
           :disabled="!datesSelected || selectedModels.length === 0"
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
-          <option disabled value="">Vælg tilbehør…</option>
+          <option disabled value="">Vælg tilbehør for at tilføje…</option>
           <option
-            v-for="acc in accessories"
+            v-for="acc in availableAccessoriesForSelection"
             :key="acc.name"
             :value="acc.name"
             :disabled="isAccessoryAtMaxQuantity(acc.name) || isAccessoryUnavailable(acc.name)"
             :class="{ 'text-gray-400': isAccessoryAtMaxQuantity(acc.name) || isAccessoryUnavailable(acc.name) }"
             :title="getAccessoryTooltipMessage(acc.name) || (isAccessoryUnavailable(acc.name) ? 'Ikke tilgængelig i denne periode' : '')"
           >
-            {{ acc.name }} — {{ Math.ceil(acc.price) }} kr./Booking
+            {{ acc.name }} fra {{ Math.ceil(acc.price) }} kr./Booking
             <span v-if="datesSelected && acc.id">
               {{ isAccessoryAvailable(acc.id, 1) ? '' : 'Ikke tilgængelig' }}
             </span>
           </option>
         </select>
-        <div 
-          :title="selectedModels.length === 0 ? 'Vælg først en GoPro model' : (selectedAccessoryName && (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) ? (getAccessoryTooltipMessage(selectedAccessoryName) || 'Ikke tilgængelig i denne periode') : '')"
-          class="inline-block"
-        >
-          <button
-            :disabled="!selectedAccessoryName || !datesSelected || selectedModels.length === 0 || (selectedAccessoryName ? (isAccessoryAtMaxQuantity(selectedAccessoryName) || isAccessoryUnavailable(selectedAccessoryName)) : false)"
-            @click="onAddSelectedAccessory"
-            class="flex items-center tilfoej-btn font-semibold disabled:opacity-40"
-          >
-            <span class="mr-1 text-xl plus-red">+</span> Tilføj
-          </button>
-        </div>
       </div>
     </section>
 
@@ -257,7 +236,7 @@
         </div>
         <button
           @click="removeAccessory(idx)"
-          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer"
+          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer tilfoej-btn"
         >
           Fjern
         </button>
@@ -290,6 +269,7 @@ interface ProductOption {
   weeklyPrice?: number;
   twoWeekPrice?: number;
   quantity?: number;
+  imageUrl?: string;
 }
 
 // Only keep max quantity helpers for UI input validation
@@ -372,6 +352,7 @@ const selectedModels = ref<
     price: number;
     quantity: number;
     productId?: number;
+    imageUrl?: string;
     config?: { dailyPrice: number; weeklyPrice: number; twoWeekPrice: number };
   }[]
 >(Array.isArray(store.selectedModels) ? store.selectedModels : []);
@@ -450,12 +431,29 @@ function clearBasket() {
 // Computed: are dates selected?
 const datesSelected = computed(() => !!startDate.value && !!endDate.value);
 
+// Computed: available models for selection (exclude already selected models)
+const availableModelsForSelection = computed(() => {
+  return models.value.filter(model => {
+    // Exclude models that are already selected
+    const alreadySelected = selectedModels.value.some(m => m.name === model.name);
+    return !alreadySelected;
+  });
+});
+
 // Computed: can we add the selected model?
 const canAddSelectedModel = computed(() => {
   if (!selectedModelName.value || !datesSelected.value) return false;
   const model = models.value.find(m => m.name === selectedModelName.value);
   if (!model) return false;
   return isProductAvailable(model.id, 1);
+});
+
+// Computed: available accessories for selection (exclude already selected ones or those at max quantity)
+const availableAccessoriesForSelection = computed(() => {
+  return accessories.value.filter(accessory => {
+    // Include accessories that are not at max quantity or unavailable
+    return !isAccessoryAtMaxQuantity(accessory.name) && !isAccessoryUnavailable(accessory.name);
+  });
 });
 
 const canAddSelectedAccessory = computed(() => {
@@ -488,14 +486,14 @@ const minStartDate = computed(() => {
   return date;
 });
 
-// Minimum selectable end date: at least 3 days after the selected start date (or minStartDate if not set)
+// Minimum selectable end date: 3-day minimum booking period (start date + 2 days)
 const minEndDate = computed(() => {
   let baseDate = minStartDate.value;
   if (startDate.value && startDate.value > minStartDate.value) {
     baseDate = startDate.value;
   }
   const date = new Date(baseDate);
-  date.setDate(date.getDate() + 3);
+  date.setDate(date.getDate() + 2);
   return date;
 });
 
@@ -647,12 +645,18 @@ function selectModel(model: {
   name: string;
   price: number;
   productId?: number;
+  imageUrl?: string;
   config?: { dailyPrice: number; weeklyPrice: number; twoWeekPrice: number };
 }) {
   const found = selectedModels.value.find((m) => m.name === model.name);
   if (!found) {
     selectedModels.value.push({ ...model, quantity: 1 });
   }
+}
+
+function onModelSelect() {
+  if (!selectedModelName.value) return;
+  onAddSelectedModel();
 }
 
 async function onAddSelectedModel() {
@@ -690,6 +694,7 @@ async function onAddSelectedModel() {
       name: model.name,
       price: model.price,
       productId: model.id,
+      imageUrl: model.imageUrl,
       config: {
         dailyPrice: model.price,
         weeklyPrice: (model as any).weeklyPrice ?? model.price * 7,
@@ -853,6 +858,11 @@ function addAccessory(acc: { name: string; price: number }) {
   }
 }
 
+function onAccessorySelect() {
+  if (!selectedAccessoryName.value) return;
+  onAddSelectedAccessory();
+}
+
 async function onAddSelectedAccessory() {
   availabilityError.value = null;
   
@@ -934,6 +944,7 @@ onMounted(async () => {
       weeklyPrice: p.weeklyPrice,
       twoWeekPrice: p.twoWeekPrice,
       quantity: typeof p.quantity === "number" ? p.quantity : 5,
+      imageUrl: p.imageUrl,
     }));
   } catch (e) {
     console.error("Error fetching products from Supabase:", e);
