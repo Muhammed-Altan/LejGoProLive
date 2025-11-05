@@ -6,7 +6,6 @@
         Udfyld formularen nedenfor for at få et tilbud
       </h2>
     </article>
-    <!-- Booking Period Picker (Styled Section) -->
     <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
       <div class="flex items-center justify-between mb-2">
         <h2 class="font-semibold text-lg">Vælg din booking periode</h2>
@@ -23,8 +22,6 @@
             :min-date="minStartDate"
             :disabled-dates="isStartDateDisabled"
           />
-          <!-- Small helper text -->
-          <!-- <p class="mt-2 text-sm text-gray-500">Bemærk: Startdato må ikke være en weekend (lørdag eller søndag).</p> -->
         </div>
         <div class="flex-1">
               <VueDatePicker
@@ -61,17 +58,19 @@
         <select
           v-model="selectedModelName"
           @change="onModelSelect"
-          :disabled="!datesSelected || availabilityLoading"
+          :disabled="!datesSelected || availabilityLoading || totalCameraCount >= 2"
           class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
-          <option disabled value="">Vælg en model for at tilføje…</option>
+          <option disabled value="">
+            {{ totalCameraCount >= 2 ? 'Maksimum 2 kameraer nået' : 'Vælg en model for at tilføje…' }}
+          </option>
           <option
             v-for="model in availableModelsForSelection"
             :key="model.name"
             :value="model.name"
-            :disabled="!isProductAvailable(model.id, 1)"
+            :disabled="!isProductAvailable(model.id, 1) || totalCameraCount >= 2"
             :class="{
-              'text-gray-400': !isProductAvailable(model.id, 1),
+              'text-gray-400': !isProductAvailable(model.id, 1) || totalCameraCount >= 2,
               'text-red-600': datesSelected && getMaxProductQuantity(model.id) === 0
             }"
           >
@@ -81,7 +80,7 @@
             </span>
           </option>
           <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
-            Har du brug for 2+ GoPros? Kontakt os på email for en specialpris
+            Har du brug for 3+ kameraer? Kontakt os på email for en specialpris
           </option>
         </select>
       </div>
@@ -121,20 +120,21 @@
           <input
             type="number"
             min="1"
-            :max="item.productId !== undefined ? getMaxProductQuantity(item.productId) : 1"
-
+            :max="Math.min(
+              item.productId !== undefined ? getMaxProductQuantity(item.productId) : 1,
+              2 - (totalCameraCount - (item.quantity || 1))
+            )"
             v-model.number="item.quantity"
             :disabled="getMaxProductQuantityForItem(item) <= 1"
             class="w-12 text-center rounded border border-gray-300"
             :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxProductQuantityForItem(item) <= 1 }"
           />
           <span
-            v-if="item.productId !== undefined && item.quantity === getMaxProductQuantity(item.productId)"
-
+            v-if="totalCameraCount >= 2 || (item.productId !== undefined && item.quantity === getMaxProductQuantity(item.productId))"
             class="absolute left-1/2 z-10 -translate-x-1/2 -top-14 w-56 rounded bg-white text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-normal shadow-lg"
             style="color: #b90c2c; background: #FF8800"
           >
-            Maksimum antal valgt
+            {{ totalCameraCount >= 2 ? 'Maksimum 2 kameraer pr. bestilling. Kontakt os for flere kameraer.' : 'Maksimum antal valgt' }}
           </span>
         </div>
         <button
@@ -202,11 +202,6 @@
           'bg-orange-50 border-2 border-orange-300': isAccessoryAtActualLimit(item)
         }"
       >
-      <!-- <img 
-        :src="placeholderImage" 
-        alt="" 
-        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white"> -->
-
         <div class="flex-1 font-medium">
           {{ item.name }}
           <!-- Max quantity disclaimer - only show when at problematic limit -->
@@ -430,6 +425,11 @@ function clearBasket() {
 
 // Computed: are dates selected?
 const datesSelected = computed(() => !!startDate.value && !!endDate.value);
+
+// Computed: total number of cameras across all selected models
+const totalCameraCount = computed(() => {
+  return selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
+});
 
 // Computed: available models for selection (exclude already selected models)
 const availableModelsForSelection = computed(() => {
@@ -662,8 +662,17 @@ function onModelSelect() {
 async function onAddSelectedModel() {
   availabilityError.value = null;
   
-  if (selectedModels.value.length >= 2) {
-    // Hardcap: do not add more than 2 model types
+  // Check total camera count across all models
+  const totalCameras = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
+  
+  if (totalCameras >= 2) {
+    // Show message about contacting for more cameras
+    const toast = useToast();
+    toast.add({
+      title: 'Maximum Cameras Reached',
+      description: 'For 3+ cameras, please contact us for a special deal',
+      color: 'warning'
+    });
     selectedModelName.value = "";
     return;
   }
