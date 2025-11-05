@@ -13,9 +13,14 @@
 
         <!-- Success Message - Only show for valid orders -->
         <div v-if="orderDetails && !orderNotFound">
-          <h1 class="text-3xl font-bold text-gray-900 mb-4">Betaling Gennemført!</h1>
+          <h1 class="text-3xl font-bold text-gray-900 mb-4">
+            {{ isDifferencePayment ? 'Ekstra Betaling Gennemført!' : 'Betaling Gennemført!' }}
+          </h1>
           <p class="text-lg text-gray-600 mb-4">
-            Tak for din betaling. Din booking er nu bekræftet og du vil modtage en email bekræftelse inden for få minutter.
+            {{ isDifferencePayment 
+              ? 'Tak for din ekstra betaling. Betalingen er nu gennemført og du vil modtage en opdateret bekræftelse.'
+              : 'Tak for din betaling. Din booking er nu bekræftet og du vil modtage en email bekræftelse inden for få minutter.'
+            }}
           </p>
           
           <!-- Auto email sending status -->
@@ -145,6 +150,7 @@ const bookingDetails = ref<any>(null)
 const error = ref<string | null>(null)
 const emailSent = ref(false)
 const orderNotFound = ref(false)
+const isDifferencePayment = ref(false)
 
 // Prepare booking data for email
 const bookingData = computed<BookingEmailData | null>(() => {
@@ -257,6 +263,8 @@ const updatePaymentStatus = async (orderId: string) => {
 // Load payment details on mount
 onMounted(async () => {
   const orderId = route.query.orderId as string
+  const paymentType = route.query.type as string
+  const bookingId = route.query.booking as string
   
   // If no order ID in URL, redirect to home page
   if (!orderId) {
@@ -266,7 +274,27 @@ onMounted(async () => {
   }
 
   try {
-    // Fetch the actual booking data from the database using server API (bypasses RLS)
+    // Handle difference payment success
+    if (paymentType === 'difference' && bookingId) {
+      console.log('🔍 Processing difference payment success for booking:', bookingId)
+      
+      // For difference payments, we don't need to fetch booking details from the original booking API
+      // Instead, we show a simple success message
+      orderDetails.value = {
+        order_id: orderId,
+        amount: 0, // We'll update this if needed
+        state: 'Ekstra betaling modtaget',
+        updated_at: new Date().toISOString()
+      }
+      
+      // Update the success message for difference payments
+      isDifferencePayment.value = true
+      emailSent.value = true // Assume email was sent
+      
+      return
+    }
+    
+    // Regular booking payment processing
     console.log('🔍 Fetching booking data for orderId:', orderId)
     const response = await $fetch(`/api/booking/${orderId}`)
     

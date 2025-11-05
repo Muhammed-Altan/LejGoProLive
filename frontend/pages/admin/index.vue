@@ -406,7 +406,42 @@
                                 <label class="text-base font-semibold mb-1 text-gray-900">Total pris</label>
                                 <input v-model="editBookingForm.totalPrice" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
                             </div>
-                            <div class="flex justify-end">
+                            
+                            <!-- Price Difference Display -->
+                            <div v-if="calculatingPrice" class="flex items-center justify-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="text-blue-700 text-sm">Beregner ny pris...</span>
+                            </div>
+                            
+                            <div v-else-if="Math.abs(priceDifference) > 0.01" class="p-3 rounded-lg border" 
+                                 :class="priceDifference > 0 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="font-semibold text-sm" 
+                                            :class="priceDifference > 0 ? 'text-orange-800' : 'text-green-800'">
+                                            {{ priceDifference > 0 ? 'Prisforøgelse' : 'Prisreduktion' }}
+                                        </h4>
+                                        <p class="text-xs" :class="priceDifference > 0 ? 'text-orange-600' : 'text-green-600'">
+                                            {{ priceDifference > 0 ? '+' : '' }}{{ priceDifference.toFixed(2) }} DKK
+                                        </p>
+                                    </div>
+                                    <div v-if="showSendInvoiceButton" class="ml-4">
+                                        <button 
+                                            type="button"
+                                            @click="sendUpdatedInvoice"
+                                            class="bg-blue-600 text-white px-3 py-1 rounded text-sm font-semibold shadow hover:bg-blue-700 transition"
+                                        >
+                                            Send Faktura
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end space-x-3">
+                                <button type="button" @click="closeEditBooking" class="bg-gray-500 text-white px-6 py-2 rounded font-semibold shadow hover:bg-gray-600 transition">Annuller</button>
                                 <button type="submit" class="bg-[#B8082A] text-white px-6 py-2 rounded font-semibold shadow hover:bg-[#a10725] transition">Gem ændringer</button>
                             </div>
                         </form>
@@ -620,6 +655,149 @@ async function createInvoice(booking: any) {
     }
 }
 
+// Function to send updated receipt when price has changed
+async function sendUpdatedInvoice() {
+    console.log('🔄 sendUpdatedInvoice started')
+    
+    if (!editBookingForm.value.id || Math.abs(priceDifference.value) <= 0.01) {
+        console.log('❌ Early return: no booking ID or price difference too small')
+        return;
+    }
+    
+    // Helper function to convert øre to DKK if needed
+    const convertToDKK = (amount: number) => {
+        // If amount is a large integer (>1000), it's likely in øre, convert to DKK
+        if (amount > 1000 && Number.isInteger(amount)) {
+            return amount / 100;
+        }
+        return amount;
+    };
+    
+    const confirmSend = confirm(
+        `Send opdateret faktura med ${priceDifference.value > 0 ? 'merpris' : 'refusion'} på ${Math.abs(priceDifference.value).toFixed(2)} DKK?`
+    );
+    
+    if (!confirmSend) {
+        console.log('❌ User cancelled sending invoice')
+        return;
+    }
+    
+    try {
+        console.log('📧 Starting invoice sending process...')
+        
+        // Create payment link for the difference amount (if positive)
+        let paymentUrl = null
+        if (priceDifference.value > 0) {
+            console.log('💳 Creating payment link for positive difference...')
+            const paymentResponse = await auth.authenticatedFetch('/api/payment/difference', {
+                method: 'POST',
+                body: {
+                    bookingId: editBookingForm.value.id,
+                    differenceAmount: priceDifference.value,
+                    customerEmail: editBookingForm.value.email,
+                    customerName: editBookingForm.value.fullName
+                }
+            })
+            
+            if (paymentResponse.success) {
+                paymentUrl = paymentResponse.paymentUrl
+                console.log('✅ Payment link created successfully:', paymentUrl)
+                console.log('💰 Price difference for payment:', priceDifference.value)
+            } else {
+                console.error('❌ Failed to create payment link:', paymentResponse)
+                throw new Error('Kunne ikke oprette betalingslink')
+            }
+        } else {
+            console.log('💰 No payment link needed for negative or zero difference')
+        }
+        
+        console.log('📧 Preparing email data...')
+        
+        // Import the email composable
+        const { useEmail } = await import('@/composables/useEmail');
+        const { sendReceiptPDF, validateBookingData } = useEmail();
+        
+        // Prepare booking data for email
+        const bookingEmailData = {
+            orderNumber: `UPDATED-${editBookingForm.value.id}`,
+            customerName: editBookingForm.value.fullName,
+            customerEmail: editBookingForm.value.email,
+            customerPhone: editBookingForm.value.phone,
+            service: editBookingForm.value.productName || 'LejGoPro Service',
+            startDate: editBookingForm.value.startDate,
+            endDate: editBookingForm.value.endDate,
+            duration: `${editBookingForm.value.startDate} - ${editBookingForm.value.endDate}`,
+            totalAmount: convertToDKK(parseFloat(editBookingForm.value.totalPrice) || 0),
+            bookingDate: new Date().toISOString(),
+            rentalPeriod: {
+                startDate: editBookingForm.value.startDate,
+                endDate: editBookingForm.value.endDate
+            },
+            deliveryAddress: editBookingForm.value.address ? 
+                `${editBookingForm.value.address}${editBookingForm.value.apartment ? ', ' + editBookingForm.value.apartment : ''}, ${editBookingForm.value.postalCode || ''} ${editBookingForm.value.city || ''}`.trim() 
+                : undefined,
+            items: [{
+                name: `${editBookingForm.value.productName} - Opdateret booking`,
+                quantity: 1,
+                unitPrice: convertToDKK(parseFloat(editBookingForm.value.totalPrice) || 0),
+                totalPrice: convertToDKK(parseFloat(editBookingForm.value.totalPrice) || 0)
+            }],
+            // Include price difference information and payment link
+            priceDifference: priceDifference.value,
+            paymentUrl: paymentUrl,
+            isUpdate: true
+        };
+
+        console.log('📧 Email data being sent:', {
+            priceDifference: bookingEmailData.priceDifference,
+            paymentUrl: bookingEmailData.paymentUrl,
+            isUpdate: bookingEmailData.isUpdate,
+            customerEmail: bookingEmailData.customerEmail,
+            totalAmount: bookingEmailData.totalAmount,
+            startDate: bookingEmailData.startDate,
+            endDate: bookingEmailData.endDate,
+            rawTotalPrice: editBookingForm.value.totalPrice
+        });
+
+        // Validate the booking data
+        if (!validateBookingData(bookingEmailData)) {
+            throw new Error('Ugyldig booking data til email');
+        }
+
+        // Send the updated receipt PDF
+        const success = await sendReceiptPDF(bookingEmailData);
+
+        if (success) {
+            toast.add({
+                title: 'Opdateret faktura sendt!',
+                description: `Faktura med ${priceDifference.value > 0 ? 'merpris' : 'refusion'} på ${Math.abs(priceDifference.value).toFixed(2)} DKK blev sendt til ${editBookingForm.value.email}`,
+                color: 'success',
+                ui: {
+                    title: 'text-gray-900 font-semibold',
+                    description: 'text-gray-700'
+                }
+            });
+            
+            // Reset price difference after sending invoice
+            showSendInvoiceButton.value = false;
+            priceDifference.value = 0;
+        } else {
+            throw new Error('Kunne ikke sende email receipt');
+        }
+    } catch (error: any) {
+        console.error('Error sending updated receipt:', error);
+        toast.add({
+            title: 'Fejl ved afsendelse af faktura',
+            description: error.message || 'Kunne ikke sende den opdaterede faktura. Prøv igen.',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    }
+}
+
 // Helper function to get bookings for a specific camera
 function getBookingsForCamera(cameraId: number) {
     const result = bookings.value.filter(booking => booking.cameraId === cameraId);
@@ -697,6 +875,10 @@ const allCameras = computed(() => {
     return products.value.flatMap(product => product.cameras || []);
 });
 const showEditBookingModal = ref(false);
+const priceDifference = ref(0);
+const originalPrice = ref(0);
+const calculatingPrice = ref(false);
+const showSendInvoiceButton = ref(false);
 const editBookingForm = ref({
     id: undefined,
     fullName: '',
@@ -718,6 +900,11 @@ const editBookingForm = ref({
 
 function openEditBooking(booking: any) {
     showEditBookingModal.value = true;
+    // Store original price for comparison
+    originalPrice.value = booking.totalPrice || 0;
+    priceDifference.value = 0;
+    showSendInvoiceButton.value = false;
+    
     editBookingForm.value = {
         id: booking.id,
         fullName: booking.fullName || '',
@@ -733,10 +920,73 @@ function openEditBooking(booking: any) {
         productName: booking.productName || '',
         accessoryInstanceIds: booking.accessoryInstanceIds ? booking.accessoryInstanceIds.join(',') : '',
         totalPrice: booking.totalPrice || '',
-        startDate: booking.startDate || '',
-        endDate: booking.endDate || ''
+        startDate: '', // Leave empty to show dd-mm-yyyy placeholder
+        endDate: ''   // Leave empty to show dd-mm-yyyy placeholder
     };
 }
+
+// Function to calculate price difference when dates change (without saving)
+async function calculatePriceDifference() {
+    if (!editBookingForm.value.startDate || !editBookingForm.value.endDate || !editBookingForm.value.id) {
+        return;
+    }
+    
+    calculatingPrice.value = true;
+    
+    try {
+        // Create a test payload to get the price calculation WITHOUT saving
+        const payload = {
+            id: editBookingForm.value.id,
+            startDate: editBookingForm.value.startDate,
+            endDate: editBookingForm.value.endDate,
+            calculateOnly: true // This flag prevents database update
+        };
+        
+        // Call the admin booking update API to get price calculation only
+        const response = await auth.authenticatedFetch('/api/admin/bookings', {
+            method: 'POST', 
+            body: payload
+        });
+        
+        console.log('Frontend received response:', response);
+        
+        if (response.success && response.priceDifference !== undefined) {
+            priceDifference.value = response.priceDifference;
+            
+            // Update the total price field display (but don't save to database)
+            if (response.newTotalPrice) {
+                editBookingForm.value.totalPrice = response.newTotalPrice;
+            }
+            
+            // Show send invoice button if there's a price difference
+            showSendInvoiceButton.value = Math.abs(priceDifference.value) > 0.01; // More than 1 øre difference
+            
+            console.log('Price difference calculated (not saved):', priceDifference.value);
+        } else {
+            console.log('No priceDifference in response or response failed:', response);
+        }
+    } catch (error) {
+        console.error('Error calculating price difference:', error);
+        toast.add({ 
+            title: 'Fejl ved prisberegning',
+            description: 'Kunne ikke beregne prisforskellen. Prøv igen.',
+            color: 'error'
+        });
+    } finally {
+        calculatingPrice.value = false;
+    }
+}
+
+// Watch for date changes to trigger price recalculation
+watch([
+    () => editBookingForm.value.startDate,
+    () => editBookingForm.value.endDate
+], async ([newStartDate, newEndDate], [oldStartDate, oldEndDate]) => {
+    // Only recalculate if both dates are set and at least one has changed
+    if (newStartDate && newEndDate && (newStartDate !== oldStartDate || newEndDate !== oldEndDate)) {
+        await calculatePriceDifference();
+    }
+}, { deep: true });
 
 function closeEditBooking() {
     showEditBookingModal.value = false;
