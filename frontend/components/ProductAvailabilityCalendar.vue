@@ -70,15 +70,20 @@
       <div class="space-y-1">
         <div 
           v-for="booking in currentMonthBookings" 
-          :key="booking.id"
+          :key="(booking as any).id"
           class="text-xs bg-white rounded p-2 border"
         >
           <div class="flex justify-between">
-            <span class="font-medium">{{ booking.customerName || 'Ukendt kunde' }}</span>
-            <span class="text-gray-600">Kamera {{ booking.cameraId }}</span>
+            <span class="font-medium">{{ (booking as any).customerName || 'Ukendt kunde' }}</span>
+            <span class="text-gray-600">
+              {{ (booking as any).cameraCount }}x kamera{{ (booking as any).cameraCount > 1 ? 'er' : '' }}
+              <span v-if="(booking as any).cameraIds.length > 0" class="text-xs text-gray-400">
+                ({{ (booking as any).cameraIds.join(', ') }})
+              </span>
+            </span>
           </div>
           <div class="text-gray-600">
-            {{ formatDate(booking.startDate) }} - {{ formatDate(booking.endDate) }}
+            {{ formatDate((booking as any).startDate) }} - {{ formatDate((booking as any).endDate) }}
           </div>
         </div>
       </div>
@@ -161,19 +166,41 @@ const calendarDays = computed(() => {
       return isBooked
     })
     
-    const hasBooking = dayBookings.length > 0
+    // Group bookings by customer to show consolidated info
+    const groupedBookings = dayBookings.reduce((groups, booking) => {
+      const key = `${booking.customerName || 'Ukendt kunde'}_${booking.email}_${booking.startDate}_${booking.endDate}`
+      if (!groups[key]) {
+        groups[key] = {
+          customerName: booking.customerName || 'Ukendt kunde',
+          email: booking.email,
+          startDate: booking.startDate,
+          endDate: booking.endDate,
+          cameraCount: 0,
+          cameraIds: []
+        }
+      }
+      groups[key].cameraCount += 1
+      if (booking.cameraId) {
+        groups[key].cameraIds.push(booking.cameraId)
+      }
+      return groups
+    }, {} as Record<string, any>)
+    
+    const consolidatedBookings = Object.values(groupedBookings)
+    const hasBooking = consolidatedBookings.length > 0
+    const totalCameras = consolidatedBookings.reduce((sum: number, booking: any) => sum + booking.cameraCount, 0)
     const isAvailable = !hasBooking
     
     let tooltip = `${date.toLocaleDateString('da-DK')}`
     if (hasBooking) {
-      tooltip += ` - ${dayBookings.length} booking(er)`
+      tooltip += ` - ${totalCameras} kamera(er) booket`
     } else {
       tooltip += ' - Tilgængelig'
     }
     
     // Simple debug for November dates
     if (dateStr.includes('2025-11') && isCurrentMonth && hasBooking) {
-      console.log(`🔴 BOOKED: ${dateStr} has ${dayBookings.length} booking(s)`)
+      console.log(`🔴 BOOKED: ${dateStr} has ${totalCameras} camera(s) booked`)
     }
     
     days.push({
@@ -183,19 +210,19 @@ const calendarDays = computed(() => {
       isAvailable,
       hasBooking,
       tooltip,
-      bookings: dayBookings
+      bookings: consolidatedBookings
     })
   }
   
   return days
 })
 
-// Bookings for current month
+// Bookings for current month (consolidated by customer)
 const currentMonthBookings = computed(() => {
   const year = currentMonth.value.getFullYear()
   const month = currentMonth.value.getMonth()
   
-  return bookings.value.filter(booking => {
+  const monthBookings = bookings.value.filter(booking => {
     const bookingStart = new Date(booking.startDate)
     const bookingEnd = new Date(booking.endDate)
     const monthStart = new Date(year, month, 1)
@@ -204,6 +231,29 @@ const currentMonthBookings = computed(() => {
     // Check if booking overlaps with current month
     return bookingStart <= monthEnd && bookingEnd >= monthStart
   })
+  
+  // Group bookings by customer and date range
+  const groupedBookings = monthBookings.reduce((groups, booking) => {
+    const key = `${booking.customerName || 'Ukendt kunde'}_${booking.email}_${booking.startDate}_${booking.endDate}`
+    if (!groups[key]) {
+      groups[key] = {
+        id: key,
+        customerName: booking.customerName || 'Ukendt kunde',
+        email: booking.email,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        cameraCount: 0,
+        cameraIds: []
+      }
+    }
+    groups[key].cameraCount += 1
+    if (booking.cameraId) {
+      groups[key].cameraIds.push(booking.cameraId)
+    }
+    return groups
+  }, {} as Record<string, any>)
+  
+  return Object.values(groupedBookings)
 })
 
 // Format date for display

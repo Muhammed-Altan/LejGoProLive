@@ -12,61 +12,9 @@ import { JSDOM } from 'jsdom';
 
 // Check accessory availability for a booking period
 async function checkAccessoryAvailability(accessories: Array<{ name: string; quantity: number }>, startDate: string, endDate: string): Promise<boolean> {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) return false;
-  
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  
-  // Get bookings that overlap with the requested period
-  const { data: bookings, error: bookingsError } = await supabase
-    .from('Booking')
-    .select('selectedAccessories')
-    .lte('startDate', endDate)
-    .gte('endDate', startDate);
-    
-  if (bookingsError) {
-    console.error('Error checking accessory availability:', bookingsError);
-    return false;
-  }
-  
-  // Calculate booked quantities per accessory
-  const bookedQuantities: Record<string, number> = {};
-  (bookings || []).forEach((booking: any) => {
-    if (Array.isArray(booking.selectedAccessories)) {
-      booking.selectedAccessories.forEach((acc: any) => {
-        const name = (acc.name || '').toString().trim().toLowerCase();
-        const qty = typeof acc.quantity === 'number' ? acc.quantity : 1;
-        bookedQuantities[name] = (bookedQuantities[name] || 0) + qty;
-      });
-    }
-  });
-  
-  // Get accessory total quantities from DB
-  const { data: dbAccessories, error: accessoriesError } = await supabase
-    .from('Accessory')
-    .select('name, quantity');
-    
-  if (accessoriesError) {
-    console.error('Error fetching accessories:', accessoriesError);
-    return false;
-  }
-  
-  // Check if requested quantities are available
-  for (const reqAcc of accessories) {
-    const name = reqAcc.name.toLowerCase();
-    const requestedQty = reqAcc.quantity;
-    const bookedQty = bookedQuantities[name] || 0;
-    
-    const dbAcc = dbAccessories?.find(a => a.name.toLowerCase() === name);
-    const totalQty = dbAcc?.quantity || 5; // fallback
-    
-    const availableQty = totalQty - bookedQty;
-    if (requestedQty > availableQty) {
-      return false;
-    }
-  }
-  
+  // TODO: Implement proper accessory availability checking when selectedAccessories column exists
+  // For now, return true to allow bookings to proceed
+  console.log('Accessory availability check skipped - selectedAccessories column not found in database');
   return true;
 }
 
@@ -76,8 +24,8 @@ const rateLimiter = new RateLimiterMemory({
   duration: 600,
 });
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
@@ -198,19 +146,81 @@ export default defineEventHandler(async (event) => {
     booking.endDate
   );
 
-  // Find available cameras for each model
-  // Create booking record
-  const bookingRecord = {
-    ...booking,
-    selectedModels: enrichedModels,
-    selectedAccessories: enrichedAccessories,
-    ...pricing
-  };
+  // Find available cameras for each model and create individual bookings
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return sendError(event, createError({ statusCode: 500, statusMessage: 'Server configuration error' }));
+  }
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-  // Insert booking
+  // Get all available cameras for the requested period
+  const { data: allCameras, error: camerasError } = await supabase
+    .from('Camera')
+    .select('id, productId');
+
+  if (camerasError) {
+    console.error('Error fetching cameras:', camerasError);
+    return sendError(event, createError({ statusCode: 500, statusMessage: 'Failed to check camera availability' }));
+  }
+
+  // Get existing bookings that overlap with requested period
+  const { data: existingBookings, error: bookingsError } = await supabase
+    .from('Booking')
+    .select('cameraId, startDate, endDate')
+    .lte('startDate', booking.endDate)
+    .gte('endDate', booking.startDate);
+
+  if (bookingsError) {
+    console.error('Error fetching existing bookings:', bookingsError);
+    return sendError(event, createError({ statusCode: 500, statusMessage: 'Failed to check existing bookings' }));
+  }
+
+  // Find which cameras are booked during the requested period
+  const bookedCameraIds = new Set(
+    (existingBookings || []).map((b: any) => b.cameraId).filter(Boolean)
+  );
+
+  // Find available cameras for each requested model
+  const bookingRecords = [];
+  
+  for (const model of enrichedModels) {
+    // Find cameras for this product
+    const modelCameras = (allCameras || []).filter((c: any) => c.productId === model.productId);
+    const availableCameras = modelCameras.filter((c: any) => !bookedCameraIds.has(c.id));
+    
+    if (availableCameras.length < model.quantity) {
+      return sendError(event, createError({ 
+        statusCode: 409, 
+        statusMessage: `Not enough cameras available for ${model.name}. Requested: ${model.quantity}, Available: ${availableCameras.length}` 
+      }));
+    }
+
+    // Create one booking record per camera
+    for (let i = 0; i < model.quantity; i++) {
+      const camera = availableCameras[i];
+      const uniqueOrderId = `BOOKING-${Date.now()}-${Math.floor(Math.random() * 1000)}-${bookingRecords.length + 1}`;
+      const bookingRecord = {
+        ...booking,
+        cameraId: camera.id,
+        productName: model.name,
+        orderId: uniqueOrderId,
+        ...pricing,
+        // Adjust pricing proportionally if multiple cameras
+        totalPrice: enrichedModels.length > 1 || enrichedModels.some(m => m.quantity > 1) 
+          ? Math.round((pricing.total / enrichedModels.reduce((sum, m) => sum + m.quantity, 0)) * 100)
+          : Math.round(pricing.total * 100)
+      };
+      
+      bookingRecords.push(bookingRecord);
+      bookedCameraIds.add(camera.id); // Mark this camera as taken for subsequent iterations
+    }
+  }
+
+  // Insert all booking records
   const { error: insertError } = await supabase
     .from('Booking')
-    .insert(bookingRecord);
+    .insert(bookingRecords);
 
   if (insertError) {
     console.error('Booking insertion error:', insertError);
@@ -222,6 +232,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     status: 200,
-    message: 'Booking created successfully',
+    message: `Booking created successfully (${bookingRecords.length} camera${bookingRecords.length > 1 ? 's' : ''} booked)`,
   };
 });

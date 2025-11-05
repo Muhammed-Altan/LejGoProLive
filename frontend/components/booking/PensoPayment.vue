@@ -228,7 +228,8 @@ const initiatePayment = async () => {
       cameraId: 1, // This will be properly assigned by the server
       cameraName: 'Selected Camera',
       productName: store.selectedModels[0]?.name || 'Selected Product',
-      selectedAccessories: store.selectedAccessories, // Pass selected accessories to server
+      models: store.selectedModels, // Pass selected models with quantities
+      accessories: store.selectedAccessories, // Pass selected accessories to server
       startDate: store.startDate,
       endDate: store.endDate,
       address: store.address,
@@ -239,6 +240,8 @@ const initiatePayment = async () => {
       city: store.city,
       postalCode: store.postalCode,
       totalPrice: totalAmount.value,
+      insurance: store.insurance, // Add insurance status
+      acceptedTerms: true, // User has to accept terms to reach this step
       accessoryInstanceIds: [], // This will be populated by the server with actual instances
     }
 
