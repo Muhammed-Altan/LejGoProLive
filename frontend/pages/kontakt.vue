@@ -6,13 +6,11 @@
             <h2 class="text-3xl font-bold mb-2">Kontakt os</h2>
             <p class="text-lg mb-6">I tvivl om hvilket GoPro der passer dit eventyr? Ring eller skriv til os - så guider vi dig til det rigtige valg</p>
             <div class="flex flex-col md:flex-row justify-center gap-8 mb-8">
-                <div class="flex flex-col items-center bg-white rounded-xl shadow p-6 border-2 border-[#B8082A] flex-1">
-                <span class="text-3xl text-[#B8082A] mb-2"><i class="i-lucide-phone"></i></span>
-                <span class="font-semibold text-lg">+45 53 80 59 54</span>
+                <div class="flex flex-col items-center justify-center bg-white rounded-xl shadow p-8 border-2 border-[#B8082A] flex-1 text-center min-h-[120px]">
+                <span class="font-semibold text-xl">+45 53 80 59 54</span>
                 </div>
-                <div class="flex flex-col items-center bg-white rounded-xl shadow p-6 border-2 border-[#B8082A] flex-1">
-                <span class="text-3xl text-[#B8082A] mb-2"><i class="i-lucide-mail"></i></span>
-                <span class="font-semibold text-lg">kontakt@lejgopro.dk</span>
+                <div class="flex flex-col items-center justify-center bg-white rounded-xl shadow p-8 border-2 border-[#B8082A] flex-1 text-center min-h-[120px]">
+                <span class="font-semibold text-xl">kontakt@lejgopro.dk</span>
                 </div>
             </div>
         </div>
@@ -23,9 +21,9 @@
             <h3 class="text-2xl font-bold mb-8">Kontakt Os — <span class="text-[#B8082A]">Dit Eventyr</span> Begynder Her</h3>
             <div class="py-8 rounded-xl">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-10 px-6 mb-8">
-                <img src="/eventyr/filip-lP5bWEhf4nA-unsplash.jpg" alt="Filip adventure" class="rounded-xl object-cover w-full h-72" />
-                <img src="/eventyr/GoPro-MountainTop.jpg" alt="GoPro adventure" class="rounded-xl object-cover w-full h-72" />
-                <img src="/eventyr/GoPro-Skiing.png" alt="GoPro adventure 2" class="rounded-xl object-cover w-full h-72" />
+                <img src="/eventyr/filip-lP5bWEhf4nA-unsplash.jpg" alt="Filip adventure" class="rounded-xl object-cover w-full h-96" />
+                <img src="/eventyr/GoPro-MountainTop.jpg" alt="GoPro adventure" class="rounded-xl object-cover w-full h-96" />
+                <img src="/eventyr/GoPro-Skiing.png" alt="GoPro adventure 2" class="rounded-xl object-cover w-full h-96" />
                 </div>
                 <NuxtLink to="/checkout" class="bg-[#B8082A] text-white font-semibold py-2 px-6 rounded shadow hover:bg-[#a10725] transition cursor-pointer">Begynd dit eventyr her</NuxtLink>
             </div>

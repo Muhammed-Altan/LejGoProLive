@@ -40,19 +40,23 @@
       <div>
         <h3 class="font-bold mb-4">Kontakt Os</h3>
         <ul class="space-y-2 text-gray-300">
-          <li><i class="fas fa-phone mr-2"></i> +45 53 80 59 54</li>
           <li><i class="fas fa-envelope mr-2"></i> kontakt@lejgopro.dk</li>
+          <li><i class="fas fa-phone mr-2"></i> +45 53 80 59 54</li>
           <li><i class="fas fa-map-marker-alt mr-2"></i> København, Danmark</li>
+          <li><i class="fas fa-building mr-2"></i> CVR: 41910437</li>
         </ul>
         <div class="bg-[#1e293b] rounded-lg p-4 mt-4 text-sm">
-          <div class="font-bold mb-1">Åbningstider:</div>
-          <div>Man-Fre: 09:00-18:00</div>
-          <div>Lør-Søn: 10:00-16:00</div>
+          <div class="font-bold mb-2">Telefon tider:</div>
+          <div>8-18 i hverdage</div>
+          <div>8-12 i weekenden</div>
+          <div class="mt-3 text-xs text-gray-400 italic">
+            Helst skrive en mail
+          </div>
         </div>
       </div>
     </div>
     <div class="border-t border-gray-700 mt-12 pt-6 text-xs text-gray-400 flex flex-col md:flex-row justify-between items-center px-8">
-      <div>© 2024 GoProUdlejning.dk. Alle rettigheder forbeholdes.</div>
+      <div>© 2024 lejgopro.dk. Alle rettigheder forbeholdes.</div>
       <div class="flex gap-6 mt-2 md:mt-0">
         <NuxtLink to="/privatlivspolitik" class="hover:text-white">Privatlivspolitik</NuxtLink>
         <NuxtLink to="/handelsbetingelser" class="hover:text-white">Handelsbetingelser</NuxtLink>

@@ -392,6 +392,16 @@
                                 <label class="text-base font-semibold mb-1 text-gray-900">Tilbehør enheder (kommasepareret)</label>
                                 <input v-model="editBookingForm.accessoryInstanceIds" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" placeholder="fx: 1,2,3" />
                             </div>
+                            <div class="flex flex-col md:flex-row gap-4">
+                                <div class="flex-1">
+                                    <label class="text-base font-semibold mb-1 text-gray-900">Start dato</label>
+                                    <input v-model="editBookingForm.startDate" type="date" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base w-full" />
+                                </div>
+                                <div class="flex-1">
+                                    <label class="text-base font-semibold mb-1 text-gray-900">Slut dato</label>
+                                    <input v-model="editBookingForm.endDate" type="date" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base w-full" />
+                                </div>
+                            </div>
                             <div class="flex flex-col">
                                 <label class="text-base font-semibold mb-1 text-gray-900">Total pris</label>
                                 <input v-model="editBookingForm.totalPrice" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
@@ -701,7 +711,9 @@ const editBookingForm = ref({
     cameraId: '',
     productName: '',
     accessoryInstanceIds: '',
-    totalPrice: ''
+    totalPrice: '',
+    startDate: '',
+    endDate: ''
 });
 
 function openEditBooking(booking: any) {
@@ -720,7 +732,9 @@ function openEditBooking(booking: any) {
         cameraId: booking.cameraId || '',
         productName: booking.productName || '',
         accessoryInstanceIds: booking.accessoryInstanceIds ? booking.accessoryInstanceIds.join(',') : '',
-        totalPrice: booking.totalPrice || ''
+        totalPrice: booking.totalPrice || '',
+        startDate: booking.startDate || '',
+        endDate: booking.endDate || ''
     };
 }
 
@@ -746,7 +760,9 @@ async function submitEditBooking() {
                 : [],
             totalPrice: Number(editBookingForm.value.totalPrice) || 0,
             status: editBookingForm.value.status,
-            productName: editBookingForm.value.productName
+            productName: editBookingForm.value.productName,
+            startDate: editBookingForm.value.startDate,
+            endDate: editBookingForm.value.endDate
         };
         
         // Use authenticated API endpoint
