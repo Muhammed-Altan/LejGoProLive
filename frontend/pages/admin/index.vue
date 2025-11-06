@@ -163,7 +163,7 @@
             </div>
             <div v-if="showAccessoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
                 <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative overflow-y-auto" style="max-height: 90vh;">
-                    <button @click="showAccessoryModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold cursor-pointer">&times;</button>
+                    <button @click="showAccessoryModal = false; accessoryImagePreview = ''; editingAccessoryId = null;" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold cursor-pointer">&times;</button>
                     <h2 class="mb-1 text-xl font-semibold cursor-pointer">Opret Tilbehør</h2>
                     <form @submit.prevent="createAccessory" class="space-y-7">
                         <div class="flex flex-col">
@@ -173,6 +173,36 @@
                         <div class="flex flex-col">
                             <label for="accessoryDescription" class="text-base font-semibold mb-1 text-gray-900">Beskrivelse</label>
                             <textarea id="accessoryDescription" v-model="accessoryForm.description" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                        </div>
+                        <!-- Image Upload Section for Accessories -->
+                        <div class="flex flex-col">
+                            <label for="accessoryImage" class="text-base font-semibold mb-1 text-gray-900">Tilbehørsbillede</label>
+                            <input 
+                                id="accessoryImage" 
+                                ref="accessoryImageInput"
+                                type="file" 
+                                accept="image/*" 
+                                @change="handleAccessoryImageUpload" 
+                                class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" 
+                            />
+                            <!-- Image Preview -->
+                            <div v-if="accessoryImagePreview || accessoryForm.imageUrl" class="mt-3">
+                                <img 
+                                    :src="accessoryImagePreview || accessoryForm.imageUrl" 
+                                    alt="Accessory preview" 
+                                    class="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                                />
+                                <button 
+                                    type="button" 
+                                    @click="removeAccessoryImage" 
+                                    class="mt-2 text-sm text-red-600 hover:text-red-800"
+                                >
+                                    Fjern billede
+                                </button>
+                            </div>
+                            <div v-if="uploadingAccessoryImage" class="mt-2 text-sm text-blue-600">
+                                Uploader billede...
+                            </div>
                         </div>
                         <div class="flex flex-row gap-4">
                             <div class="flex-1 flex flex-col">
@@ -207,6 +237,8 @@
                 </div>
             </div>
 
+            <!-- Commented out current accessory display for dynamic version -->
+            <!--
             <div class="space-y-6">
                 <div v-for="accessoryItem in accessory" :key="accessoryItem.id" class="border rounded-xl p-6 bg-white shadow">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -246,6 +278,99 @@
                                 </div>
                             </div>
                         </details>
+                    </div>
+                </div>
+            </div>
+            -->
+            
+            <!-- New dynamic accessory display with images -->
+            <div class="space-y-6">
+                <div v-for="accessoryItem in accessory" :key="accessoryItem.id" class="border rounded-xl p-6 bg-white shadow">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <!-- Image section -->
+                        <div class="w-full md:w-48 flex-shrink-0">
+                            <div v-if="accessoryItem.imageUrl" class="w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+                                <img 
+                                    :src="accessoryItem.imageUrl" 
+                                    :alt="accessoryItem.name"
+                                    class="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div v-else class="w-full h-48 rounded-lg bg-gray-100 flex items-center justify-center">
+                                <div class="text-center text-gray-500">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="mt-2 text-sm">Intet billede</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Content section -->
+                        <div class="flex-1">
+                            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                                <div class="flex-1">
+                                    <h3 class="text-xl font-bold mb-2 text-gray-900">{{ accessoryItem.name }}</h3>
+                                    <p class="text-gray-600 mb-4 leading-relaxed">{{ accessoryItem.description }}</p>
+                                    
+                                    <div class="flex flex-wrap gap-4 mb-4">
+                                        <div class="bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                                            <span class="text-sm text-gray-600">Pris:</span>
+                                            <span class="font-bold text-[#B8082A] ml-1">{{ accessoryItem.price }} kr</span>
+                                        </div>
+                                        <div class="bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                                            <span class="text-sm text-gray-600">Enheder:</span>
+                                            <span class="font-bold text-gray-900 ml-1">
+                                                {{ (accessoryInstances[accessoryItem.id] || []).length }} / {{ accessoryItem.quantity || 1 }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <button class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-600 transition" @click="editAccessory(accessoryItem)">
+                                        Rediger
+                                    </button>
+                                    <button class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-red-600 transition" @click="deleteAccessory(accessoryItem.id)">
+                                        Slet
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Instances section -->
+                            <div class="mt-6">
+                                <details class="group">
+                                    <summary class="cursor-pointer font-semibold text-gray-900 hover:text-[#B8082A] transition flex items-center">
+                                        <span>Enheder ({{ (accessoryInstances[accessoryItem.id] || []).length }})</span>
+                                        <svg class="ml-2 h-4 w-4 transform transition group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </summary>
+                                    <div class="mt-4 pl-4 border-l-2 border-gray-200">
+                                        <div v-for="(instance, idx) in (accessoryInstances[accessoryItem.id] || [])" :key="instance.id" class="mb-3 p-4 border rounded-lg bg-gray-50 hover:bg-gray-100 transition">
+                                            <div class="flex justify-between items-center mb-2">
+                                                <div class="font-semibold text-gray-900">Enhed #{{ instance.id }} ({{ accessoryItem.name }})</div>
+                                                <div class="text-sm">
+                                                    Status: <span :class="instance.isAvailable ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                                        {{ instance.isAvailable ? 'Ledig' : 'Optaget' }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="text-sm text-gray-600">
+                                                <span class="font-medium">Serial Number:</span> {{ instance.serialNumber }}
+                                            </div>
+                                        </div>
+                                        <div v-if="(accessoryInstances[accessoryItem.id] || []).length === 0" 
+                                             class="text-gray-400 p-6 text-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                                            <svg class="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m14 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m14 0H6m14 0l-2-2m2 2l-2 2M6 13l2-2m-2 2l2 2" />
+                                            </svg>
+                                            <p>Ingen enheder oprettet for dette tilbehør</p>
+                                        </div>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1091,6 +1216,11 @@ const form = ref({
 const imageInput = ref<HTMLInputElement>();
 const imagePreview = ref<string>('');
 const uploadingImage = ref(false);
+
+// Accessory image handling
+const accessoryImagePreview = ref<string>('');
+const uploadingAccessoryImage = ref(false);
+const accessoryImageInput = ref<HTMLInputElement>();
 const selectedImageFile = ref<File | null>(null);
 
 interface Product {
@@ -1400,6 +1530,93 @@ function removeImage() {
     }
 }
 
+// Accessory image handling functions
+async function handleAccessoryImageUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Kun billedfiler er tilladt');
+        return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Billedet må ikke være større end 5MB');
+        return;
+    }
+    
+    uploadingAccessoryImage.value = true;
+    
+    try {
+        // Upload to Supabase
+        const imageUrl = await uploadAccessoryImageToSupabase(file);
+        accessoryForm.value.imageUrl = imageUrl;
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            accessoryImagePreview.value = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+        
+    } catch (error: any) {
+        console.error('Error uploading accessory image:', error);
+        alert(`Fejl ved upload af billede: ${error.message}`);
+    } finally {
+        uploadingAccessoryImage.value = false;
+    }
+}
+
+async function uploadAccessoryImageToSupabase(file: File): Promise<string> {
+    const supabase = useSupabase();
+    if (!supabase) {
+        console.error('Supabase client not available for image upload');
+        throw new Error('Kan ikke oprette forbindelse til databasen for billedupload');
+    }
+    
+    // Generate unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `accessories/${fileName}`;
+    
+    try {
+        // Try uploading with upsert option
+        const { data, error } = await supabase.storage
+            .from('productImage')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: true
+            });
+        
+        if (error) {
+            console.error('Supabase storage error details:', error);
+            throw error;
+        }
+        
+        // Get public URL
+        const { data: publicData } = supabase.storage
+            .from('productImage')
+            .getPublicUrl(filePath);
+        
+        return publicData.publicUrl;
+    } catch (error: any) {
+        console.error('Error uploading accessory image:', error);
+        throw new Error(`Fejl ved upload af tilbehørsbillede: ${error.message || 'Ukendt fejl'}`);
+    }
+}
+
+function removeAccessoryImage() {
+    accessoryImagePreview.value = '';
+    accessoryForm.value.imageUrl = '';
+    if (accessoryImageInput.value) {
+        accessoryImageInput.value.value = '';
+    }
+}
+
 const activeTab = ref('products');
 
 // Inventory management data
@@ -1686,6 +1903,7 @@ interface Accessory {
     description: string;
     price: number;
     quantity?: number;
+    imageUrl?: string;
     instances?: AccessoryInstance[];
 }
 
@@ -1697,7 +1915,7 @@ interface AccessoryInstance {
 }
 
 const accessory = ref<Accessory[]>([]);
-const accessoryForm = ref({ name: '', description: '', price: 0, quantity: 1 });
+const accessoryForm = ref({ name: '', description: '', price: 0, quantity: 1, imageUrl: '' });
 
 async function fetchAccessory() {
     try {
@@ -1714,8 +1932,17 @@ async function fetchAccessory() {
             name: a.name,
             description: a.description || '',
             price: a.price,
-            quantity: a.quantity || 1
+            quantity: a.quantity || 1,
+            imageUrl: a.imageUrl || null
         }));
+        
+        // Debug: Log the mapped accessory data
+        console.log('🔧 Frontend mapped accessory data:', accessory.value.map(a => ({
+            id: a.id,
+            name: a.name,
+            hasImageUrl: !!a.imageUrl,
+            imageUrl: a.imageUrl
+        })));
         
         // Load instances for each accessory
         for (const acc of accessory.value) {
@@ -1741,7 +1968,8 @@ async function createAccessory() {
             name: accessoryForm.value.name, 
             description: accessoryForm.value.description, 
             price: accessoryForm.value.price, 
-            quantity: accessoryForm.value.quantity 
+            quantity: accessoryForm.value.quantity,
+            imageUrl: accessoryForm.value.imageUrl
         };
         
         // Add ID if editing
@@ -1761,8 +1989,12 @@ async function createAccessory() {
         
         showAccessoryModal.value = false;
         editingAccessoryId.value = null;
-        accessoryForm.value = { name: '', description: '', price: 0, quantity: 1 };
+        accessoryForm.value = { name: '', description: '', price: 0, quantity: 1, imageUrl: '' };
+        accessoryImagePreview.value = '';
+        
+        // Force refresh accessories to ensure new data is loaded
         await fetchAccessory();
+        await nextTick(); // Wait for Vue to update the DOM
         toast.add({ 
             title: isEditing ? 'Tilbehør opdateret!' : 'Tilbehør oprettet!',
             description: `${accessoryName} blev ${isEditing ? 'opdateret' : 'oprettet'} succesfuldt`,
@@ -1834,8 +2066,24 @@ function editAccessory(accessoryItem: any) {
         name: accessoryItem.name,
         description: accessoryItem.description || '',
         price: accessoryItem.price,
-        quantity: accessoryItem.quantity || 1
+        quantity: accessoryItem.quantity || 1,
+        imageUrl: accessoryItem.imageUrl || ''
     };
+    
+    // Set image preview if editing and has imageUrl
+    if (accessoryItem.imageUrl) {
+        accessoryImagePreview.value = accessoryItem.imageUrl;
+    } else {
+        accessoryImagePreview.value = '';
+    }
+    
+    console.log('🔧 Editing accessory:', {
+        id: accessoryItem.id,
+        name: accessoryItem.name,
+        hasImageUrl: !!accessoryItem.imageUrl,
+        imageUrl: accessoryItem.imageUrl
+    });
+    
     showAccessoryModal.value = true;
 }
 

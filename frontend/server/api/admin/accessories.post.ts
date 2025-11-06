@@ -16,13 +16,24 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Accessory name is required'
       })
     }
+
+    // Debug: Log the incoming request body
+    console.log('🔧 Accessory API received payload:', {
+      name: body.name,
+      description: body.description,
+      price: body.price,
+      quantity: body.quantity,
+      imageUrl: body.imageUrl,
+      hasImageUrl: !!body.imageUrl
+    })
     
     // Prepare the payload for Supabase
     const payload = {
       name: body.name,
       description: body.description || '',
       price: body.price || 0,
-      quantity: body.quantity || 1
+      quantity: body.quantity || 1,
+      imageUrl: body.imageUrl || null
     }
     
     if (body.id) {
