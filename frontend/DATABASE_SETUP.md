@@ -41,6 +41,7 @@ CREATE TABLE "Accessory" (
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
   quantity INTEGER DEFAULT 1, -- Total quantity available
+  "imageUrl" TEXT, -- URL to accessory image
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
