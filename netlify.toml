@@ -1,20 +1,24 @@
 [build]
   base = "frontend"
   command = "npm run build"
-  publish = "frontend/.output/public"
-
-[functions]
-  directory = "frontend/.output/server"
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/__render"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/__render"
-  status = 200
+  publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "22.17.0"
+
+[[redirects]]
+  from = "http://lejgopro.dk/*"
+  to = "https://lejgopro.dk/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.lejgopro.dk/*"
+  to = "https://lejgopro.dk/:splat"
+  status = 301
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
