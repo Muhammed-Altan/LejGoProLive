@@ -16,6 +16,14 @@ export default defineEventHandler(async (event) => {
     if (error) {
       throw error
     }
+
+    // Debug: Log what we're returning
+    console.log('🔧 Accessory GET API returning:', data?.map(item => ({
+      id: item.id,
+      name: item.name,
+      hasImageUrl: !!item.imageUrl,
+      imageUrl: item.imageUrl
+    })))
     
     return { success: true, data }
   } catch (error: any) {
