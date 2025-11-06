@@ -75,7 +75,7 @@
 					<p class="mb-4">Vi anvender samarbejdspartnere/leverandører (databehandlere), som behandler personoplysninger på vores vegne. Det kan fx være hosting, betalingsløsning, nyhedsbrevssystem, fragt/levering og IT-support.</p>
 					<p class="mb-4">Vi indgår databehandleraftaler og stiller krav til sikkerhed og fortrolighed.</p>
 					<ul class="list-disc ml-6">
-						<li><strong>Webhosting/CDN:</strong> Vercel – drift og hosting af LejGoPro.dk</li>
+						<li><strong>Webhosting/CDN:</strong> Netlify – drift og hosting af LejGoPro.dk</li>
 						<li><strong>Betalingsgateway:</strong> Pensopay – håndtering af betalinger</li>
 						<li><strong>Fragt:</strong> GLS & PostNord – levering og returnering</li>
 					</ul>
