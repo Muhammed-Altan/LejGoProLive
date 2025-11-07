@@ -47,8 +47,8 @@
         </ul>
         <div class="bg-[#1e293b] rounded-lg p-4 mt-4 text-sm">
           <div class="font-bold mb-2">Telefon tider:</div>
-          <div>8-18 Man-Fre</div>
-          <div>8-12 i Lør-Søn</div>
+          <div>Mandag til Fredag: kl. 8-18</div>
+          <div>Lørdag til Søndag: kl. 8-12</div>
           <div class="mt-3 text-xs text-gray-400 italic">
             Tilgængelig 24/7 på mail
           </div>

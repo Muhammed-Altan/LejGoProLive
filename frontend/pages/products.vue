@@ -25,9 +25,9 @@
       <div v-if="products.length === 0" class="col-span-full text-center text-gray-500">
         Ingen produkter fundet
       </div>
-      <div v-else class="col-span-full text-center text-sm text-gray-500 mb-4">
+      <!-- <div v-else class="col-span-full text-center text-sm text-gray-500 mb-4">
         {{ products.length }} produkter fundet
-      </div>
+      </div> -->
       
       <ProductCard
         v-for="product in products"
