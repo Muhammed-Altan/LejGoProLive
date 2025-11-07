@@ -315,7 +315,7 @@ export default defineEventHandler(async (event) => {
       console.log('🔧 Rounded amount to integer:', totalAmount)
     }
     
-    // Get current domain for callback URLs - handle Vercel deployment
+    // Get current domain for callback URLs - handle Netlify deployment
     const headers = getHeaders(event)
     const host = headers.host || 'localhost:3000'
     const protocol = host.includes('localhost') ? 'http' : 'https'

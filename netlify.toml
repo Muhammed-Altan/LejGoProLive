@@ -1,0 +1,24 @@
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22.17.0"
+
+[[redirects]]
+  from = "http://lejgopro.dk/*"
+  to = "https://lejgopro.dk/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.lejgopro.dk/*"
+  to = "https://lejgopro.dk/:splat"
+  status = 301
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"

@@ -38,6 +38,7 @@
         :features="product.features ? product.features.split(',').map(f => f.trim()) : []"
         :priceDay="product.dailyPrice"
         :priceWeek="product.weeklyPrice"
+        :twoWeekPrice="product.twoWeekPrice"
         :popular="false"
         :productId="product.id"
       />
@@ -90,6 +91,7 @@ interface Product {
   features: string;
   dailyPrice: number;
   weeklyPrice: number;
+  twoWeekPrice?: number;
   quantity: number;
   imageUrl?: string;
 }
@@ -108,6 +110,10 @@ const fetchProducts = async () => {
   try {
     loading.value = true;
     error.value = null;
+    
+    if (!supabase) {
+      throw new Error('Supabase client ikke tilgængelig');
+    }
     
     const { data, error: supabaseError } = await supabase
       .from('Product')

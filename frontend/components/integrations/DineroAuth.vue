@@ -198,14 +198,15 @@ function connectToDinero() {
   const state = generateRandomString(32)
   localStorage.setItem('dinero_auth_state', state)
   
-  // Test with production redirect URI to see if that works
-  const testProductionRedirect = 'https://lej-go-pro-live.vercel.app/admin/dinero/callback'
+  // Get the current base URL from runtime config
+  const config = useRuntimeConfig()
+  const productionRedirect = `${config.public.baseUrl}/admin/dinero/callback`
   
   // Use absolute minimal parameters to test
   const authUrl = new URL('https://connect.visma.com/connect/authorize')
   authUrl.searchParams.set('client_id', DINERO_CLIENT_ID)
   authUrl.searchParams.set('response_type', 'code')
-  authUrl.searchParams.set('redirect_uri', testProductionRedirect) // Test with production URI
+  authUrl.searchParams.set('redirect_uri', productionRedirect) // Use dynamic URL
   authUrl.searchParams.set('state', state)
   authUrl.searchParams.set('scope', 'dineropublicapi:read')
   

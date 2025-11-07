@@ -1,16 +1,16 @@
 <template>
-  <div class="space-y-6 w-full max-w-2xl mx-auto">
+  <div class="space-y-6 w-full max-w-2xl mx-auto px-4 sm:px-6">
     <article>
-      <h1 class="font-semibold text-lg">Vælg dit udstyr</h1>
-      <h2 class="font-medium text-base">
+      <h1 class="font-semibold text-lg md:text-xl">Vælg dit udstyr</h1>
+      <h2 class="font-medium text-sm md:text-base">
         Udfyld formularen nedenfor for at få et tilbud
       </h2>
     </article>
-    <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
+    <section class="bg-gray-50 rounded-xl p-4 sm:p-6 shadow flex flex-col gap-2">
       <div class="flex items-center justify-between mb-2">
-        <h2 class="font-semibold text-lg">Vælg din booking periode</h2>
+        <h2 class="font-semibold text-base md:text-lg">Vælg din booking periode</h2>
       </div>
-      <div class="flex gap-4">
+      <div class="flex flex-col sm:flex-row gap-4">
         <div class="flex-1">
           <VueDatePicker
             v-model="startDate"
@@ -39,27 +39,27 @@
       </div>
     </section>
     <!-- GoPro Model Selection (Dropdown) -->
-    <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
+    <section class="bg-gray-50 rounded-xl p-4 sm:p-6 shadow flex flex-col gap-2">
       <div class="flex items-center justify-between mb-2">
-        <h2 class="font-semibold text-lg">Vælg en GoPro Model</h2>
+        <h2 class="font-semibold text-base md:text-lg">Vælg en GoPro Model</h2>
       </div>
       <div v-if="!datesSelected" class="mb-3 p-3 rounded bg-yellow-100 border border-yellow-300 text-yellow-900 flex items-center gap-2 animate-pulse">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
-        <span>Vælg venligst bookingperiode først for at vælge model.</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
+        <span class="text-sm md:text-base">Vælg venligst bookingperiode først for at vælge model.</span>
       </div>
       <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
-        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin h-5 w-5 text-blue-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span>Checking availability...</span>
+        <span class="text-sm md:text-base">Checking availability...</span>
       </div>
       <div class="flex items-center gap-3">
         <select
           v-model="selectedModelName"
           @change="onModelSelect"
           :disabled="!datesSelected || availabilityLoading || totalCameraCount >= 2"
-          class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          class="flex-1 w-full border border-gray-300 rounded-lg py-2 sm:py-3 px-3 sm:px-4 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">
             {{ totalCameraCount >= 2 ? 'Maksimum 2 kameraer nået' : 'Vælg en model for at tilføje…' }}
@@ -79,7 +79,10 @@
               <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
             </span>
           </option>
-          <option disabled value="" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 4px; font-style: italic; color: #6b7280;">
+          <option disabled value="" class="text-gray-500">
+            ────────────────────────────────
+          </option>
+          <option disabled value="" class="text-gray-500 italic">
             Har du brug for 3+ kameraer? Kontakt os på email for en specialpris
           </option>
         </select>
@@ -102,18 +105,19 @@
       <div
         v-for="(item, idx) in selectedModels"
         :key="item.name"
-        class="flex items-center gap-4 bg-gray-100 rounded-lg py-4 px-4"
+        class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 bg-gray-100 rounded-lg py-3 sm:py-4 px-3 sm:px-4"
       >
       <img 
         :src="item.imageUrl || placeholderImage" 
         alt="" 
-        class="w-16 h-16 object-cover rounded mr-3 border border-gray-200 bg-white">
+        class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border border-gray-200 bg-white">
 
-        <div class="flex-1">
-           <p class="font-medium">{{ item.name }}</p> <p class="text-xs text-gray-600">inkluderer: Beskyttelsescase, Batteri, Rejsetaske</p>
+        <div class="flex-1 min-w-0">
+           <p class="font-medium text-sm md:text-base">{{ item.name }}</p> 
+           <p class="text-xs text-gray-600">inkluderer: Beskyttelsescase, Batteri, Rejsetaske</p>
         </div>
-        <div class="flex items-center justify-center gap-2 group relative">
-          <span>
+        <div class="flex items-center justify-between sm:justify-center gap-2 group relative w-full sm:w-auto">
+          <span class="text-sm md:text-base">
             Antal
             <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small>
           </span>
@@ -126,7 +130,7 @@
             )"
             v-model.number="item.quantity"
             :disabled="getMaxProductQuantityForItem(item) <= 1"
-            class="w-12 text-center rounded border border-gray-300"
+            class="w-12 sm:w-12 text-center rounded border border-gray-300 text-sm md:text-base"
             :class="{ 'bg-gray-100 cursor-not-allowed border-none': getMaxProductQuantityForItem(item) <= 1 }"
           />
           <span
@@ -139,7 +143,7 @@
         </div>
         <button
           @click="removeModel(idx)"
-          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer tilfoej-btn"
+          class="text-sm text-gray-500 fjern-btn cursor-pointer tilfoej-btn self-end sm:self-center"
         >
           Fjern
         </button>
@@ -147,31 +151,31 @@
     </section>
 
     <!-- Accessories Selection (Dropdown) -->
-    <section class="bg-gray-50 rounded-xl p-6 shadow flex flex-col gap-2">
+    <section class="bg-gray-50 rounded-xl p-4 sm:p-6 shadow flex flex-col gap-2">
       <div class="flex items-center justify-between mb-2">
-        <h2 class="font-semibold text-lg">Vælg tilbehør</h2>
+        <h2 class="font-semibold text-base md:text-lg">Vælg tilbehør</h2>
       </div>
       <div v-if="!datesSelected" class="mb-3 p-3 rounded bg-yellow-100 border border-yellow-300 text-yellow-900 flex items-center gap-2 animate-pulse">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
-        <span>Vælg venligst bookingperiode først for at vælge tilbehør.</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
+        <span class="text-sm md:text-base">Vælg venligst bookingperiode først for at vælge tilbehør.</span>
       </div>
       <div v-else-if="datesSelected && selectedModels.length === 0" class="mb-3 p-3 rounded bg-yellow-100 border border-yellow-300 text-yellow-900 flex items-center gap-2 animate-pulse">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
-        <span>Vælg venligst en GoPro model først for at vælge tilbehør.</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
+        <span class="text-sm md:text-base">Vælg venligst en GoPro model først for at vælge tilbehør.</span>
       </div>
       <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
-        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin h-5 w-5 text-blue-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span>Checking availability...</span>
+        <span class="text-sm md:text-base">Checking availability...</span>
       </div>
       <div class="flex items-center gap-3">
         <select
           v-model="selectedAccessoryName"
           @change="onAccessorySelect"
           :disabled="!datesSelected || selectedModels.length === 0"
-          class="flex-1 w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          class="flex-1 w-full border border-gray-300 rounded-lg py-2 sm:py-3 px-3 sm:px-4 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">Vælg tilbehør for at tilføje…</option>
           <option
@@ -196,14 +200,14 @@
       <div
         v-for="(item, idx) in selectedAccessories"
         :key="item.name"
-        class="flex items-center gap-4 rounded-lg py-4 px-4"
+        class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 rounded-lg py-3 sm:py-4 px-3 sm:px-4"
         :class="{
           'bg-gray-100': !isAccessoryAtActualLimit(item),
           'bg-orange-50 border-2 border-orange-300': isAccessoryAtActualLimit(item)
         }"
       >
-        <div class="flex-1 font-medium">
-          {{ item.name }}
+        <div class="flex-1 font-medium min-w-0">
+          <span class="text-sm md:text-base">{{ item.name }}</span>
           <!-- Max quantity disclaimer - only show when at problematic limit -->
           <div 
             v-if="isAccessoryAtActualLimit(item)" 
@@ -212,8 +216,8 @@
             {{ getAccessoryTooltipMessage(item.name) }}
           </div>
         </div>
-        <div class="flex items-center justify-center gap-2">
-          <span>Antal</span>
+        <div class="flex items-center justify-between sm:justify-center gap-2 w-full sm:w-auto">
+          <span class="text-sm md:text-base">Antal</span>
           <input
             type="number"
             min="1"
@@ -221,7 +225,7 @@
             v-model.number="item.quantity"
             @input="onAccessoryQuantityChange"
             :disabled="getMaxAccessoryQuantity(item) <= 1"
-            class="w-12 text-center rounded border"
+            class="w-12 sm:w-12 text-center rounded border text-sm md:text-base"
             :class="{
               'border-gray-300': !isAccessoryAtActualLimit(item),
               'border-orange-300 bg-orange-50': isAccessoryAtActualLimit(item),
@@ -231,7 +235,7 @@
         </div>
         <button
           @click="removeAccessory(idx)"
-          class="ml-2 text-sm text-gray-500 fjern-btn cursor-pointer tilfoej-btn"
+          class="text-sm text-gray-500 fjern-btn cursor-pointer tilfoej-btn self-end sm:self-center"
         >
           Fjern
         </button>
@@ -478,12 +482,32 @@ const getMaxProductQuantity = (productId: number): number => {
   return getMaxProdQty(productId);
 };
 
-// Minimum selectable start date: 3 days from today
+// Minimum selectable start date: 3 business days from today
+// Accounts for weekends to ensure proper delivery time
 const minStartDate = computed(() => {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3);
-  return date;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let daysToAdd = 0;
+  let businessDaysAdded = 0;
+  const requiredBusinessDays = 3;
+  
+  // Add days until we have 3 business days (excluding weekends)
+  while (businessDaysAdded < requiredBusinessDays) {
+    daysToAdd++;
+    const checkDate = new Date(today);
+    checkDate.setDate(today.getDate() + daysToAdd);
+    const dayOfWeek = checkDate.getDay();
+    
+    // If it's not a weekend (0=Sunday, 6=Saturday), count it as a business day
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      businessDaysAdded++;
+    }
+  }
+  
+  const minDate = new Date(today);
+  minDate.setDate(today.getDate() + daysToAdd);
+  return minDate;
 });
 
 // Minimum selectable end date: 3-day minimum booking period (start date + 2 days)
