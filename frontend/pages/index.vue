@@ -83,6 +83,7 @@
         :features="product.features ? product.features.split(',').map(f => f.trim()).slice(0, 3) : []"
         :priceDay="product.dailyPrice"
         :priceWeek="product.weeklyPrice"
+        :twoWeekPrice="product.twoWeekPrice"
         :popular="false"
         :productId="product.id"
       />
@@ -133,7 +134,7 @@
       <div class="flex flex-col items-center">
         <span class="text-5xl mb-4" style="transform: scaleX(-1);">🚚</span>
         <h3 class="font-bold mb-2">2. Få leveret</h3>
-        <p class="text-center text-gray-600">Vi leverer dit GoPro udstyr direkte til din adresse på den valgte dato.</p>
+        <p class="text-center text-gray-600">Vi sender dit GoPro udstyr til den nærmeste pakkeboks på den valgte dato.</p>
       </div>
       <div class="flex flex-col items-center">
         <span class="text-5xl mb-4">🎥</span>
@@ -177,6 +178,7 @@ interface Product {
   features: string;
   dailyPrice: number;
   weeklyPrice: number;
+  twoWeekPrice?: number;
   quantity: number;
   imageUrl?: string;
 }
