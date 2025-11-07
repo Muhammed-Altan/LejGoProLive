@@ -478,12 +478,32 @@ const getMaxProductQuantity = (productId: number): number => {
   return getMaxProdQty(productId);
 };
 
-// Minimum selectable start date: 3 days from today
+// Minimum selectable start date: 3 business days from today
+// Accounts for weekends to ensure proper delivery time
 const minStartDate = computed(() => {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3);
-  return date;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let daysToAdd = 0;
+  let businessDaysAdded = 0;
+  const requiredBusinessDays = 3;
+  
+  // Add days until we have 3 business days (excluding weekends)
+  while (businessDaysAdded < requiredBusinessDays) {
+    daysToAdd++;
+    const checkDate = new Date(today);
+    checkDate.setDate(today.getDate() + daysToAdd);
+    const dayOfWeek = checkDate.getDay();
+    
+    // If it's not a weekend (0=Sunday, 6=Saturday), count it as a business day
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      businessDaysAdded++;
+    }
+  }
+  
+  const minDate = new Date(today);
+  minDate.setDate(today.getDate() + daysToAdd);
+  return minDate;
 });
 
 // Minimum selectable end date: 3-day minimum booking period (start date + 2 days)

@@ -4,7 +4,7 @@
   <img :src="img" :alt="title" class="w-full h-52 object-contain mb-4" />
   <div class="flex justify-between items-center mb-3">
     <h3 class="font-bold text-2xl text-black">{{ title }}</h3>
-    <span class="font-bold text-[#B8082A] text-lg">fra {{ priceDay }} kr/dag</span>
+    <span class="font-bold text-[#B8082A] text-lg">fra {{ displayPrice }} kr/dag</span>
   </div>
     <p class="text-sm text-gray-600 mb-3">{{ description }}</p>
     <ul class="text-sm text-gray-500 mb-6 space-y-1">
@@ -25,14 +25,20 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   title: String,
   description: String,
   img: String,
   features: Array,
   priceDay: [String, Number],
   priceWeek: [String, Number],
+  twoWeekPrice: [String, Number],
   popular: Boolean,
   productId: Number
+})
+
+// Calculate the display price using the same logic as ProductStep.vue
+const displayPrice = computed(() => {
+  return Math.ceil(props.twoWeekPrice ? (props.twoWeekPrice / 14) : props.priceDay)
 })
 </script>
