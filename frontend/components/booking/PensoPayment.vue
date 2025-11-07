@@ -223,12 +223,46 @@ const initiatePayment = async () => {
   }
 
   try {
-    // Prepare booking data
+    // First, create bookings using the booking API (supports multiple cameras)
+    const bookingPayload = {
+      startDate: store.startDate,
+      endDate: store.endDate,
+      models: store.selectedModels.map(model => ({
+        name: model.name,
+        quantity: model.quantity || 1,
+        productId: model.productId || 1
+      })),
+      accessories: store.selectedAccessories.map(acc => ({
+        name: acc.name,
+        quantity: acc.quantity || 1
+      })),
+      insurance: false, // You may want to add insurance to the store
+      acceptedTerms: true
+    }
+
+    console.log('Creating bookings with payload:', bookingPayload)
+
+    // Create the bookings first
+    const bookingResponse = await $fetch<{
+      status: number
+      message: string
+    }>('/api/booking', {
+      method: 'POST',
+      body: bookingPayload
+    })
+
+    if (bookingResponse.status !== 200) {
+      throw new Error(bookingResponse.message || 'Failed to create bookings')
+    }
+
+    console.log('Bookings created successfully:', bookingResponse.message)
+
+    // Now prepare payment data (legacy format for the payment API)
     const bookingData = {
       cameraId: 1, // This will be properly assigned by the server
       cameraName: 'Selected Camera',
       productName: store.selectedModels[0]?.name || 'Selected Product',
-      selectedAccessories: store.selectedAccessories, // Pass selected accessories to server
+      selectedAccessories: store.selectedAccessories,
       startDate: store.startDate,
       endDate: store.endDate,
       address: store.address,
