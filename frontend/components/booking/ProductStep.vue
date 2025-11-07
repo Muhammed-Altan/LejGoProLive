@@ -114,7 +114,7 @@
 
         <div class="flex-1 min-w-0">
            <p class="font-medium text-sm md:text-base">{{ item.name }}</p> 
-           <p class="text-xs text-gray-600">inkluderer: Beskyttelsescase, Batteri, Rejsetaske</p>
+           <p class="text-xs text-gray-600">inkluderer: Beskyttelsescase, Batteri, Rejsetaske, ladestik, SD Kort (4k klart, minimum 32 gb)</p>
         </div>
         <div class="flex items-center justify-between sm:justify-center gap-2 group relative w-full sm:w-auto">
           <span class="text-sm md:text-base">
