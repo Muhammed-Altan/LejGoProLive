@@ -235,20 +235,20 @@ import type { AccordionItem } from '@nuxt/ui'
 
 const items = ref<AccordionItem[]>([
   {
+    label: 'Hvad er den korteste lejeperiode?',
+    content: '3 dage'
+  },
+  {
     label: 'Hvordan og hvornår skal man betale?',
-    content: 'Betaling sker via MobilePay inden afrejse, efter du har accepteret tilbuddet og modtaget kameraet.'
+    content: 'Betaling sker online via vores sikre betalingsløsning under checkout processen. Du kan betale med kort (Visa, Mastercard, osv.). Beløbet trækkes med det samme når din booking bekræftes, og du modtager en kvittering på email.'
   },
   {
     label: 'Hvor længe holder et GoPro strøm?',
     content: 'Et GoPro holder typisk 1-2 timer afhængigt af brug og model. Med ekstra batterier kan du forlænge tiden.'
   },
   {
-    label: 'Hvor lang tid tager det at oplade et GoPro?',
-    content: 'Opladning tager ca. 2 timer med den medfølgende oplader.'
-  },
-  {
     label: 'Er kameraet forsikret?',
-    content: 'Ja, der er basisforsikring inkluderet. Kontakt os for detaljer om dækning.'
+    content: 'Det er på nuværende tidspunkt ikke muligt at tilkøbe forsikring hos os. Du er i de fleste tilfælde dækket igennem din egen indboforsikring – vi opfordrer til at snakke med dit forsikringsselskab inden du lejer. Hvis kameraet går i stykker, hæfter du for hele værdien til LejGoPro.'
   }
 ])
 

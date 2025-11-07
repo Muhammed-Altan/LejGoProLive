@@ -24,7 +24,7 @@ const items = ref([
   {
     label: 'Hvad er den korteste lejeperiode?',
     icon: 'i-lucide-calendar',
-    content: 'En weekend'
+    content: '3 dage'
   },
   {
     label: 'Hvordan og hvornår skal man betale?',
@@ -49,7 +49,7 @@ const items = ref([
   {
     label: 'Er kameraet forsikret?',
     icon: 'i-lucide-shield',
-    content: 'Det er på nuværende tidspunkt ikke muligt at tilkøbe forsikring hos os. Du er i de fleste tilfælde dækket igennem din egen indboforsikring – vi opfordrer til at snakke med dit forsikringsselskab inden du lejer. Hvis kameraet går i stykker, hæfter du for hele værdien til LejGoPro I/S.'
+    content: 'Det er på nuværende tidspunkt ikke muligt at tilkøbe forsikring hos os. Du er i de fleste tilfælde dækket igennem din egen indboforsikring – vi opfordrer til at snakke med dit forsikringsselskab inden du lejer. Hvis kameraet går i stykker, hæfter du for hele værdien til LejGoPro.'
   },
   {
     label: 'Kan jeg få kameraet leveret direkte til døren?',
