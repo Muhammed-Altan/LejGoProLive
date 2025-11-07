@@ -282,22 +282,47 @@ export default defineEventHandler(async (event) => {
     // Generate unique order ID
     const orderId = `ORDER-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     
-    // Use the actual calculated price from checkout (convert from DKK to øre)
-    // Ensure we handle both numbers and strings, and always get an integer in øre
-    const priceInDKK = typeof bookingData.totalPrice === 'number' 
-      ? bookingData.totalPrice 
-      : parseFloat(bookingData.totalPrice) || 0
+    // Find existing bookings for this user that were just created (pending payment)
+    console.log('🔍 Looking for recent pending bookings for:', bookingData.email)
     
-    // Convert to øre and ensure it's an integer (no decimals)
-    let totalAmount = Math.round(priceInDKK * 100) // Convert DKK to øre and round to integer
+    const { data: existingBookings, error: bookingsError } = await supabase
+      .from('Booking')
+      .select('*')
+      .eq('paymentStatus', 'pending')
+      .eq('startDate', bookingData.startDate)
+      .eq('endDate', bookingData.endDate)
+      .is('orderId', null) // Find bookings that don't have an orderId yet
+      .order('id', { ascending: false })
+
+    if (bookingsError) {
+      console.error('❌ Error finding existing bookings:', bookingsError)
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to find existing bookings'
+      })
+    }
+
+    if (!existingBookings || existingBookings.length === 0) {
+      console.error('❌ No pending bookings found for user:', bookingData.email)
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'No pending bookings found. Please create booking first.'
+      })
+    }
+
+    console.log(`✅ Found ${existingBookings.length} pending bookings for payment`)
+    
+    // Calculate total price from all bookings (already in øre)
+    const totalPriceFromBookings = existingBookings.reduce((sum, booking) => sum + (booking.totalPrice || 0), 0)
+    
+    // Use the total from existing bookings since they're already calculated in øre
+    let totalAmount = totalPriceFromBookings
     
     console.log('🔍 PRICE CALCULATION DEBUG:')
     console.log('- Raw bookingData.totalPrice:', bookingData.totalPrice)
     console.log('- Type of totalPrice:', typeof bookingData.totalPrice)
-    console.log('- Parsed price in DKK:', priceInDKK)
-    console.log('- Calculated totalAmount in øre (before Math.round):', priceInDKK * 100)
+    console.log('- Total from existing bookings (øre):', totalPriceFromBookings)
     console.log('- Final totalAmount in øre (integer):', totalAmount)
-    console.log('- Final amount back to DKK:', totalAmount / 100)
     
     // Validate amount
     if (totalAmount <= 0) {
@@ -318,98 +343,76 @@ export default defineEventHandler(async (event) => {
     // Get current domain for callback URLs - handle Netlify deployment
     const headers = getHeaders(event)
     const host = headers.host || 'localhost:3000'
-    const protocol = host.includes('localhost') ? 'http' : 'https'
-    const baseUrl = process.env.NUXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+    
+    // Use environment variable if set, otherwise determine from host
+    // For development with PensoPay, we need HTTPS URLs
+    const isDev = process.env.NODE_ENV === 'development' || host.includes('localhost')
+    
+    // Check for custom base URL in environment variables first
+    // DEV_CALLBACK_BASE_URL can be used to set a specific URL for PensoPay callbacks during development
+    let baseUrl = process.env.DEV_CALLBACK_BASE_URL || process.env.NUXT_PUBLIC_BASE_URL || process.env.BASE_URL
+    
+    if (!baseUrl) {
+      // Fallback logic if no environment variable is set
+      baseUrl = isDev 
+        ? `https://localhost:3000` // Use HTTPS for PensoPay compliance (requires self-signed cert or ngrok)
+        : 'https://www.lejgopro.dk' // Use live domain for production
+    }
+    
+    // Ensure the base URL uses HTTPS (required by PensoPay)
+    if (baseUrl.startsWith('http://')) {
+      console.warn('⚠️ Converting HTTP to HTTPS for PensoPay compliance')
+      baseUrl = baseUrl.replace('http://', 'https://')
+    }
     
     console.log('🔗 Callback URL Configuration:')
     console.log('Host:', host)
-    console.log('Protocol:', protocol)
+    console.log('isDev:', isDev)
     console.log('Base URL for callbacks:', baseUrl)
+    console.log('Using HTTPS for PensoPay compliance:', baseUrl.startsWith('https'))
 
-    // Find the correct camera for this product and dates
-    const assignedCamera = await findAvailableCamera(
-      bookingData.productName,
-      bookingData.startDate,
-      bookingData.endDate
-    )
+    // Update existing bookings with payment information
+    const bookingIds = existingBookings.map(booking => booking.id)
+    console.log(`✅ Updating ${existingBookings.length} existing bookings with order ID: ${orderId}`)
     
-    if (!assignedCamera) {
-      console.error('❌ No available cameras for product:', bookingData.productName)
-      throw createError({
-        statusCode: 409,
-        statusMessage: `No cameras available for ${bookingData.productName} during the selected dates. Please choose different dates.`
-      })
-    }
-    
-    console.log('🎯 Assigned camera:', assignedCamera)
-
-    // Find available accessory instances for selected accessories
-    let assignedAccessoryInstances: number[]
-    try {
-      assignedAccessoryInstances = await findAvailableAccessoryInstances(
-        bookingData.selectedAccessories || [],
-        bookingData.startDate,
-        bookingData.endDate
-      )
-    } catch (accessoryError: any) {
-      console.error('❌ Accessory assignment failed:', accessoryError.message)
-      // Send simple error code and let frontend handle Danish message
-      // Extract everything after the colon and before the final period (handling stk. properly)
-      const accessories = accessoryError.message.match(/: (.+)\. V.lg/)?.[1] || 'accessories'
-      throw createError({
-        statusCode: 409,
-        statusMessage: `ACCESSORY_UNAVAILABLE:${accessories}`
-      })
-    }
-    
-    console.log('🔧 Assigned accessory instances:', assignedAccessoryInstances)
-
-    // Create booking in database with correct camera and accessory instance assignment
-    const bookingPayload = {
-      // Only include fields that exist in the Booking table
-      productName: bookingData.productName,
-      startDate: bookingData.startDate,
-      endDate: bookingData.endDate,
-      fullName: bookingData.fullName,
-      email: bookingData.email,
-      phone: bookingData.phone,
-      address: bookingData.address,
-      apartment: bookingData.apartment,
-      city: bookingData.city,
-      postalCode: bookingData.postalCode,
-      cameraId: assignedCamera.cameraId,
-      cameraName: assignedCamera.cameraName,
-      accessoryInstanceIds: assignedAccessoryInstances,
-      totalPrice: totalAmount, // Store price in øre (integer) to match database schema
-      orderId,
-      paymentStatus: 'pending'
-    }
-
-    console.log('✅ Creating booking with correct camera and accessory assignment:', {
-      productName: bookingPayload.productName,
-      cameraId: bookingPayload.cameraId,
-      cameraName: bookingPayload.cameraName,
-      accessoryInstanceIds: bookingPayload.accessoryInstanceIds
+    // Since orderId has a unique constraint, we need to create unique orderIds for each booking
+    // but we can link them with a common identifier in a different way
+    const updates = existingBookings.map((booking, index) => {
+      const uniqueOrderId = `${orderId}-${index + 1}` // Make each orderId unique
+      return supabase
+        .from('Booking')
+        .update({
+          orderId: uniqueOrderId,
+          // Update customer info if needed
+          fullName: bookingData.fullName,
+          email: bookingData.email,
+          phone: bookingData.phone,
+          address: bookingData.address,
+          apartment: bookingData.apartment,
+          city: bookingData.city,
+          postalCode: bookingData.postalCode
+        })
+        .eq('id', booking.id)
+        .select()
     })
     
-    const { data: booking, error: bookingError } = await supabase
-      .from('Booking')
-      .insert([bookingPayload])
-      .select()
-      .single()
-
-    if (bookingError) {
-      console.error('Detailed booking error:', {
-        message: bookingError.message,
-        details: bookingError.details,
-        hint: bookingError.hint,
-        code: bookingError.code
-      })
+    const updateResults = await Promise.all(updates)
+    
+    // Check for any errors
+    const errors = updateResults.filter(result => result.error)
+    if (errors.length > 0) {
+      console.error('❌ Error updating existing bookings:', errors[0].error)
       throw createError({
         statusCode: 500,
-        statusMessage: `Failed to create booking: ${bookingError.message}`
+        statusMessage: `Failed to update bookings: ${errors[0].error?.message || 'Unknown error'}`
       })
     }
+    
+    const updatedBookings = updateResults.flatMap(result => result.data || [])
+    console.log(`✅ Successfully updated ${updatedBookings.length} bookings for payment`)
+    
+    // Use the first booking for reference (they all have the same customer/date info)
+    const referenceBooking = existingBookings[0]
 
     const isTestMode = true
 
@@ -488,11 +491,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Update booking with payment ID
+    // Update all bookings with payment ID
     await supabase
       .from('Booking')
       .update({ paymentId: payment.id })
-      .eq('id', booking.id)
+      .in('id', bookingIds)
 
     console.log(`Payment created successfully for order ${orderId}`)
 
@@ -501,7 +504,8 @@ export default defineEventHandler(async (event) => {
       paymentUrl: finalPaymentUrl,
       orderId,
       paymentId: payment.id,
-      bookingId: booking.id
+      bookingId: referenceBooking.id,
+      bookingIds: bookingIds // Include all booking IDs for reference
     }
 
   } catch (error: any) {

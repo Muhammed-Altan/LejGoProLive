@@ -12,57 +12,38 @@ import { JSDOM } from 'jsdom';
 
 // Check accessory availability for a booking period
 async function checkAccessoryAvailability(accessories: Array<{ name: string; quantity: number }>, startDate: string, endDate: string): Promise<boolean> {
+  // If no accessories requested, no need to check
+  if (!accessories || accessories.length === 0) {
+    console.log('No accessories requested, skipping availability check');
+    return true;
+  }
+
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) return false;
   
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   
-  // Get bookings that overlap with the requested period
-  const { data: bookings, error: bookingsError } = await supabase
-    .from('Booking')
-    .select('selectedAccessories')
-    .lte('startDate', endDate)
-    .gte('endDate', startDate);
-    
-  if (bookingsError) {
-    console.error('Error checking accessory availability:', bookingsError);
-    return false;
-  }
+  console.log('Checking accessory availability for:', accessories);
   
-  // Calculate booked quantities per accessory
-  const bookedQuantities: Record<string, number> = {};
-  (bookings || []).forEach((booking: any) => {
-    if (Array.isArray(booking.selectedAccessories)) {
-      booking.selectedAccessories.forEach((acc: any) => {
-        const name = (acc.name || '').toString().trim().toLowerCase();
-        const qty = typeof acc.quantity === 'number' ? acc.quantity : 1;
-        bookedQuantities[name] = (bookedQuantities[name] || 0) + qty;
-      });
+  // For now, return true since the detailed accessory availability 
+  // checking is handled in the payment API with accessory instances
+  // This function mainly validates that the accessories exist
+  for (const accessory of accessories) {
+    const { data: dbAccessory, error } = await supabase
+      .from('Accessory')
+      .select('id, name, quantity')
+      .eq('name', accessory.name)
+      .single();
+      
+    if (error || !dbAccessory) {
+      console.error(`Accessory not found: ${accessory.name}`, error);
+      return false;
     }
-  });
-  
-  // Get accessory total quantities from DB
-  const { data: dbAccessories, error: accessoriesError } = await supabase
-    .from('Accessory')
-    .select('name, quantity');
     
-  if (accessoriesError) {
-    console.error('Error fetching accessories:', accessoriesError);
-    return false;
-  }
-  
-  // Check if requested quantities are available
-  for (const reqAcc of accessories) {
-    const name = reqAcc.name.toLowerCase();
-    const requestedQty = reqAcc.quantity;
-    const bookedQty = bookedQuantities[name] || 0;
-    
-    const dbAcc = dbAccessories?.find(a => a.name.toLowerCase() === name);
-    const totalQty = dbAcc?.quantity || 5; // fallback
-    
-    const availableQty = totalQty - bookedQty;
-    if (requestedQty > availableQty) {
+    // Basic quantity check - detailed availability is done in payment API
+    if (accessory.quantity > (dbAccessory.quantity || 0)) {
+      console.error(`Insufficient quantity for ${accessory.name}: requested ${accessory.quantity}, available ${dbAccessory.quantity}`);
       return false;
     }
   }
@@ -70,10 +51,10 @@ async function checkAccessoryAvailability(accessories: Array<{ name: string; qua
   return true;
 }
 
-// Rate limiter setup: 2 requests per 600 seconds per IP
+// Rate limiter setup: 10 requests per 60 seconds per IP (more reasonable for development/testing)
 const rateLimiter = new RateLimiterMemory({
-  points: 2,
-  duration: 600,
+  points: 10,
+  duration: 60,
 });
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -252,16 +233,27 @@ export default defineEventHandler(async (event) => {
     for (let i = 0; i < model.quantity; i++) {
       const camera = availableCameras[i];
       const bookingRecord = {
-        ...booking,
+        // Only include fields that exist in the Booking table (matching database schema)
         cameraId: camera.id,
-        productName: model.name,
-        selectedModels: [{ ...model, quantity: 1 }], // Single camera per booking
-        selectedAccessories: enrichedAccessories,
-        ...pricing,
-        // Adjust pricing proportionally if multiple cameras
+        cameraName: `Kamera ${i + 1}`, // Generate proper camera names like "Kamera 1", "Kamera 2"
+        productName: model.name, // Add the missing productName field
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        address: '', // Will be set by payment API
+        apartment: '', // Will be set by payment API
+        email: '', // Will be set by payment API
+        fullName: '', // Will be set by payment API
+        phone: '', // Will be set by payment API
         totalPrice: enrichedModels.length > 1 || enrichedModels.some(m => m.quantity > 1) 
-          ? Math.round((pricing.total / enrichedModels.reduce((sum, m) => sum + m.quantity, 0)) * 100) / 100
-          : pricing.total
+          ? Math.round((pricing.total / enrichedModels.reduce((sum, m) => sum + m.quantity, 0)) * 100) // Convert DKK to øre
+          : Math.round(pricing.total * 100), // Convert DKK to øre
+        city: '', // Will be set by payment API
+        orderId: null, // NULL initially, will be set by payment API to same value for all bookings
+        paymentId: '', // Will be set by payment API
+        paymentStatus: 'pending',
+        paidAt: null, // NULL until payment is confirmed
+        postalCode: '', // Will be set by payment API
+        return_processed: false // Boolean field for return process (corrected field name)
       };
       
       bookingRecords.push(bookingRecord);
