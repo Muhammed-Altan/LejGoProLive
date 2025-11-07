@@ -15,6 +15,7 @@
     </div>
   </div>
 </section>
+<Footer />
 </template>
 
 <script setup>
