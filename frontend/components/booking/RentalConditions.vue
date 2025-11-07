@@ -59,17 +59,27 @@
             </div>
             
             <div>
-              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">6. Afhentning og returnering</h3>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">6. Depositum</h3>
+              <p>Der opkræves et depositum ved visse produkter. Depositum returneres, når udstyret er afleveret i god stand.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">7. Afhentning og returnering</h3>
               <p>Udstyret kan afhentes og returneres efter aftale. Returnering skal ske senest på det aftalte tidspunkt. Forsinket returnering kan medføre ekstra betaling.</p>
             </div>
             
             <div>
-              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">7. Kundens ansvar</h3>
-              <p>Lejer er ansvarlig for udstyret i hele lejeperioden. Skader eller bortkomst af udstyr erstattes af lejer. Det anbefales at tegne forsikring.</p>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">8. Kundens ansvar</h3>
+              <p>Lejer er ansvarlig for udstyret i hele lejeperioden. Skader eller bortkomst af udstyr erstattes af lejer. Det anbefales at tale med dit forsikringsselskab.</p>
             </div>
             
             <div>
-              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">8. Fortrydelsesret og afbestilling</h3>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">9. Forsikring</h3>
+              <p>Forsikring kan ikke tilkøbes ved bestilling.</p>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">10. Fortrydelsesret og afbestilling</h3>
               <p>Lejeaftaler er undtaget den normale fortrydelsesret (jf. Forbrugeraftaleloven § 18, stk. 2, nr. 12), men vi tilbyder følgende fleksible afbestillingsbetingelser:</p>
               <ul class="list-disc ml-6 mt-2 mb-2">
                 <li>Ved afbestilling senest 14 dage før lejeaftalens begyndelse refunderes 100%.</li>
@@ -80,22 +90,22 @@
             </div>
             
             <div>
-              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">9. Reklamation</h3>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">11. Reklamation</h3>
               <p>Ved fejl eller mangler bedes du kontakte os straks. Du har 2 års reklamationsret i henhold til købeloven, hvor relevant.</p>
             </div>
             
             <div>
-              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">10. Force Majeure</h3>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">12. Force Majeure</h3>
               <p>LejGoPro.dk er ikke ansvarlig for manglende opfyldelse af aftalen ved force majeure.</p>
             </div>
             
             <div>
-              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">11. Persondata</h3>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">13. Persondata</h3>
               <p>Vi behandler dine oplysninger i overensstemmelse med vores privatlivspolitik.</p>
             </div>
             
             <div>
-              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">12. Lovvalg og værneting</h3>
+              <h3 class="font-semibold text-lg mb-2 text-[#B8082A]">14. Lovvalg og værneting</h3>
               <p>Aftalen er underlagt dansk ret. Eventuelle tvister afgøres ved de danske domstole.</p>
             </div>
           </div>

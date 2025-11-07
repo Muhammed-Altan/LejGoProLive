@@ -35,11 +35,11 @@
 				</div>
 				<div>
 					<h2 class="font-semibold text-xl mb-2 text-[#B8082A]">8. Kundens ansvar</h2>
-					<p>Lejer er ansvarlig for udstyret i hele lejeperioden. Skader eller bortkomst af udstyr erstattes af lejer. Det anbefales at tegne forsikring.</p>
+					<p>Lejer er ansvarlig for udstyret i hele lejeperioden. Skader eller bortkomst af udstyr erstattes af lejer. Det anbefales at tale med dit forsikringsselskab.</p>
 				</div>
 				<div>
 					<h2 class="font-semibold text-xl mb-2 text-[#B8082A]">9. Forsikring</h2>
-					<p>Forsikring kan tilkøbes ved bestilling. Forsikringen dækker udelukkende kameraets værdi og ikke tilbehør eller ekstraudstyr. Ved skader betaler lejer en selvrisiko på 500 kr., hvorefter det resterende beløb dækkes af forsikringen.</p>
+					<p>Forsikring kan ikke tilkøbes ved bestilling.</p>
 				</div>
 				<div>
 					<h2 class="font-semibold text-xl mb-2 text-[#B8082A]">10. Fortrydelsesret og afbestilling</h2>

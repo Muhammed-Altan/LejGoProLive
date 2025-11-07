@@ -18,7 +18,7 @@
         </svg>
       </NuxtLink>
         </div>
-        <p class="text-sm text-gray-300 mb-4">Danmarks førende platform for GoPro udlejning til eventyrere og rejsende.</p>
+        <p class="text-sm text-gray-300 mb-4">Fang Eventyret</p>
         <div class="flex gap-4 text-xl">
           <NuxtLink to="#" aria-label="Facebook" class="hover:text-gray-400"><i class="fab fa-facebook"></i></NuxtLink>
           <NuxtLink to="#" aria-label="Instagram" class="hover:text-gray-400"><i class="fab fa-instagram"></i></NuxtLink>
@@ -47,10 +47,10 @@
         </ul>
         <div class="bg-[#1e293b] rounded-lg p-4 mt-4 text-sm">
           <div class="font-bold mb-2">Telefon tider:</div>
-          <div>8-18 i hverdage</div>
-          <div>8-12 i weekenden</div>
+          <div>8-18 Man-Fre</div>
+          <div>8-12 i Lør-Søn</div>
           <div class="mt-3 text-xs text-gray-400 italic">
-            Helst skrive en mail
+            Tilgængelig 24/7 på mail
           </div>
         </div>
       </div>

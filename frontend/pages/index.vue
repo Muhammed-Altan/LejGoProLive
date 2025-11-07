@@ -9,7 +9,7 @@
   Lej dit <span class="text-[#B8082A]">GoPro</span> til næste eventyr
       </h1>
       <p class="text-lg text-center text-black mb-8 max-w-xl">
-        Professionelle actionkameraer til rejsende og eventyrere – nem booking, gratis levering og konkurrencedygtige priser.
+        Professionelle actionkameraer til rejser og eventyr – nem booking, gratis levering og konkurrencedygtige priser.
       </p>
       <div class="flex gap-4 justify-center mb-8">
   <NuxtLink to="/products" class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition cursor-pointer">Se Alle Produkter</NuxtLink>
