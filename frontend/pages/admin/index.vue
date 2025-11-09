@@ -1757,113 +1757,26 @@ async function fixBookingCameraIds() {
     console.log('🔄 Starting booking distribution...');
     
     try {
-        const supabase = useSupabase();
-        if (!supabase) {
-            console.error('Supabase client not available');
-            return;
+        // Use authenticated API endpoint instead of direct Supabase calls
+        console.log('📡 Making authenticated request to /api/admin/distribute-bookings...');
+        
+        const response = await auth.authenticatedFetch('/api/admin/distribute-bookings', {
+            method: 'POST'
+        });
+        
+        console.log('� Distribution response:', response);
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Failed to distribute bookings');
         }
         
-        // Get all products first
-        const { data: allProducts, error: productsError } = await supabase
-            .from('Product')
-            .select('id, name')
-            .order('id');
-            
-        if (productsError) {
-            console.error('Error fetching products:', productsError);
-            return;
-        }
-        
-        // Get all cameras
-        const { data: allCameras, error: camerasError } = await supabase
-            .from('Camera')
-            .select('id, productId')
-            .order('id');
-            
-        if (camerasError) {
-            console.error('Error fetching cameras:', camerasError);
-            return;
-        }
-        
-        // Group cameras by productId
-        const camerasByProduct: Record<number, any[]> = {};
-        for (const camera of allCameras || []) {
-            if (!camerasByProduct[camera.productId]) {
-                camerasByProduct[camera.productId] = [];
-            }
-            camerasByProduct[camera.productId].push(camera);
-        }
-        
-        console.log('📦 Products:', allProducts);
-        console.log('📷 Cameras by product:', camerasByProduct);
-        
-        // Get all bookings
-        const { data: allBookings, error: bookingsError } = await supabase
-            .from('Booking')
-            .select('id, productName, cameraId, startDate, endDate')
-            .order('startDate');
-            
-        if (bookingsError) {
-            console.error('Error fetching bookings:', bookingsError);
-            return;
-        }
-        
-        console.log('📋 All bookings:', allBookings?.length || 0);
-        
-        // Group bookings by product name and redistribute
-        for (const product of allProducts || []) {
-            const productBookings = allBookings?.filter(b => b.productName === product.name) || [];
-            const productCameras = camerasByProduct[product.id] || [];
-            
-            if (productBookings.length === 0) {
-                console.log(`📦 ${product.name}: No bookings to redistribute`);
-                continue;
-            }
-            
-            if (productCameras.length === 0) {
-                console.log(`📦 ${product.name}: No cameras available`);
-                continue;
-            }
-            
-            console.log(`📦 ${product.name}: Redistributing ${productBookings.length} bookings across ${productCameras.length} cameras`);
-            
-            // Sort bookings chronologically
-            productBookings.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-            
-            // Redistribute using round-robin
-            for (let i = 0; i < productBookings.length; i++) {
-                const booking = productBookings[i];
-                const cameraIndex = i % productCameras.length;
-                const targetCamera = productCameras[cameraIndex];
-                
-                if (booking.cameraId !== targetCamera.id) {
-                    console.log(`🔄 Moving booking ${booking.id} from camera ${booking.cameraId} to camera ${targetCamera.id} (${product.name})`);
-                    
-                    const { error: updateError } = await supabase
-                        .from('Booking')
-                        .update({
-                            cameraId: targetCamera.id,
-                            cameraName: `Kamera ${cameraIndex + 1}`
-                        })
-                        .eq('id', booking.id);
-                        
-                    if (updateError) {
-                        console.error(`❌ Failed to update booking ${booking.id}:`, updateError);
-                    } else {
-                        console.log(`✅ Updated booking ${booking.id}`);
-                    }
-                } else {
-                    console.log(`✓ Booking ${booking.id} already correctly assigned to camera ${targetCamera.id}`);
-                }
-            }
-        }
-        
+        // Refresh bookings from server
         await fetchBookings();
         console.log('✅ Distribution complete!');
         
         toast.add({
             title: 'Bookings redistributed!',
-            description: 'All bookings have been properly assigned to cameras within their products',
+            description: `Successfully updated ${response.updatedCount} bookings across ${response.totalProducts} products`,
             color: 'success',
             ui: {
                 title: 'text-gray-900 font-semibold',
@@ -1871,11 +1784,20 @@ async function fixBookingCameraIds() {
             }
         });
         
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error redistributing bookings:', error);
+        
+        // Handle authentication errors specifically
+        let errorMessage = 'Could not redistribute bookings properly';
+        if (error.status === 401 || error.statusCode === 401) {
+            errorMessage = 'Your session has expired. Please refresh the page and log in again.';
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
         toast.add({
             title: 'Error redistributing bookings',
-            description: 'Could not redistribute bookings properly',
+            description: errorMessage,
             color: 'error',
             ui: {
                 title: 'text-gray-900 font-semibold',

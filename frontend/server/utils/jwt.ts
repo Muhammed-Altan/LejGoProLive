@@ -12,7 +12,7 @@ function getJwtSecrets() {
 
 // Token expiration times
 const ACCESS_TOKEN_EXPIRES_IN = '15m' // 15 minutes
-const REFRESH_TOKEN_EXPIRES_IN = '7d' // 7 days
+const REFRESH_TOKEN_EXPIRES_IN = '30d' // 30 days (1 month)
 
 export interface TokenPayload {
   userId: string

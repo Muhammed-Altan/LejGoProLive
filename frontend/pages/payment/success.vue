@@ -60,6 +60,17 @@
               <span class="text-gray-600">Mail:</span>
               <span class="font-medium">Du vil modtage en mail når din pakke bliver sendt</span>
             </div>
+            
+            <!-- Show booking items if multiple cameras/products -->
+            <div v-if="bookingDetails && bookingDetails.bookingCount > 1" class="pt-4 border-t border-gray-200">
+              <span class="text-gray-600 text-sm font-medium">Dine enheder ({{ bookingDetails.bookingCount }} stk):</span>
+              <div class="mt-2 space-y-1">
+                <div v-for="(item, index) in parsedItems" :key="index" class="flex justify-between text-sm">
+                  <span class="text-gray-700">{{ item.cameraName || item.productName }}</span>
+                  <span class="text-gray-600">{{ formatAmount(item.price) }} DKK</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -184,6 +195,18 @@ const bookingData = computed<BookingEmailData | null>(() => {
     } : undefined,
     deliveryAddress: bookingDetails.value.address ? `${bookingDetails.value.address}${bookingDetails.value.apartment ? ', ' + bookingDetails.value.apartment : ''}, ${bookingDetails.value.postalCode || ''} ${bookingDetails.value.city || ''}`.trim() : undefined,
     items: bookingDetails.value.items ? JSON.parse(bookingDetails.value.items) : undefined
+  }
+})
+
+// Parse booking items for display
+const parsedItems = computed(() => {
+  if (!bookingDetails.value?.items) return []
+  
+  try {
+    return JSON.parse(bookingDetails.value.items)
+  } catch (error) {
+    console.error('Failed to parse booking items:', error)
+    return []
   }
 })
 
