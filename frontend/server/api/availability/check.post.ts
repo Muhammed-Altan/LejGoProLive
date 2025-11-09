@@ -69,22 +69,23 @@ export default defineEventHandler(async (event) => {
       // Get conflicting bookings for this period
       const { data: bookings, error: bookingsError } = await supabase
         .from('Booking')
-        .select('cameraId, startDate, endDate')
+        .select('cameraId, startDate, endDate, paymentStatus')
         .in('cameraId', cameraIds)
-        .eq('paymentStatus', 'paid') // Only count paid bookings
+        .neq('paymentStatus', 'cancelled') // Count all bookings except cancelled ones (includes pending, paid, etc.)
 
-      console.log(`📅 Found ${bookings?.length || 0} bookings for cameras ${cameraIds} with payment status 'paid'`)
+      console.log(`📅 Found ${bookings?.length || 0} bookings for cameras ${cameraIds} (excluding cancelled)`)
 
       if (bookingsError) {
         console.error('Error fetching bookings:', bookingsError)
         continue
       }
 
-      console.log(`📅 Found ${bookings?.length || 0} bookings for cameras ${cameraIds.join(',')} with payment status 'paid'`)
+      console.log(`📅 Found ${bookings?.length || 0} bookings for cameras ${cameraIds.join(',')} (excluding cancelled)`)
       console.log(`📋 Booking details:`, bookings?.map(b => ({
         cameraId: b.cameraId,
         startDate: b.startDate?.substring(0, 10),
-        endDate: b.endDate?.substring(0, 10)
+        endDate: b.endDate?.substring(0, 10),
+        paymentStatus: b.paymentStatus
       })))
 
       // Calculate how many cameras are booked during the requested period
@@ -99,7 +100,7 @@ export default defineEventHandler(async (event) => {
         const bookingStart = new Date(booking.startDate)
         const bookingEnd = new Date(booking.endDate)
         
-        console.log(`📋 Booking: ${bookingStart.toISOString()} to ${bookingEnd.toISOString()}`)
+        console.log(`📋 Booking (${booking.paymentStatus}): ${bookingStart.toISOString()} to ${bookingEnd.toISOString()}`)
         
         // Check if booking overlaps with requested period
         if (start <= bookingEnd && end >= bookingStart) {
