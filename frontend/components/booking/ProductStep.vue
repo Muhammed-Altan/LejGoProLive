@@ -71,13 +71,16 @@
             :disabled="!isProductAvailable(model.id, 1) || totalCameraCount >= 2"
             :class="{
               'text-gray-400': !isProductAvailable(model.id, 1) || totalCameraCount >= 2,
-              'text-red-600': datesSelected && getMaxProductQuantity(model.id) === 0
+              'text-red-600': datesSelected && getMaxProductQuantity(model.id) === 0,
+              'text-green-600': datesSelected && getMaxProductQuantity(model.id) > 0
             }"
           >
             {{ model.name }} fra {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
-            <span v-if="datesSelected">
+            <span v-if="datesSelected && !availabilityLoading">
               <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
+              <template v-else-if="getMaxProductQuantity(model.id) > 0"> - Tilgængelig ({{ getMaxProductQuantity(model.id) }} stk)</template>
             </span>
+            <span v-else-if="datesSelected && availabilityLoading"> - Tjekker...</span>
           </option>
           <option disabled value="" class="text-gray-500">
             ────────────────────────────────
