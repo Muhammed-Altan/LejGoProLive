@@ -47,18 +47,19 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
         <span class="text-sm md:text-base">Vælg venligst bookingperiode først for at vælge model.</span>
       </div>
-      <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
+      <!-- TEMPORARILY DISABLED FOR PERFORMANCE TESTING -->
+      <!-- <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
         <svg class="animate-spin h-5 w-5 text-blue-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
         <span class="text-sm md:text-base">Checking availability...</span>
-      </div>
+      </div> -->
       <div class="flex items-center gap-3">
         <select
           v-model="selectedModelName"
           @change="onModelSelect"
-          :disabled="!datesSelected || availabilityLoading || totalCameraCount >= 2"
+          :disabled="!datesSelected || totalCameraCount >= 2"
           class="flex-1 w-full border border-gray-300 rounded-lg py-2 sm:py-3 px-3 sm:px-4 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option disabled value="">
@@ -76,11 +77,11 @@
             }"
           >
             {{ model.name }} fra {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
-            <span v-if="datesSelected && !availabilityLoading">
+            <span v-if="datesSelected">
               <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
               <template v-else-if="getMaxProductQuantity(model.id) > 0"> - Tilgængelig ({{ getMaxProductQuantity(model.id) }} stk)</template>
             </span>
-            <span v-else-if="datesSelected && availabilityLoading"> - Tjekker...</span>
+            <!-- TEMPORARILY DISABLED: <span v-else-if="datesSelected && availabilityLoading"> - Tjekker...</span> -->
           </option>
           <option disabled value="" class="text-gray-500">
             ────────────────────────────────
@@ -128,7 +129,7 @@
         <div class="flex items-center justify-between sm:justify-center gap-2 group relative w-full sm:w-auto">
           <span class="text-sm md:text-base">
             Antal
-            <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small>
+            <!-- TEMPORARILY DISABLED: <small v-if="availabilityLoading" class="ml-2 text-xs text-gray-400">• henter tilgængelighed…</small> -->
           </span>
           <input
             type="number"
@@ -172,13 +173,14 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
         <span class="text-sm md:text-base">Vælg venligst en GoPro model først for at vælge tilbehør.</span>
       </div>
-      <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
+      <!-- TEMPORARILY DISABLED FOR PERFORMANCE TESTING -->
+      <!-- <div v-if="availabilityLoading && datesSelected" class="mb-3 p-3 rounded bg-blue-100 border border-blue-300 text-blue-900 flex items-center gap-2">
         <svg class="animate-spin h-5 w-5 text-blue-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
         <span class="text-sm md:text-base">Checking availability...</span>
-      </div>
+      </div> -->
       <div class="flex items-center gap-3">
         <select
           v-model="selectedAccessoryName"
@@ -351,6 +353,48 @@ const { loading: availabilityLoading, checkAvailability, isProductAvailable, isA
 
 // Error handling for availability
 const availabilityError = ref<string | null>(null);
+
+// Debounce timer for availability checking  
+let availabilityCheckTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Timing tracking for performance monitoring
+let dateSelectionStartTime: number | null = null;
+
+// Preloader for common date ranges
+const preloadAvailability = async () => {
+  try {
+    console.log('🔄 Preloading availability for common date ranges...');
+    const today = new Date();
+    const productIds = models.value.map(m => m.id).filter((id): id is number => id !== undefined);
+    const accessoryIds = accessories.value.map(a => a.id).filter((id): id is number => id !== undefined);
+    
+    if (productIds.length === 0) return;
+    
+    // Preload next 2 weeks (most common booking period)
+    const start1 = new Date(today);
+    start1.setDate(today.getDate() + 3); // 3 days from now (minimum booking time)
+    const end1 = new Date(start1);
+    end1.setDate(start1.getDate() + 7); // 1 week rental
+    
+    // Preload another common period (2 weeks rental)
+    const start2 = new Date(start1);
+    const end2 = new Date(start1);
+    end2.setDate(start1.getDate() + 14); // 2 week rental
+    
+    // Preload in background (don't await, just fire and forget)
+    checkAvailability(start1, end1, productIds, accessoryIds).catch(() => {
+      console.log('⚠️ Preload 1 failed (normal if no data)');
+    });
+    
+    checkAvailability(start2, end2, productIds, accessoryIds).catch(() => {
+      console.log('⚠️ Preload 2 failed (normal if no data)');  
+    });
+    
+    console.log('✅ Availability preloading started in background');
+  } catch (error) {
+    console.log('⚠️ Preload failed:', error);
+  }
+};
 
 // SSR-safe Pinia usage
 const store = useCheckoutStore();
@@ -1021,12 +1065,14 @@ onMounted(async () => {
       console.error('Error checking initial availability:', error);
     }
   }
+  
+  // Start preloading common date ranges in the background
+  setTimeout(() => {
+    preloadAvailability();
+  }, 1000); // Wait 1 second after page load to avoid blocking initial render
 });
 
-// Debounce timer for availability checking
-let availabilityCheckTimeout: ReturnType<typeof setTimeout> | null = null;
-
-// Function to perform availability check
+// Function to perform availability check (extracted for debouncing)
 const performAvailabilityCheck = async () => {
   availabilityError.value = null;
   
@@ -1041,34 +1087,71 @@ const performAvailabilityCheck = async () => {
   
   if (productIds.length > 0 || accessoryIds.length > 0) {
     try {
-      console.log('🔍 Checking availability for dates:', {
-        startDate: startDate.value.toISOString().split('T')[0],
-        endDate: endDate.value.toISOString().split('T')[0],
-        productCount: productIds.length,
-        accessoryCount: accessoryIds.length
-      });
+      console.log('🔍 Performing debounced availability check...');
       
-      const startTime = performance.now();
+      // Start timing for API call
+      const apiStartTime = performance.now();
+      console.log('📡 Starting API call...');
+      
       await checkAvailability(startDate.value, endDate.value, productIds, accessoryIds);
-      const endTime = performance.now();
       
-      console.log(`✅ Availability check completed in ${Math.round(endTime - startTime)}ms`);
+      // Calculate API timing
+      const apiEndTime = performance.now();
+      const apiDuration = apiEndTime - apiStartTime;
+      
+      // Calculate total time from initial date selection
+      const totalDuration = dateSelectionStartTime ? apiEndTime - dateSelectionStartTime : null;
+      
+      console.log(`✅ Availability check completed!`);
+      console.log(`📡 API call duration: ${apiDuration.toFixed(2)}ms`);
+      if (totalDuration) {
+        console.log(`⏱️ Total time from date selection: ${totalDuration.toFixed(2)}ms`);
+        console.log(`🕐 Debounce delay: ${(totalDuration - apiDuration).toFixed(2)}ms`);
+      }
+      
+      // Reset timing tracker
+      dateSelectionStartTime = null;
+      
     } catch (error) {
       console.error('Error checking availability:', error);
       availabilityError.value = 'Failed to check availability';
+      
+      // Reset timing tracker on error
+      dateSelectionStartTime = null;
     }
   }
 };
 
 // Check availability when dates change (with debouncing)
 watch([startDate, endDate], () => {
+  // Start timing when both dates are selected
+  if (startDate.value && endDate.value) {
+    dateSelectionStartTime = performance.now();
+    console.log(`🗓️ Date range selected: ${startDate.value.toLocaleDateString()} to ${endDate.value.toLocaleDateString()}`);
+    console.log('⏱️ Starting availability check timer...');
+  }
+  
   // Clear existing timeout
   if (availabilityCheckTimeout) {
     clearTimeout(availabilityCheckTimeout);
+    console.log('🕐 Clearing previous availability check timeout');
   }
   
-  // Set new timeout for 500ms
-  availabilityCheckTimeout = setTimeout(performAvailabilityCheck, 500);
+  // Smart debouncing - shorter delay if we might have cached data
+  const productIds = models.value.map(m => m.id).filter((id): id is number => id !== undefined);
+  const accessoryIds = accessories.value.map(a => a.id).filter((id): id is number => id !== undefined);
+  
+  // Check if this combination might be cached (simplified check)
+  const mightBeCached = startDate.value && endDate.value && productIds.length > 0;
+  const debounceDelay = mightBeCached ? 150 : 300; // Faster for potentially cached results
+  
+  // Set new timeout with smart delay
+  availabilityCheckTimeout = setTimeout(() => {
+    console.log('🚀 Debounce timeout completed, checking availability...');
+    performAvailabilityCheck();
+  }, debounceDelay);
+  
+  console.log(`🕐 Availability check debounced for ${debounceDelay}ms`);
 });
 
 // Fetch cameras when products are selected

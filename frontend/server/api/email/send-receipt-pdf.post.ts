@@ -35,17 +35,59 @@ export default defineEventHandler(async (event) => {
     // Debug: Log the booking data received
     console.log('📧 Server-side email API received booking data:', {
       orderNumber: bookingData.orderNumber,
+      customerEmail: bookingData.customerEmail,
+      customerName: bookingData.customerName,
+      service: bookingData.service,
+      totalAmount: bookingData.totalAmount,
+      items: bookingData.items ? bookingData.items.length : 0,
+      hasStartDate: !!bookingData.startDate,
+      hasEndDate: !!bookingData.endDate,
       isUpdate: bookingData.isUpdate,
       priceDifference: bookingData.priceDifference,
-      paymentUrl: bookingData.paymentUrl,
-      customerEmail: bookingData.customerEmail
+      paymentUrl: bookingData.paymentUrl
     })
 
-    // Validate required fields
-    if (!bookingData || !bookingData.customerEmail || !bookingData.orderNumber) {
+    // Validate required fields with detailed error messages
+    if (!bookingData) {
+      console.error('❌ No booking data provided')
       throw createError({
         statusCode: 400,
-        statusMessage: 'Missing required booking data'
+        statusMessage: 'No booking data provided'
+      })
+    }
+
+    if (!bookingData.customerEmail) {
+      console.error('❌ Missing customer email in booking data:', bookingData)
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Missing customer email'
+      })
+    }
+
+    if (!bookingData.orderNumber) {
+      console.error('❌ Missing order number in booking data:', bookingData)
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Missing order number'
+      })
+    }
+
+    // Validate essential data for PDF generation
+    if (!bookingData.customerName) {
+      console.warn('⚠️ Missing customer name, using fallback')
+      bookingData.customerName = 'Kunde'
+    }
+
+    if (!bookingData.service) {
+      console.warn('⚠️ Missing service description, using fallback')
+      bookingData.service = 'GoPro leje'
+    }
+
+    if (typeof bookingData.totalAmount !== 'number' || bookingData.totalAmount <= 0) {
+      console.error('❌ Invalid total amount:', bookingData.totalAmount)
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid total amount'
       })
     }
 

@@ -1,5 +1,6 @@
 <template>
   <Header />
+  
   <section class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Venstre side (2/3 af bredden) -->
     <div class="lg:col-span-2 space-y-6 bg-white p-6 rounded-xl shadow-md">
