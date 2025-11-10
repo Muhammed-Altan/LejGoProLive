@@ -111,15 +111,11 @@
         :key="item.name"
         class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 bg-gray-100 rounded-lg py-3 sm:py-4 px-3 sm:px-4"
       >
-      <NuxtImg 
+      <img 
         :src="item.imageUrl || placeholderImage" 
         alt="" 
         class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border border-gray-200 bg-white"
         loading="lazy"
-        format="webp"
-        quality="80"
-        width="64"
-        height="64"
       />
 
         <div class="flex-1 min-w-0">
