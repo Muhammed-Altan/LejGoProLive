@@ -4,6 +4,8 @@ export interface BookingEmailData {
   customerEmail: string
   customerPhone?: string
   service: string
+  startDate: string
+  endDate: string
   duration: string
   totalAmount: number
   bookingDate: string
