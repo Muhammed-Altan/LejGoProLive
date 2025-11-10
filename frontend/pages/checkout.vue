@@ -16,9 +16,6 @@
     </aside>
   </section>
   
-  <!-- Test Helper (only shows in development) -->
-  <TestHelper />
-  
   <Footer />
 </template>
 
@@ -27,7 +24,6 @@ import ProductStep from '@/components/booking/ProductStep.vue';
 import DeliveryStep from '@/components/booking/DeliveryStep.vue';
 import PensoPayment from '@/components/booking/PensoPayment.vue';
 import BasketView from '@/components/booking/BasketView.vue';
-import TestHelper from '@/components/TestHelper.vue';
 import Header from '~/components/Header.vue';
 import Footer from '~/components/Footer.vue';
 import { useCheckoutStore } from '@/stores/checkout';
