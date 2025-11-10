@@ -6,7 +6,20 @@ export default defineNuxtConfig({
   ssr: true,
   nitro: {
     preset: 'netlify',
-    serveStatic: true
+    serveStatic: true,
+    compressPublicAssets: true,
+    minify: true,
+    prerender: {
+      routes: [
+        '/faq',
+        '/handelsbetingelser',
+        '/privatlivspolitik',
+        '/hvorfor',
+        '/kontakt'
+      ],
+      crawlLinks: false,
+      ignore: ['/admin', '/checkout', '/payment']
+    }
   },
   experimental: {
     payloadExtraction: false
@@ -101,6 +114,24 @@ export default defineNuxtConfig({
     }
   },
   css: ['@/assets/css/main.css'],
+  image: {
+    quality: 80,
+    format: ['webp', 'jpg', 'png'],
+    screens: {
+      xs: 320,
+      sm: 640,
+      md: 768,
+      lg: 1024,
+      xl: 1280,
+      xxl: 1536,
+    },
+    densities: [1, 2],
+    domains: ['static.gopro.com'],
+    alias: {
+      eventyr: '/eventyr',
+      'hero-bg': '/hero-bg',
+    },
+  },
   ui: {
     theme: {
       colors: ['primary', 'secondary', 'tertiary', 'info', 'success', 'warning', 'error']
