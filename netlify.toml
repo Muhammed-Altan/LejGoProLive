@@ -23,36 +23,31 @@
   [headers.values]
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
 
-# Cache static assets for 1 year
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Cache images for 1 week
 [[headers]]
   for = "/*.{png,jpg,jpeg,gif,webp,svg,ico}"
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
-# Cache CSS/JS for 1 year (with versioning)
 [[headers]]
   for = "/_nuxt/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Cache API responses for short periods
 [[headers]]
   for = "/api/inventory-status"
   [headers.values]
-    Cache-Control = "public, max-age=300" # 5 minutes
+    Cache-Control = "public, max-age=300"
 
 [[headers]]
   for = "/api/availability"
   [headers.values]
-    Cache-Control = "public, max-age=60" # 1 minute
+    Cache-Control = "public, max-age=60"
 
-# No cache for booking/payment APIs
 [[headers]]
   for = "/api/booking*"
   [headers.values]
