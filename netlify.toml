@@ -18,6 +18,13 @@
   status = 301
   force = true
 
+# SPA fallback - must be last redirect
+# Ensures all routes are handled by Nuxt's Vue Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
 # Security headers
 [[headers]]
   for = "/"
