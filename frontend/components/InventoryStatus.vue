@@ -72,10 +72,15 @@
       >
         <!-- Product Image and Name -->
         <div class="flex items-center gap-3 mb-3">
-          <img 
+          <NuxtImg 
             :src="item.imageUrl || '/placeholder-camera.svg'" 
             :alt="item.productName"
             class="w-12 h-12 object-cover rounded-lg flex-shrink-0"
+            loading="lazy"
+            format="webp"
+            quality="75"
+            width="48"
+            height="48"
             @error="handleImageError"
           />
           <div class="min-w-0">
@@ -139,10 +144,15 @@
         <div class="p-4 border-b bg-gray-50 rounded-t-xl">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <img 
+              <NuxtImg 
                 :src="item.imageUrl || '/placeholder-camera.svg'" 
                 :alt="item.productName"
                 class="w-10 h-10 object-cover rounded-lg"
+                loading="lazy"
+                format="webp"
+                quality="75"
+                width="40"
+                height="40"
                 @error="handleImageError"
               />
               <div>
