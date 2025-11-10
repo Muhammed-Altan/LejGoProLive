@@ -6,7 +6,9 @@ export default defineNuxtConfig({
   ssr: true,
   nitro: {
     preset: 'netlify',
-    serveStatic: true
+    serveStatic: true,
+    compressPublicAssets: true,
+    minify: true,
   },
   experimental: {
     payloadExtraction: false
