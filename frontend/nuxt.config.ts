@@ -9,6 +9,17 @@ export default defineNuxtConfig({
     serveStatic: true,
     compressPublicAssets: true,
     minify: true,
+    prerender: {
+      routes: [
+        '/faq',
+        '/handelsbetingelser',
+        '/privatlivspolitik',
+        '/hvorfor',
+        '/kontakt'
+      ],
+      crawlLinks: false,
+      ignore: ['/admin', '/checkout', '/payment']
+    }
   },
   experimental: {
     payloadExtraction: false
