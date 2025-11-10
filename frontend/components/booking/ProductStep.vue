@@ -1017,8 +1017,11 @@ onMounted(async () => {
   }
 });
 
-// Check availability when dates change
-watch([startDate, endDate], async () => {
+// Debounce timer for availability checking
+let availabilityCheckTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Function to perform availability check
+const performAvailabilityCheck = async () => {
   availabilityError.value = null;
   
   if (!startDate.value || !endDate.value) {
@@ -1032,12 +1035,34 @@ watch([startDate, endDate], async () => {
   
   if (productIds.length > 0 || accessoryIds.length > 0) {
     try {
+      console.log('🔍 Checking availability for dates:', {
+        startDate: startDate.value.toISOString().split('T')[0],
+        endDate: endDate.value.toISOString().split('T')[0],
+        productCount: productIds.length,
+        accessoryCount: accessoryIds.length
+      });
+      
+      const startTime = performance.now();
       await checkAvailability(startDate.value, endDate.value, productIds, accessoryIds);
+      const endTime = performance.now();
+      
+      console.log(`✅ Availability check completed in ${Math.round(endTime - startTime)}ms`);
     } catch (error) {
       console.error('Error checking availability:', error);
       availabilityError.value = 'Failed to check availability';
     }
   }
+};
+
+// Check availability when dates change (with debouncing)
+watch([startDate, endDate], () => {
+  // Clear existing timeout
+  if (availabilityCheckTimeout) {
+    clearTimeout(availabilityCheckTimeout);
+  }
+  
+  // Set new timeout for 500ms
+  availabilityCheckTimeout = setTimeout(performAvailabilityCheck, 500);
 });
 
 // Fetch cameras when products are selected

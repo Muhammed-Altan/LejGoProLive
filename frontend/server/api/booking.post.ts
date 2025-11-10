@@ -9,6 +9,7 @@ import { enforceMaxQuantities, enforceMaxAccessoryQuantities, validateBookingPer
 import { requireAuth } from './auth';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
+import { apiCache } from '../utils/cache';
 
 // Check accessory availability for a booking period
 async function checkAccessoryAvailability(accessories: Array<{ name: string; quantity: number }>, startDate: string, endDate: string): Promise<boolean> {
@@ -273,6 +274,10 @@ export default defineEventHandler(async (event) => {
       message: 'Failed to create booking',
     };
   }
+
+  // Clear availability cache since new bookings affect availability
+  console.log('🗑️ Clearing availability cache due to new booking')
+  apiCache.clearByPrefix('availability')
 
   return {
     status: 200,
