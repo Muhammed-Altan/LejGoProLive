@@ -4,6 +4,29 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxt/ui', '@nuxt/image', '@pinia/nuxt'],
   ssr: true,
+  routeRules: {
+    // Static pages (prerendered at build time)
+    '/': { prerender: true },
+    '/faq': { prerender: true },
+    '/handelsbetingelser': { prerender: true },
+    '/privatlivspolitik': { prerender: true },
+    '/hvorfor': { prerender: true },
+    '/kontakt': { prerender: true },
+    
+    // Dynamic pages - use SWR (Stale-While-Revalidate)
+    '/products': { swr: 3600 }, // Cache 1 hour, regenerate in background
+    
+    // API caching (coordinates with Netlify headers)
+    '/api/products': { swr: 600 }, // 10 minutes
+    '/api/inventory-status': { swr: 300 }, // 5 minutes
+    '/api/availability': { swr: 60 }, // 1 minute
+    
+    // Never cache these (client-side only or sensitive data)
+    '/admin/**': { ssr: false },
+    '/checkout': { ssr: false },
+    '/api/booking/**': { cache: false },
+    '/api/payment/**': { cache: false },
+  },
   nitro: {
     preset: 'netlify',
     serveStatic: true,
