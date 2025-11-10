@@ -16,6 +16,19 @@ interface AvailabilityResult {
 interface AvailabilityResponse {
   success: boolean
   data: AvailabilityResult[]
+  timing?: {
+    requestParsing: number
+    cacheKeyGeneration: number
+    cacheCheck: number
+    cameraQuery: number
+    bookingQuery: number
+    accessoryInstanceQueries: number
+    accessoryBookingQueries: number
+    dataProcessing: number
+    cacheStorage: number
+    totalDbTime: number
+    totalRequestTime: number
+  }
 }
 
 interface CacheEntry {
@@ -103,11 +116,16 @@ export const useAvailability = () => {
     error.value = null
 
     try {
+      const prepStartTime = performance.now()
+      
       const startDateStr = startDate instanceof Date ? startDate.toISOString() : startDate
       const endDateStr = endDate instanceof Date ? endDate.toISOString() : endDate
 
+      const prepEndTime = performance.now()
+      console.log(`🔧 Data preparation: ${(prepEndTime - prepStartTime).toFixed(2)}ms`)
+      
       console.log('📡 Making API call for availability check')
-      const startTime = performance.now()
+      const networkStartTime = performance.now()
 
       const response = await $fetch<AvailabilityResponse>('/api/availability/check', {
         method: 'POST',
@@ -119,15 +137,44 @@ export const useAvailability = () => {
         }
       })
 
-      const endTime = performance.now()
-      console.log(`📡 API call completed in ${Math.round(endTime - startTime)}ms`)
+      const networkEndTime = performance.now()
+      const networkDuration = networkEndTime - networkStartTime
+      console.log(`🌐 Network request: ${networkDuration.toFixed(2)}ms`)
 
+      const processingStartTime = performance.now()
+      
       if (response.success) {
         availabilityResults.value = response.data
         
         // Cache the result
         setInCache(cacheKey, response.data)
-        console.log('💾 Cached client-side availability result')
+        
+        const processingEndTime = performance.now()
+        const processingDuration = processingEndTime - processingStartTime
+        
+        console.log(`⚙️ Response processing: ${processingDuration.toFixed(2)}ms`)
+        console.log(`💾 Client-side caching completed`)
+        console.log(`📡 API call completed in ${networkDuration.toFixed(2)}ms`)
+        console.log(`🔄 Total client processing: ${(prepEndTime - prepStartTime + processingDuration).toFixed(2)}ms`)
+        
+        // Show detailed timing breakdown if available
+        if (response.timing) {
+          const timing = response.timing;
+          
+          // Calculate parallel execution analysis
+          const productQueryTime = timing.cameraQuery + timing.bookingQuery;
+          const accessoryQueryTime = timing.accessoryInstanceQueries + timing.accessoryBookingQueries;
+          const actualParallelTime = Math.max(productQueryTime, accessoryQueryTime);
+          const sequentialTime = productQueryTime + accessoryQueryTime;
+          const parallelSavings = sequentialTime - actualParallelTime;
+          
+          console.log(`🕐 DETAILED TIMING BREAKDOWN:`);
+          console.log(`CLIENT-SIDE: Data prep: ${(prepEndTime - prepStartTime).toFixed(2)}ms, Network: ${networkDuration.toFixed(2)}ms, Processing: ${processingDuration.toFixed(2)}ms`);
+          console.log(`SERVER-SIDE: Camera: ${timing.cameraQuery}ms, Booking: ${timing.bookingQuery}ms, AccInstance: ${timing.accessoryInstanceQueries}ms, AccBooking: ${timing.accessoryBookingQueries}ms`);
+          console.log(`PARALLEL ANALYSIS: Product queries: ${productQueryTime}ms, Accessory queries: ${accessoryQueryTime}ms`);
+          console.log(`OPTIMIZATION: Parallel time: ${actualParallelTime}ms, Sequential would be: ${sequentialTime}ms, Saved: ${parallelSavings}ms`);
+          console.log(`TOTALS: DB time: ${timing.totalDbTime}ms, Server time: ${timing.totalRequestTime}ms, Client time: ${networkDuration.toFixed(2)}ms`);
+        }
         
         return response.data
       } else {
