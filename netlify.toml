@@ -78,7 +78,7 @@
     Cache-Control = "public, max-age=300" # 5 minutes
 
 [[headers]]
-  for = "/api/availability"
+  for = "/api/availability/check"
   [headers.values]
     Cache-Control = "public, max-age=60" # 1 minute
 
