@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '../../utils/supabase'
+import { apiCache, createCacheKey } from '../../utils/cache'
 
 interface AvailabilityRequest {
   startDate: string
@@ -31,6 +32,24 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Start date and end date are required'
       })
     }
+
+    // Create a cache key based on the request parameters
+    const cacheKey = createCacheKey(
+      'availability',
+      startDate,
+      endDate,
+      productIds.sort().join(','),
+      accessoryIds.sort().join(',')
+    )
+
+    // Check cache first
+    const cachedResult = apiCache.get<{ success: boolean; data: AvailabilityResult[] }>(cacheKey)
+    if (cachedResult) {
+      console.log(`🚀 Cache hit for availability check: ${cacheKey}`)
+      return cachedResult
+    }
+
+    console.log(`🔍 Cache miss, performing availability check: ${cacheKey}`)
 
     const supabase = createServerSupabaseClient()
     const results: AvailabilityResult[] = []
@@ -228,10 +247,17 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    return {
+    const finalResult = {
       success: true,
       data: results
     }
+
+    // Cache the result for 2 minutes (120 seconds)
+    // This provides good performance while ensuring data is relatively fresh
+    apiCache.set(cacheKey, finalResult, 120)
+    console.log(`💾 Cached availability result: ${cacheKey}`)
+
+    return finalResult
 
   } catch (error: any) {
     console.error('Availability check error:', error)
