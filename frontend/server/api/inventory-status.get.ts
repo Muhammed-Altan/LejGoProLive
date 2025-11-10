@@ -1,7 +1,17 @@
 import { createServerSupabaseClient } from '../utils/supabase'
+import { apiCache, createCacheKey } from '../utils/cache'
 
 export default defineEventHandler(async (event) => {
   try {
+    // Check cache first (5 minute TTL)
+    const cacheKey = createCacheKey('inventory-status')
+    const cachedData = apiCache.get(cacheKey)
+    
+    if (cachedData) {
+      console.log('📦 Returning cached inventory status')
+      return cachedData
+    }
+
     const supabase = createServerSupabaseClient()
     
     // Get all products first
@@ -83,11 +93,17 @@ export default defineEventHandler(async (event) => {
       }) || []
     )
     
-    return { 
+    const result = { 
       success: true, 
       data: inventoryData,
-      timestamp: new Date().toISOString()
+      lastUpdated: new Date().toISOString()
     }
+
+    // Cache the result for 5 minutes (300 seconds)
+    apiCache.set(cacheKey, result, 300)
+    console.log('📦 Cached inventory status for 5 minutes')
+    
+    return result
   } catch (error: any) {
     console.error('Inventory status error:', error)
     throw createError({

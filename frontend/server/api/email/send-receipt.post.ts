@@ -59,13 +59,23 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Configure email transporter
+    // Configure email transporter for SimplyMail
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.simply.com',
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD
-      }
+      },
+      tls: {
+        rejectUnauthorized: false
+      },
+      // Additional options for proper sent mail handling
+      pool: true,
+      maxConnections: 1,
+      rateDelta: 1000,
+      rateLimit: 5
     })
 
     // Format currency
@@ -162,6 +172,7 @@ LejGoPro Team
     const info = await transporter.sendMail({
       from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_USER}>`,
       to: bookingData.customerEmail,
+      bcc: process.env.EMAIL_USER, // Send copy to sender for records
       subject: `Booking Kvittering - Ordre #${bookingData.orderNumber}`,
       html: htmlContent,
       text: textContent
@@ -178,9 +189,9 @@ LejGoPro Team
     
     // More detailed error reporting
     if (error?.code === 'EAUTH') {
-      console.error('Gmail authentication failed. Check EMAIL_USER and EMAIL_PASSWORD in .env')
+      console.error('SimplyMail authentication failed. Check EMAIL_USER and EMAIL_PASSWORD in .env')
     } else if (error?.code === 'ECONNECTION') {
-      console.error('Connection failed. Check internet connection and Gmail settings')
+      console.error('Connection failed. Check internet connection and SimplyMail settings')
     } else {
       console.error('Unexpected error:', error?.message || error)
     }

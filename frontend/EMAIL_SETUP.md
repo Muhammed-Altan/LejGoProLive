@@ -20,6 +20,20 @@ The email functionality has been set up with nodemailer to automatically send bo
 
 Edit your `.env` file with your email provider credentials:
 
+#### For SimplyMail (Recommended for Danish businesses):
+```env
+EMAIL_USER=your-email@yourdomæne.dk
+EMAIL_PASSWORD=your-simplymail-password
+EMAIL_FROM_NAME=LejGoPro Team
+```
+
+**SimplyMail Setup**:
+1. Log ind på din SimplyMail konto
+2. Brug din fulde email-adresse som bruger (f.eks. kontakt@lejgopro.dk)
+3. Brug dit normale SimplyMail kodeord
+4. SMTP: smtp.simply.com, Port: 587
+5. Kræver godkendelse med brugernavn og adgangskode
+
 #### For Gmail:
 ```env
 EMAIL_USER=your-gmail@gmail.com
