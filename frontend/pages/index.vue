@@ -18,7 +18,7 @@
     <div class="absolute inset-0 bg-white/50"></div>
     <div class="relative z-10 flex flex-col items-center justify-center py-24">
       <h1 class="text-4xl md:text-5xl font-bold text-center text-black mb-8">
-  Lej et <span class="text-[#B8082A]">GoPro</span> til næste eventyr
+  Lej et <span class="text-[#B8082A]">GoPro</span> til dit næste eventyr
       </h1>
       <p class="text-lg text-center text-black mb-8 max-w-xl">
         Professionelle actionkameraer til rejser og eventyr – nem booking, gratis levering og konkurrencedygtige priser.
