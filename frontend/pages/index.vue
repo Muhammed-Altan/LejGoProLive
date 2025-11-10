@@ -2,11 +2,23 @@
   <Header />
 
   <!-- Hero Section -->
-  <section class="relative flex flex-col items-center justify-center min-h-[90vh] bg-cover bg-center" style="background-image: url('/hero-bg/federico-persiani-XvPuZ2Q71GA-unsplash.jpg');">
-  <div class="absolute inset-0 bg-white/50"></div>
+  <section class="relative flex flex-col items-center justify-center min-h-[90vh] overflow-hidden">
+    <NuxtPicture
+      src="/hero-bg/federico-persiani-XvPuZ2Q71GA-unsplash.jpg"
+      alt="Hero background"
+      class="absolute inset-0 w-full h-full object-cover"
+      :img-attrs="{
+        class: 'w-full h-full object-cover'
+      }"
+      format="webp"
+      quality="85"
+      loading="eager"
+      preload
+    />
+    <div class="absolute inset-0 bg-white/50"></div>
     <div class="relative z-10 flex flex-col items-center justify-center py-24">
       <h1 class="text-4xl md:text-5xl font-bold text-center text-black mb-8">
-  Lej dit <span class="text-[#B8082A]">GoPro</span> til næste eventyr
+  Lej et <span class="text-[#B8082A]">GoPro</span> til næste eventyr
       </h1>
       <p class="text-lg text-center text-black mb-8 max-w-xl">
         Professionelle actionkameraer til rejser og eventyr – nem booking, gratis levering og konkurrencedygtige priser.
@@ -30,12 +42,12 @@
         </h2>
         <!-- Adventure Image Grid -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-10 mb-12">
-          <img src="/eventyr/benjamin-voros-FSvn9jMrDyk-unsplash.jpg" alt="Waterfall selfie" class="rounded-2xl object-cover w-full h-80" />
-          <img src="/eventyr/jack-delulio-Sgey0UZt6HY-unsplash.jpg" alt="Skiing" class="rounded-2xl object-cover w-full h-80" />
-          <img src="/eventyr/patrick-hendry-3EtLikBpyfI-unsplash.jpg" alt="Dog adventure" class="rounded-2xl object-cover w-full h-80" />
-          <img src="/eventyr/spenser-sembrat-I-fihlhsBWk-unsplash.jpg" alt="Mountain climbing" class="rounded-2xl object-cover w-full h-80" />
-          <img src="/eventyr/lucas-favre-BRTV55ErUZg-unsplash.jpg" alt="Skiing" class="rounded-2xl object-cover w-full h-80" />
-          <img src="/eventyr/cristian-palmer-RaOKzBtN8fI-unsplash.jpg" alt="Mountain climbing" class="rounded-2xl object-cover w-full h-80" />
+          <NuxtImg src="/eventyr/benjamin-voros-FSvn9jMrDyk-unsplash.jpg" alt="Waterfall selfie" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="80" loading="lazy" />
+          <NuxtImg src="/eventyr/jack-delulio-Sgey0UZt6HY-unsplash.jpg" alt="Skiing" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="80" loading="lazy" />
+          <NuxtImg src="/eventyr/patrick-hendry-3EtLikBpyfI-unsplash.jpg" alt="Dog adventure" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="80" loading="lazy" />
+          <NuxtImg src="/eventyr/spenser-sembrat-I-fihlhsBWk-unsplash.jpg" alt="Mountain climbing" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="80" loading="lazy" />
+          <NuxtImg src="/eventyr/lucas-favre-BRTV55ErUZg-unsplash.jpg" alt="Skiing" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="80" loading="lazy" />
+          <NuxtImg src="/eventyr/cristian-palmer-RaOKzBtN8fI-unsplash.jpg" alt="Mountain climbing" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="80" loading="lazy" />
         </div>
         <div class="flex justify-center mb-12">
           <NuxtLink to="/checkout" class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition cursor-pointer">Fang dit eventyr her</NuxtLink>
@@ -90,32 +102,32 @@
     </div>
     <div class="flex flex-wrap justify-center gap-8 my-12 max-w-7xl mx-auto">
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a6b3e1087b3473f/663a841c2a72d93452178ba2/01-pdp-h12b-handler-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Grip" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <NuxtImg src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a6b3e1087b3473f/663a841c2a72d93452178ba2/01-pdp-h12b-handler-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Grip" class="w-24 h-24 object-cover rounded-lg mb-3" width="96" height="96" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Grip</h4>
         <p class="text-sm text-gray-600 text-center">Stabilt håndtag til actionoptagelser og nem håndtering af kameraet.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a3f356761a12e6d/6465f1c79cb8cadbd353f013/pdp-max-enduro-battery-image01-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Ekstra batteri" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <NuxtImg src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a3f356761a12e6d/6465f1c79cb8cadbd353f013/pdp-max-enduro-battery-image01-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Ekstra batteri" class="w-24 h-24 object-cover rounded-lg mb-3" width="96" height="96" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Ekstra batteri</h4>
         <p class="text-sm text-gray-600 text-center">Sørger for ekstra strøm, så du kan optage længere tid uden afbrydelser.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt5028e412643854ae/65cbdc3afcd8646428eec8a5/01-pdp-h12b-headstrap-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Headstrap" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <NuxtImg src="https://static.gopro.com/assets/blta2b8522e5372af40/blt5028e412643854ae/65cbdc3afcd8646428eec8a5/01-pdp-h12b-headstrap-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Headstrap" class="w-24 h-24 object-cover rounded-lg mb-3" width="96" height="96" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Headstrap</h4>
         <p class="text-sm text-gray-600 text-center">Monter kameraet på hovedet for hands-free POV-optagelser.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/bltbc6b778286c13383/64ccd3c131eb6a3cbbd4c86f/01-pdp-h12b-chesty-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Brystmount" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <NuxtImg src="https://static.gopro.com/assets/blta2b8522e5372af40/bltbc6b778286c13383/64ccd3c131eb6a3cbbd4c86f/01-pdp-h12b-chesty-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Brystmount" class="w-24 h-24 object-cover rounded-lg mb-3" width="96" height="96" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Brystmount</h4>
         <p class="text-sm text-gray-600 text-center">Perfekt til sport og aktiviteter, hvor du vil have kameraet tæt på kroppen.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt412da0ad3ddaa0f6/64835bbbcc30bb258ab04e57/pdp-protective-housing-image03-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Beskyttelsescase" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <NuxtImg src="https://static.gopro.com/assets/blta2b8522e5372af40/blt412da0ad3ddaa0f6/64835bbbcc30bb258ab04e57/pdp-protective-housing-image03-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Beskyttelsescase" class="w-24 h-24 object-cover rounded-lg mb-3" width="96" height="96" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Beskyttelsescase</h4>
         <p class="text-sm text-gray-600 text-center">Robust etui der beskytter kameraet mod stød, vand og snavs.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt865a9a20edc4b79b/663a899c8447cbcee89cb5a8/01-pdp-h12b-suction-cup-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Sugekop til ruder" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <NuxtImg src="https://static.gopro.com/assets/blta2b8522e5372af40/blt865a9a20edc4b79b/663a899c8447cbcee89cb5a8/01-pdp-h12b-suction-cup-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Sugekop til ruder" class="w-24 h-24 object-cover rounded-lg mb-3" width="96" height="96" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Sugekop til ruder</h4>
         <p class="text-sm text-gray-600 text-center">Fastgør kameraet sikkert til bilruder og glatte overflader for unikke vinkler.</p>
       </div>
@@ -264,28 +276,6 @@ const ui = {
 </script>
 
 <style scoped>
-
-
-.hero-bg {
-  background-image: url('/hero-bg/federico-persiani-XvPuZ2Q71GA-unsplash.jpg');
-  background-size: cover;
-  background-position: center;
-  position: relative;
-}
-.hero-bg::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* 50% black overlay */
-  z-index: 1;
-  pointer-events: none;
-}
-.hero-bg > * {
-  position: relative;
-  z-index: 2;
-}
+/* Removed unused hero-bg CSS since we're using NuxtPicture component */
 </style>
 
