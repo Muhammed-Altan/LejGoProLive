@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '../../utils/supabase'
 import { authenticateAdmin } from '../../utils/adminAuth'
+import { apiCache } from '../../utils/cache'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -65,6 +66,10 @@ export default defineEventHandler(async (event) => {
         statusMessage: `Failed to delete booking: ${error.message}`
       })
     }
+    
+    // Clear availability cache since booking deletion affects availability
+    console.log('🗑️ Clearing availability cache due to booking deletion')
+    apiCache.clearByPrefix('availability')
     
     return { success: true, message: 'Booking deleted successfully' }
   } catch (error: any) {
