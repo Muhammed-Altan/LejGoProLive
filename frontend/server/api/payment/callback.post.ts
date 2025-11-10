@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { apiCache } from '../../utils/cache'
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL
@@ -58,6 +59,10 @@ export default defineEventHandler(async (event) => {
 
       if (error) {
         console.error('Error updating booking payment status:', error)
+      } else {
+        // Clear availability cache since payment status changes affect availability
+        console.log('🗑️ Clearing availability cache due to payment status change')
+        apiCache.clearByPrefix('availability')
       }
       
       // You might want to send confirmation email here

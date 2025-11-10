@@ -70,13 +70,23 @@ export default defineEventHandler(async (event) => {
     // Generate PDF
     const pdfBuffer = await getPDFBuffer(bookingData)
 
-    // Configure email transporter
+    // Configure email transporter for SimplyMail
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.simply.com',
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD
-      }
+      },
+      tls: {
+        rejectUnauthorized: false
+      },
+      // Additional options for proper sent mail handling
+      pool: true,
+      maxConnections: 1,
+      rateDelta: 1000,
+      rateLimit: 5
     })
 
     // Generate HTML email content
@@ -86,6 +96,7 @@ export default defineEventHandler(async (event) => {
     const mailOptions = {
       from: `"${process.env.EMAIL_FROM_NAME || 'LejGoPro Team'}" <${process.env.EMAIL_USER}>`,
       to: bookingData.customerEmail,
+      bcc: process.env.EMAIL_USER, // Send copy to sender for records
       subject: `Faktura - Order #${bookingData.orderNumber}`,
       html: htmlContent,
       attachments: [

@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from '../../utils/supabase'
 import { authenticateAdmin } from '../../utils/adminAuth'
 import { calculatePricing } from '../pricing'
 import { enrichModelsWithPrices, enrichAccessoriesWithPrices } from '../productUtils'
+import { apiCache } from '../../utils/cache'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -248,6 +249,10 @@ export default defineEventHandler(async (event) => {
         })
       }
       
+      // Clear availability cache since booking updates affect availability
+      console.log('🗑️ Clearing availability cache due to booking update')
+      apiCache.clearByPrefix('availability')
+      
       // Include price difference in response if dates were changed
       const response: any = { 
         success: true, 
@@ -278,6 +283,10 @@ export default defineEventHandler(async (event) => {
           statusMessage: `Failed to create booking: ${error.message}`
         })
       }
+      
+      // Clear availability cache since new booking affects availability
+      console.log('🗑️ Clearing availability cache due to new booking creation')
+      apiCache.clearByPrefix('availability')
       
       return { success: true, data: newBooking, message: 'Booking created successfully' }
     }
