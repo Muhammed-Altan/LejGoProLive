@@ -47,18 +47,65 @@ export default defineEventHandler(async (event) => {
 
     // If orderId is provided, get the booking and paymentId from database
     if (orderId) {
-      const { data: bookingData, error: bookingError } = await supabase
+      console.log(`🔍 Looking for booking with orderId: ${orderId}`)
+      
+      // First try exact match
+      let { data: bookingData, error: bookingError } = await supabase
         .from('Booking')
         .select('*')
         .eq('orderId', orderId)
         .single()
 
+      // If exact match fails, try pattern matching (for multi-booking orders)
+      if (bookingError && bookingError.code === 'PGRST116') {
+        console.log(`🔍 Exact match failed, trying pattern match for orderId: ${orderId}`)
+        
+        const { data: multipleBookings, error: patternError } = await supabase
+          .from('Booking')
+          .select('*')
+          .like('orderId', `${orderId}%`)
+          .limit(1)
+          .single()
+          
+        if (!patternError && multipleBookings) {
+          console.log(`✅ Found booking with pattern match: ${multipleBookings.orderId}`)
+          bookingData = multipleBookings
+          bookingError = null
+        }
+      }
+
       if (bookingError) {
+        console.error(`❌ Booking lookup failed for orderId: ${orderId}`, {
+          error: bookingError,
+          message: bookingError.message,
+          code: bookingError.code,
+          details: bookingError.details
+        })
+        
+        // Additional debug: Check if any bookings exist with similar orderIds
+        const orderIdStr = String(orderId)
+        const { data: similarBookings, error: similarError } = await supabase
+          .from('Booking')
+          .select('id, orderId, paymentStatus, createdAt')
+          .like('orderId', `%${orderIdStr.split('-').pop()}%`)
+          .limit(5)
+          
+        if (!similarError && similarBookings) {
+          console.log('🔍 Found similar bookings:', similarBookings)
+        }
+        
         throw createError({
           statusCode: 404,
           statusMessage: `Booking not found for orderId: ${orderId}`
         })
       }
+
+      console.log(`✅ Found booking for orderId: ${orderId}`, {
+        id: bookingData.id,
+        actualOrderId: bookingData.orderId,
+        paymentStatus: bookingData.paymentStatus,
+        paymentId: bookingData.paymentId
+      })
 
       booking = bookingData
       pensopayPaymentId = booking.paymentId
@@ -116,18 +163,22 @@ export default defineEventHandler(async (event) => {
       updateData.paidAt = paidAt
     }
 
+    // Use the actual orderId from the found booking (in case we used pattern matching)
+    const actualOrderId = booking.orderId
     const updateCondition = orderId ? 'orderId' : 'paymentId'
-    const updateValue = orderId || pensopayPaymentId
+    const updateValue = actualOrderId || pensopayPaymentId
 
     console.log('🔄 Updating booking in Supabase...')
     console.log('- Update condition:', updateCondition, '=', updateValue)
+    console.log('- Original search orderId:', orderId)
+    console.log('- Actual booking orderId:', actualOrderId)
     console.log('- Update data:', updateData)
 
     // First, let's check if the booking exists and what its current state is
     const { data: existingBooking, error: fetchError } = await supabase
       .from('Booking')
       .select('*')
-      .eq(orderId ? 'orderId' : 'paymentId', orderId || pensopayPaymentId)
+      .eq(updateCondition, updateValue)
       .single()
 
     if (fetchError) {
@@ -146,7 +197,7 @@ export default defineEventHandler(async (event) => {
     const { data: updatedBooking, error: updateError } = await supabase
       .from('Booking')
       .update(updateData)
-      .eq(orderId ? 'orderId' : 'paymentId', orderId || pensopayPaymentId)
+      .eq(updateCondition, updateValue)
       .select()
       .single()
 
@@ -172,7 +223,7 @@ export default defineEventHandler(async (event) => {
     const { data: verifyBooking, error: verifyError } = await supabase
       .from('Booking')
       .select('paymentStatus, paidAt, paymentId')
-      .eq(orderId ? 'orderId' : 'paymentId', orderId || pensopayPaymentId)
+      .eq(updateCondition, updateValue)
       .single()
 
     if (verifyError) {

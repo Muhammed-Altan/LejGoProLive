@@ -18,42 +18,78 @@
   status = 301
   force = true
 
+# SPA fallback - must be last redirect
+# Ensures all routes are handled by Nuxt's Vue Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers for all pages
 [[headers]]
   for = "/*"
   [headers.values]
+    # Force HTTPS
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    # Prevent clickjacking
+    X-Frame-Options = "DENY"
+    # Prevent MIME-type sniffing
+    X-Content-Type-Options = "nosniff"
+    # Enable XSS protection
+    X-XSS-Protection = "1; mode=block"
+    # Control referrer information
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Disable unused browser features
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
+# Cache static assets for 1 year
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Cache images for 1 week
 [[headers]]
   for = "/*.{png,jpg,jpeg,gif,webp,svg,ico}"
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
+# Cache image folders for 1 year (immutable)
+[[headers]]
+  for = "/eventyr/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/hero-bg/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache CSS/JS for 1 year (with versioning)
 [[headers]]
   for = "/_nuxt/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Cache API responses for short periods
 [[headers]]
   for = "/api/inventory-status"
   [headers.values]
-    Cache-Control = "public, max-age=300"
+    Cache-Control = "public, max-age=300" # 5 minutes
 
 [[headers]]
   for = "/api/availability"
   [headers.values]
-    Cache-Control = "public, max-age=60"
+    Cache-Control = "public, max-age=60" # 1 minute
 
+# No cache for booking/payment APIs
 [[headers]]
-  for = "/api/booking*"
+  for = "/api/booking/*"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
 
 [[headers]]
-  for = "/api/payment*"
+  for = "/api/payment/*"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
+

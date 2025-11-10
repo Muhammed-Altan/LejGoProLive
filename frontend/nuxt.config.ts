@@ -4,9 +4,45 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxt/ui', '@nuxt/image', '@pinia/nuxt'],
   ssr: true,
+  routeRules: {
+    // Static pages (prerendered at build time)
+    '/': { prerender: true },
+    '/faq': { prerender: true },
+    '/handelsbetingelser': { prerender: true },
+    '/privatlivspolitik': { prerender: true },
+    '/hvorfor': { prerender: true },
+    '/kontakt': { prerender: true },
+    
+    // Dynamic pages - use SWR (Stale-While-Revalidate)
+    '/products': { swr: 3600 }, // Cache 1 hour, regenerate in background
+    
+    // API caching (coordinates with Netlify headers)
+    '/api/products': { swr: 600 }, // 10 minutes
+    '/api/inventory-status': { swr: 300 }, // 5 minutes
+    '/api/availability': { swr: 60 }, // 1 minute
+    
+    // Never cache these (client-side only or sensitive data)
+    '/admin/**': { ssr: false },
+    '/checkout': { ssr: false },
+    '/api/booking/**': { cache: false },
+    '/api/payment/**': { cache: false },
+  },
   nitro: {
     preset: 'netlify',
-    serveStatic: true
+    serveStatic: true,
+    compressPublicAssets: true,
+    minify: true,
+    prerender: {
+      routes: [
+        '/faq',
+        '/handelsbetingelser',
+        '/privatlivspolitik',
+        '/hvorfor',
+        '/kontakt'
+      ],
+      crawlLinks: false,
+      ignore: ['/admin', '/checkout', '/payment']
+    }
   },
   experimental: {
     payloadExtraction: false
@@ -101,6 +137,49 @@ export default defineNuxtConfig({
     }
   },
   css: ['@/assets/css/main.css'],
+  image: {
+    quality: 80,
+    format: ['webp', 'jpg', 'png'],
+    screens: {
+      xs: 320,
+      sm: 640,
+      md: 768,
+      lg: 1024,
+      xl: 1280,
+      xxl: 1536,
+    },
+    densities: [1, 2],
+    domains: ['static.gopro.com'],
+    alias: {
+      eventyr: '/eventyr',
+      'hero-bg': '/hero-bg',
+    },
+    presets: {
+      product: {
+        modifiers: {
+          format: 'webp',
+          quality: 85,
+          fit: 'cover',
+        }
+      },
+      thumbnail: {
+        modifiers: {
+          format: 'webp',
+          quality: 75,
+          width: 150,
+          height: 150,
+          fit: 'cover',
+        }
+      },
+      hero: {
+        modifiers: {
+          format: 'webp',
+          quality: 90,
+          fit: 'cover',
+        }
+      }
+    }
+  },
   ui: {
     theme: {
       colors: ['primary', 'secondary', 'tertiary', 'info', 'success', 'warning', 'error']

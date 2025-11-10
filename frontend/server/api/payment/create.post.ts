@@ -421,6 +421,7 @@ export default defineEventHandler(async (event) => {
       amount: totalAmount,
       currency: 'DKK',
       testmode: isTestMode,
+      autocapture: true, // Enable automatic payment capture
       callback_url: `${baseUrl}/api/payment/callback`,
       success_url: `${baseUrl}/payment/success?orderId=${orderId}`,
       cancel_url: `${baseUrl}/payment/cancelled?orderId=${orderId}`,

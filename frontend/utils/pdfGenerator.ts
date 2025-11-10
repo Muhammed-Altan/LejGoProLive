@@ -52,75 +52,106 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   const pageWidth = doc.internal.pageSize.width
   const pageHeight = doc.internal.pageSize.height
   
+  // Validate required fields and provide fallbacks
+  const safeBookingData = {
+    orderNumber: bookingData.orderNumber || 'UNKNOWN-ORDER',
+    customerName: bookingData.customerName || 'Kunde',
+    customerEmail: bookingData.customerEmail || 'kunde@example.com',
+    customerPhone: bookingData.customerPhone,
+    address: bookingData.address,
+    apartment: bookingData.apartment,
+    city: bookingData.city,
+    postalCode: bookingData.postalCode,
+    service: bookingData.service || 'GoPro leje',
+    startDate: bookingData.startDate,
+    endDate: bookingData.endDate,
+    totalAmount: bookingData.totalAmount || 0,
+    items: bookingData.items,
+    vatRate: bookingData.vatRate || 25,
+    rentalPeriod: bookingData.rentalPeriod
+  }
+  
   // Colors
   const darkGray = [64, 64, 64] as const
   const lightGray = [128, 128, 128] as const
   const redColor = [185, 12, 44] as const // LejGoPro red
   
-  // Header - Company name right aligned
-  doc.setFontSize(24)
+  // Top Left - Customer Information
+  doc.setFontSize(10)
   doc.setTextColor(...darkGray)
+  doc.setFont('helvetica', 'normal')
+  
+  let yPos = 30
+  doc.text(safeBookingData.customerName, 20, yPos)
+  yPos += 12
+  doc.text(safeBookingData.customerEmail, 20, yPos)
+  
+  if (safeBookingData.address) {
+    yPos += 12
+    doc.text(safeBookingData.address, 20, yPos)
+    
+    if (safeBookingData.apartment) {
+      yPos += 12
+      doc.text(safeBookingData.apartment, 20, yPos)
+    }
+    
+    if (safeBookingData.postalCode && safeBookingData.city) {
+      yPos += 12
+      doc.text(`${safeBookingData.postalCode} ${safeBookingData.city}`, 20, yPos)
+    }
+  }
+  
+  if (safeBookingData.customerPhone) {
+    yPos += 12
+    doc.text(safeBookingData.customerPhone, 20, yPos)
+  }
+  
+  // Top Right - Logo (text-based for now)
+  doc.setFontSize(24)
+  doc.setTextColor(...redColor)
   doc.setFont('helvetica', 'bold')
   const companyName = 'lejgopro'
   const companyNameWidth = doc.getTextWidth(companyName)
-  doc.text(companyName, pageWidth - companyNameWidth - 20, 30)
+  doc.text(companyName, pageWidth - companyNameWidth - 20, 40)
   
-  // Company info - left side
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...lightGray)
-  
-  // You can update these with your actual company details
-  const companyInfo = [
-    'LejGoPro ApS',
-    'Borgmester Jørgensens Vej 3, stue. 138',
-    '9000 Aalborg',
-    'CVR-nr.: 12345678' // Update with your actual CVR number
-  ]
-  
-  let yPos = 50
-  companyInfo.forEach(line => {
-    doc.text(line, 20, yPos)
-    yPos += 12
-  })
-  
-  // Date and Invoice number - right side
+  // Date (left) and Order ID (right) - positioned below customer info and logo
+  yPos = 100
+  doc.setFontSize(10)
   doc.setTextColor(...darkGray)
+  doc.setFont('helvetica', 'normal')
+  
   const currentDate = new Date().toLocaleDateString('da-DK', {
     day: '2-digit',
     month: 'long',
     year: 'numeric'
   })
   
-  doc.text(`Dato: ${currentDate}`, pageWidth - 120, 50)
-  doc.text(`Fakturanr: ${bookingData.orderNumber}`, pageWidth - 120, 65)
+  doc.text(`Dato: ${currentDate}`, 20, yPos)
+  doc.text(`Fakturanr: ${safeBookingData.orderNumber}`, pageWidth - 100, yPos)
   
-  // Service description
-  doc.setFontSize(10)
-  doc.text('GoPro leje', 20, 85)
-  
-  // Main heading
+  // Main "Faktura" heading
+  yPos += 30
   doc.setFontSize(18)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkGray)
-  doc.text('Faktura', 20, 110)
+  doc.text('Faktura', 20, yPos)
   
-  // Table header
-  yPos = 130
-  doc.setFontSize(9)
+  // Table setup
+  yPos += 30
+  doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...lightGray)
+  doc.setTextColor(...darkGray)
   
   // Table headers
   doc.text('Beskrivelse', 20, yPos)
   doc.text('Antal', 100, yPos)
-  doc.text('Enhed', 130, yPos)
+  doc.text('Enhed', 130, yPos) 
   doc.text('Enhedspris', 150, yPos)
   doc.text('Pris', 180, yPos)
   
   // Table line under header
   doc.setDrawColor(...lightGray)
-  doc.setLineWidth(0.3)
+  doc.setLineWidth(0.5)
   doc.line(20, yPos + 5, pageWidth - 20, yPos + 5)
   
   // Table content
@@ -128,125 +159,91 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...darkGray)
   
-  // Calculate rental days
-  const startDateStr = bookingData.startDate || bookingData.rentalPeriod?.startDate || new Date().toISOString()
-  const endDateStr = bookingData.endDate || bookingData.rentalPeriod?.endDate || new Date(Date.now() + 24*60*60*1000).toISOString()
+  // Calculate rental period
+  const startDateStr = safeBookingData.startDate || safeBookingData.rentalPeriod?.startDate || new Date().toISOString()
+  const endDateStr = safeBookingData.endDate || safeBookingData.rentalPeriod?.endDate || new Date(Date.now() + 24*60*60*1000).toISOString()
   
   const startDate = new Date(startDateStr)
   const endDate = new Date(endDateStr)
   const rentalDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
   
-  // Service line
-  const serviceDescription = bookingData.service || 'GoPro leje'
-  const quantity = rentalDays.toString()
-  const unit = 'dage'
-  const unitPrice = (bookingData.totalAmount / rentalDays).toFixed(2)
-  const totalPrice = bookingData.totalAmount.toFixed(2)
+  // Format dates for display
+  const formattedStartDate = startDate.toLocaleDateString('da-DK')
+  const formattedEndDate = endDate.toLocaleDateString('da-DK')
+  const dateRange = `${formattedStartDate} - ${formattedEndDate}`
   
-  doc.text(serviceDescription, 20, yPos)
-  doc.text(quantity, 100, yPos)
-  doc.text(unit, 130, yPos)
-  doc.text(unitPrice, 150, yPos)
-  doc.text(totalPrice, 180, yPos)
+  // Display items from booking data
+  let subtotalAmount = 0
   
-  // Subtotal, VAT, and Total
-  yPos += 40
+  if (safeBookingData.items && safeBookingData.items.length > 0) {
+    // Display each item from the booking
+    safeBookingData.items.forEach(item => {
+      // Safely handle potentially undefined properties
+      const itemName = item.name || 'GoPro leje'
+      const itemQuantity = item.quantity || 1
+      const itemUnitPrice = item.unitPrice || 0
+      const itemTotalPrice = item.totalPrice || (itemQuantity * itemUnitPrice)
+      
+      const description = `${itemName} ${dateRange}`
+      const quantity = itemQuantity.toString()
+      const unit = 'stk.'
+      const unitPrice = itemUnitPrice.toFixed(2)
+      const totalPrice = itemTotalPrice.toFixed(2)
+      
+      doc.text(description, 20, yPos)
+      doc.text(quantity, 100, yPos)
+      doc.text(unit, 130, yPos)
+      doc.text(unitPrice, 150, yPos)
+      doc.text(totalPrice, 180, yPos)
+      
+      subtotalAmount += itemTotalPrice
+      yPos += 15
+    })
+  } else {
+    // Fallback to service description if no items
+    const serviceDescription = `${safeBookingData.service || 'GoPro leje'} ${dateRange}`
+    const quantity = '1'
+    const unit = 'stk.'
+    const unitPrice = (safeBookingData.totalAmount || 0).toFixed(2)
+    const totalPrice = (safeBookingData.totalAmount || 0).toFixed(2)
+    
+    doc.text(serviceDescription, 20, yPos)
+    doc.text(quantity, 100, yPos)
+    doc.text(unit, 130, yPos)
+    doc.text(unitPrice, 150, yPos)
+    doc.text(totalPrice, 180, yPos)
+    
+    subtotalAmount = safeBookingData.totalAmount || 0
+    yPos += 15
+  }
   
-  // Right align the totals
-  const rightAlign = pageWidth - 60
-  const labelAlign = pageWidth - 120
+  // Totals section
+  yPos += 20
+  const rightAlign = pageWidth - 40
+  const labelAlign = pageWidth - 100
   
   // Subtotal
+  doc.setFont('helvetica', 'normal')
   doc.text('Subtotal', labelAlign, yPos)
-  doc.text(`${totalPrice}`, rightAlign, yPos)
+  doc.text(`${subtotalAmount.toFixed(2)}`, rightAlign, yPos)
   
   yPos += 15
   // VAT (25%)
-  const vatRate = bookingData.vatRate || 25
-  const vatAmount = (bookingData.totalAmount * vatRate / 100).toFixed(2)
+  const vatRate = safeBookingData.vatRate || 25
+  const vatAmount = (subtotalAmount * vatRate / (100 + vatRate))
   doc.text(`Moms (${vatRate},00%)`, labelAlign, yPos)
-  doc.text(vatAmount, rightAlign, yPos)
+  doc.text(vatAmount.toFixed(2), rightAlign, yPos)
   
   yPos += 15
   // Total
   doc.setFont('helvetica', 'bold')
-  const totalWithVat = (bookingData.totalAmount + parseFloat(vatAmount)).toFixed(2)
   
   // Line above total
   doc.setLineWidth(0.5)
   doc.line(labelAlign - 10, yPos - 5, rightAlign + 20, yPos - 5)
   
   doc.text('Total DKK', labelAlign, yPos)
-  doc.text(totalWithVat, rightAlign, yPos)
-  
-  // Red dot accent (matching your design)
-  doc.setFillColor(...redColor)
-  doc.circle(rightAlign + 25, yPos - 2, 1, 'F')
-  
-  // Payment terms section
-  yPos += 40
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(...lightGray)
-  
-  const paymentDate = new Date()
-  paymentDate.setDate(paymentDate.getDate() + 8) // 8 days from now
-  const formattedPaymentDate = paymentDate.toLocaleDateString('da-DK', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  })
-  
-  doc.text(`Betalingsbetingelser: Netto 8 dage - Forfaldsdato: ${formattedPaymentDate}`, 20, yPos)
-  
-  yPos += 15
-  doc.text('Beløbet indbetales på bankkonto:', 20, yPos)
-  
-  yPos += 10
-  doc.text('Bank / Reg.nr: 2535 / Kontonr: 1234567890', 20, yPos) // Update with actual bank details
-  
-  yPos += 10
-  doc.text('Fakturanr. skal angivet ved bankoverførsel', 20, yPos)
-  
-  yPos += 15
-  doc.text('Ved betaling efter forfald tillskrives der renter på 0,81% pr. påbegyndt måned, samt et gebyr på 100,00 DKK', 20, yPos)
-  
-  // Customer information (if needed for delivery)
-  const hasAddress = bookingData.address || bookingData.deliveryAddress
-  if (hasAddress) {
-    yPos = 140 // Position on right side
-    const customerX = pageWidth - 150
-    
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...darkGray)
-    doc.text('Levering til:', customerX, yPos)
-    
-    yPos += 15
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...lightGray)
-    doc.text(bookingData.customerName, customerX, yPos)
-    
-    if (bookingData.deliveryAddress) {
-      // Handle combined delivery address
-      yPos += 10
-      doc.text(bookingData.deliveryAddress, customerX, yPos)
-    } else if (bookingData.address) {
-      // Handle separate address components
-      yPos += 10
-      doc.text(bookingData.address, customerX, yPos)
-      
-      if (bookingData.apartment) {
-        yPos += 10
-        doc.text(bookingData.apartment, customerX, yPos)
-      }
-      
-      if (bookingData.postalCode && bookingData.city) {
-        yPos += 10
-        doc.text(`${bookingData.postalCode} ${bookingData.city}`, customerX, yPos)
-      }
-    }
-  }
+  doc.text(subtotalAmount.toFixed(2), rightAlign, yPos)
   
   return doc
 }
