@@ -131,6 +131,31 @@ export default defineNuxtConfig({
       eventyr: '/eventyr',
       'hero-bg': '/hero-bg',
     },
+    presets: {
+      product: {
+        modifiers: {
+          format: 'webp',
+          quality: 85,
+          fit: 'cover',
+        }
+      },
+      thumbnail: {
+        modifiers: {
+          format: 'webp',
+          quality: 75,
+          width: 150,
+          height: 150,
+          fit: 'cover',
+        }
+      },
+      hero: {
+        modifiers: {
+          format: 'webp',
+          quality: 90,
+          fit: 'cover',
+        }
+      }
+    }
   },
   ui: {
     theme: {

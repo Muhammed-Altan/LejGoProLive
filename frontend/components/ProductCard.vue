@@ -1,7 +1,15 @@
 <template>
   <div class="bg-white rounded-2xl shadow-lg border p-6 flex flex-col" :class="{ 'relative': popular }">
   <span v-if="popular" class="absolute top-3 right-3 bg-[#B8082A] text-white text-xs font-semibold px-3 py-1 rounded-full">Mest Populær</span>
-  <img :src="img" :alt="title" class="w-full h-52 object-contain mb-4" />
+  <NuxtImg 
+    :src="img" 
+    :alt="title" 
+    class="w-full h-52 object-contain mb-4"
+    loading="lazy"
+    format="webp"
+    quality="85"
+    sizes="sm:100vw md:50vw lg:400px"
+  />
   <div class="flex justify-between items-center mb-3">
     <h3 class="font-bold text-2xl text-black">{{ title }}</h3>
     <span class="font-bold text-[#B8082A] text-lg">fra {{ displayPrice }} kr/dag</span>
