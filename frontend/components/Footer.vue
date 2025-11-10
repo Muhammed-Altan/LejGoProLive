@@ -40,10 +40,10 @@
       <div>
         <h3 class="font-bold mb-4">Kontakt Os</h3>
         <ul class="space-y-2 text-gray-300">
-          <li><i class="fas fa-envelope mr-2"></i> kontakt@lejgopro.dk</li>
-          <li><i class="fas fa-phone mr-2"></i> +45 53 80 59 54</li>
-          <li><i class="fas fa-map-marker-alt mr-2"></i> København, Danmark</li>
-          <li><i class="fas fa-building mr-2"></i> CVR: 41910437</li>
+          <li>kontakt@lejgopro.dk</li>
+          <li>+45 53 80 59 54</li>
+          <li>København, Danmark</li>
+          <li>CVR: 41910437</li>
         </ul>
         <div class="bg-[#1e293b] rounded-lg p-4 mt-4 text-sm">
           <div class="font-bold mb-2">Telefon tider:</div>
