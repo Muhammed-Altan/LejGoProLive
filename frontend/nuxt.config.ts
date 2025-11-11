@@ -19,7 +19,7 @@ export default defineNuxtConfig({
     // API caching (coordinates with Netlify headers)
     '/api/products': { swr: 600 }, // 10 minutes
     '/api/inventory-status': { swr: 300 }, // 5 minutes
-    '/api/availability/check': { swr: 60 }, // 1 minute
+    '/api/availability/check': { cache: false }, // TEMPORARILY DISABLED - was causing body read issues
     
     // Never cache these (client-side only or sensitive data)
     '/admin/**': { ssr: false },
