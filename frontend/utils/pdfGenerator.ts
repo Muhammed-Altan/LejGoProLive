@@ -106,15 +106,7 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
     doc.text(safeBookingData.customerPhone, 20, yPos)
   }
   
-  // Top Right - Logo (text-based for now)
-  doc.setFontSize(24)
-  doc.setTextColor(...redColor)
-  doc.setFont('helvetica', 'bold')
-  const companyName = 'lejgopro'
-  const companyNameWidth = doc.getTextWidth(companyName)
-  doc.text(companyName, pageWidth - companyNameWidth - 20, 40)
-  
-  // Date (left) and Order ID (right) - positioned below customer info and logo
+  // Date (left) and Order ID (right) - positioned below customer info
   yPos = 100
   doc.setFontSize(10)
   doc.setTextColor(...darkGray)
@@ -129,15 +121,15 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   doc.text(`Dato: ${currentDate}`, 20, yPos)
   doc.text(`Fakturanr: ${safeBookingData.orderNumber}`, pageWidth - 100, yPos)
   
-  // Main "Faktura" heading
-  yPos += 30
-  doc.setFontSize(18)
+  // Main "Faktura" heading - smaller size
+  yPos += 15
+  doc.setFontSize(14)  // Reduced from 18
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkGray)
   doc.text('Faktura', 20, yPos)
   
-  // Table setup
-  yPos += 30
+  // Table setup - reduced spacing
+  yPos += 15
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...darkGray)
@@ -155,7 +147,7 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   doc.line(20, yPos + 5, pageWidth - 20, yPos + 5)
   
   // Table content
-  yPos += 20
+  yPos += 15
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...darkGray)
   
@@ -175,14 +167,24 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   // Display items from booking data
   let subtotalAmount = 0
   
+  console.log('📋 PDF Generator - Items available:', safeBookingData.items?.length || 0)
+  console.log('📋 PDF Generator - Items data:', safeBookingData.items)
+  
   if (safeBookingData.items && safeBookingData.items.length > 0) {
     // Display each item from the booking
-    safeBookingData.items.forEach(item => {
+    safeBookingData.items.forEach((item, index) => {
       // Safely handle potentially undefined properties
       const itemName = item.name || 'GoPro leje'
       const itemQuantity = item.quantity || 1
       const itemUnitPrice = item.unitPrice || 0
       const itemTotalPrice = item.totalPrice || (itemQuantity * itemUnitPrice)
+      
+      console.log(`📋 PDF Generator - Item ${index + 1}:`, {
+        name: itemName,
+        quantity: itemQuantity,
+        unitPrice: itemUnitPrice,
+        totalPrice: itemTotalPrice
+      })
       
       const description = `${itemName} ${dateRange}`
       const quantity = itemQuantity.toString()
@@ -197,15 +199,18 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
       doc.text(totalPrice, 180, yPos)
       
       subtotalAmount += itemTotalPrice
-      yPos += 15
+      yPos += 12
     })
   } else {
-    // Fallback to service description if no items
+    console.log('📋 PDF Generator - No items found, using fallback service description')
+    // Fallback to service description if no items - use the total booking amount
     const serviceDescription = `${safeBookingData.service || 'GoPro leje'} ${dateRange}`
     const quantity = '1'
     const unit = 'stk.'
-    const unitPrice = (safeBookingData.totalAmount || 0).toFixed(2)
-    const totalPrice = (safeBookingData.totalAmount || 0).toFixed(2)
+    // Use the total booking amount for both unit price and total (since quantity is 1)
+    const bookingTotal = safeBookingData.totalAmount || 0
+    const unitPrice = bookingTotal.toFixed(2)
+    const totalPrice = bookingTotal.toFixed(2)
     
     doc.text(serviceDescription, 20, yPos)
     doc.text(quantity, 100, yPos)
@@ -213,12 +218,12 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
     doc.text(unitPrice, 150, yPos)
     doc.text(totalPrice, 180, yPos)
     
-    subtotalAmount = safeBookingData.totalAmount || 0
-    yPos += 15
+    subtotalAmount = bookingTotal
+    yPos += 12
   }
   
-  // Totals section
-  yPos += 20
+  // Totals section - reduced spacing
+  yPos += 10
   const rightAlign = pageWidth - 40
   const labelAlign = pageWidth - 100
   
@@ -227,6 +232,7 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   doc.text('Subtotal', labelAlign, yPos)
   doc.text(`${subtotalAmount.toFixed(2)}`, rightAlign, yPos)
   
+<<<<<<< Updated upstream
   yPos += 15
   // VAT (25%)
   const vatRate = safeBookingData.vatRate || 25
@@ -236,6 +242,15 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   
   yPos += 15
   // Total
+=======
+  yPos += 10
+  // VAT amount
+  doc.text(`Moms (${vatRate},00%)`, labelAlign, yPos)
+  doc.text(vatAmount.toFixed(2), rightAlign, yPos)
+  
+  yPos += 10
+  // Total (final amount including VAT)
+>>>>>>> Stashed changes
   doc.setFont('helvetica', 'bold')
   
   // Line above total
@@ -244,6 +259,27 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   
   doc.text('Total DKK', labelAlign, yPos)
   doc.text(subtotalAmount.toFixed(2), rightAlign, yPos)
+  
+  // Add business information at the bottom
+  const bottomMargin = 30
+  const businessInfoY = pageHeight - bottomMargin
+  
+  // Business info styling
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...darkGray)
+  
+  // Center the business information
+  const businessInfo1 = 'lejgopro / Snorresgade 1, st. th / 2300 København S'
+  const businessInfo2 = 'CVR-nr. DK41910437 / Tlf. 53805954 / Web: lejgopro.dk / Mail: jonasfisker123@gmail.com'
+  
+  const textWidth1 = doc.getTextWidth(businessInfo1)
+  const textWidth2 = doc.getTextWidth(businessInfo2)
+  const centerX1 = (pageWidth - textWidth1) / 2
+  const centerX2 = (pageWidth - textWidth2) / 2
+  
+  doc.text(businessInfo1, centerX1, businessInfoY - 8)
+  doc.text(businessInfo2, centerX2, businessInfoY)
   
   return doc
 }

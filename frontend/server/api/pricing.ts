@@ -59,8 +59,9 @@ export function calculatePricing(models: (BookingModel & { price: number; weekly
 
   accessories.forEach((accessory) => {
     const quantity = accessory.quantity || 1;
-    const accessoryPrice = typeof accessory.price === 'number' ? accessory.price : 0;
-    total += accessoryPrice * quantity;
+    const accessoryDailyPrice = typeof accessory.price === 'number' ? accessory.price : 0;
+    const accessoryTotal = accessoryDailyPrice * quantity * rentalDays; // Multiply by rental days
+    total += accessoryTotal;
   });
 
   if (insurance) {

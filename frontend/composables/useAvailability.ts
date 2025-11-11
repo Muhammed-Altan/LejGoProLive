@@ -118,23 +118,56 @@ export const useAvailability = () => {
     try {
       const prepStartTime = performance.now()
       
+      // Validate input parameters
+      if (!startDate || !endDate) {
+        console.error('❌ Missing date parameters:', { startDate, endDate })
+        throw new Error('Start date and end date are required')
+      }
+      
       const startDateStr = startDate instanceof Date ? startDate.toISOString() : startDate
       const endDateStr = endDate instanceof Date ? endDate.toISOString() : endDate
+      
+      // Validate converted dates
+      if (!startDateStr || !endDateStr) {
+        console.error('❌ Failed to convert dates:', { 
+          originalStart: startDate, 
+          originalEnd: endDate,
+          convertedStart: startDateStr,
+          convertedEnd: endDateStr
+        })
+        throw new Error('Invalid date format')
+      }
 
       const prepEndTime = performance.now()
       console.log(`🔧 Data preparation: ${(prepEndTime - prepStartTime).toFixed(2)}ms`)
       
       console.log('📡 Making API call for availability check')
+      
+      // Debug: Log all parameters being sent
+      console.log('🔍 Request parameters:', {
+        startDate: startDateStr,
+        endDate: endDateStr,
+        productIds,
+        accessoryIds,
+        startDateType: typeof startDateStr,
+        endDateType: typeof endDateStr,
+        productIdsType: typeof productIds,
+        accessoryIdsType: typeof accessoryIds
+      })
+      
       const networkStartTime = performance.now()
 
       const response = await $fetch<AvailabilityResponse>('/api/availability/check', {
         method: 'POST',
-        body: {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           startDate: startDateStr,
           endDate: endDateStr,
           productIds,
           accessoryIds
-        }
+        })
       })
 
       const networkEndTime = performance.now()

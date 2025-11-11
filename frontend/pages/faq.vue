@@ -21,6 +21,25 @@
 <script setup>
 import { ref } from 'vue'
 
+// SEO Meta Tags
+useSeoMeta({
+  title: 'Ofte Stillede Spørgsmål om GoPro Leje - FAQ | LejGoPro',
+  description: 'Find svar på spørgsmål om GoPro udlejning: lejeperioder, betaling, levering, forsikring og tekniske specifikationer. Alt du skal vide før booking.',
+  keywords: 'gopro leje faq, actionkamera spørgsmål, lejeperiode betaling, gopro batteri tid, forsikring udlejning',
+  robots: 'index, follow',
+  
+  // Open Graph
+  ogTitle: 'FAQ - Ofte Stillede Spørgsmål om GoPro Leje',
+  ogDescription: 'Find svar på alle dine spørgsmål om GoPro udlejning, betaling, levering og forsikring.',
+  ogType: 'website',
+  ogUrl: 'https://lejgopro.dk/faq',
+  
+  // Twitter Card
+  twitterCard: 'summary',
+  twitterTitle: 'GoPro Leje FAQ - LejGoPro',
+  twitterDescription: 'Find svar på ofte stillede spørgsmål om GoPro udlejning og booking.'
+})
+
 const items = ref([
   {
     label: 'Hvad er den korteste lejeperiode?',
