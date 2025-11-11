@@ -9,7 +9,7 @@
         </div>
         <div class="flex items-center gap-1">
           <div class="w-3 h-3 bg-red-500 rounded"></div>
-          <span>Optaget{{ includeBuffer ? ' (m/buffer)' : '' }}</span>
+          <span>Optaget</span>
         </div>
       </div>
     </div>
@@ -96,7 +96,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 
 const props = defineProps<{
   productId: number
-  includeBuffer?: boolean
 }>()
 
 const currentMonth = ref(new Date())
@@ -162,25 +161,7 @@ const calendarDays = computed(() => {
       // Extract just the date part without timezone conversion issues
       const start = booking.startDate.split('T')[0]
       const end = booking.endDate.split('T')[0]
-      
-      // If includeBuffer is true, extend the booking period by 3 days on each side
-      let effectiveStart = start
-      let effectiveEnd = end
-      
-      if (props.includeBuffer) {
-        const startDate = new Date(start)
-        const endDate = new Date(end)
-        
-        // Subtract 3 days from start
-        startDate.setDate(startDate.getDate() - 3)
-        effectiveStart = startDate.toISOString().split('T')[0]
-        
-        // Add 3 days to end
-        endDate.setDate(endDate.getDate() + 3)
-        effectiveEnd = endDate.toISOString().split('T')[0]
-      }
-      
-      const isBooked = dateStr >= effectiveStart && dateStr <= effectiveEnd
+      const isBooked = dateStr >= start && dateStr <= end
       
       return isBooked
     })
@@ -213,9 +194,6 @@ const calendarDays = computed(() => {
     let tooltip = `${date.toLocaleDateString('da-DK')}`
     if (hasBooking) {
       tooltip += ` - ${totalCameras} kamera(er) booket`
-      if (props.includeBuffer) {
-        tooltip += ' (inkl. 3-dages buffer)'
-      }
     } else {
       tooltip += ' - Tilgængelig'
     }
@@ -293,12 +271,6 @@ const debugDay = (day: any) => {
 
 // Watch for month changes and refetch data
 watch(currentMonth, fetchBookings)
-
-// Watch for buffer toggle changes - calendar will recalculate automatically
-// since it's a computed property that uses props.includeBuffer
-watch(() => props.includeBuffer, () => {
-  console.log(`🔄 Buffer mode changed to: ${props.includeBuffer}`)
-})
 
 onMounted(() => {
   fetchBookings()

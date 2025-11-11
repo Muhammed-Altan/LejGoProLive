@@ -3,16 +3,12 @@ import { apiCache, createCacheKey } from '../utils/cache'
 
 export default defineEventHandler(async (event) => {
   try {
-    // Get query parameter to determine if we should include the 3-day buffer
-    const query = getQuery(event)
-    const includeBuffer = query.includeBuffer === 'true'
-    
-    // Check cache first (5 minute TTL) - different cache for buffer vs non-buffer
-    const cacheKey = createCacheKey(`inventory-status-${includeBuffer ? 'buffer' : 'actual'}`)
+    // Check cache first (5 minute TTL)
+    const cacheKey = createCacheKey('inventory-status')
     const cachedData = apiCache.get(cacheKey)
     
     if (cachedData) {
-      console.log(`📦 Returning cached inventory status (${includeBuffer ? 'with buffer' : 'actual'})`)
+      console.log('📦 Returning cached inventory status')
       return cachedData
     }
 
@@ -46,13 +42,6 @@ export default defineEventHandler(async (event) => {
         
         // Get all active bookings (current and future) for cameras of this specific product
         const today = new Date().toISOString().split('T')[0]
-        
-        // If includeBuffer is true, add 3 days to check effective availability
-        // This means a camera is considered "in use" if it's booked within the next 3 days
-        const checkDate = includeBuffer 
-          ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-          : today
-        
         const productCameraIds = productCameras.map(camera => camera.id)
         
         let camerasInUse = 0
@@ -63,15 +52,12 @@ export default defineEventHandler(async (event) => {
           camerasInUse = 0
         } else {
           // Get all paid bookings for these cameras that haven't ended yet
-          // When includeBuffer is true, we check against checkDate (today + 3 days)
-          // This means bookings starting within 3 days will count as "in use"
           const { data: allBookings, error: bookingsError } = await supabase
             .from('Booking')
             .select('cameraId, startDate, endDate, paymentStatus')
             .eq('paymentStatus', 'paid')
             .in('cameraId', productCameraIds)
-            .gte('endDate', today) // Booking must not have ended yet
-            .lte('startDate', checkDate) // Booking must start on or before checkDate (today or today+3 days)
+            .gte('endDate', today) // Any booking that ends today or in the future
           
           if (bookingsError) {
             console.error('Error fetching bookings:', bookingsError)
@@ -83,7 +69,7 @@ export default defineEventHandler(async (event) => {
             )
             camerasInUse = camerasWithBookings.size
             
-            console.log(`Product ${product.name} (${includeBuffer ? 'with 3-day buffer' : 'actual'}): ${totalCameras} total cameras, ${camerasInUse} with bookings, ${allBookings?.length || 0} total bookings`)
+            console.log(`Product ${product.name}: ${totalCameras} total cameras, ${camerasInUse} with bookings, ${allBookings?.length || 0} total bookings`)
           }
         }
         
@@ -110,13 +96,12 @@ export default defineEventHandler(async (event) => {
     const result = { 
       success: true, 
       data: inventoryData,
-      includeBuffer: includeBuffer,
       lastUpdated: new Date().toISOString()
     }
 
     // Cache the result for 5 minutes (300 seconds)
     apiCache.set(cacheKey, result, 300)
-    console.log(`📦 Cached inventory status (${includeBuffer ? 'with buffer' : 'actual'}) for 5 minutes`)
+    console.log('📦 Cached inventory status for 5 minutes')
     
     return result
   } catch (error: any) {

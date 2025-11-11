@@ -5,24 +5,6 @@
         📦 Aktuel Lagerstatus
       </h2>
       <div class="flex items-center gap-4">
-        <!-- Buffer Toggle -->
-        <div class="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-          <button 
-            @click="includeBuffer = false"
-            :class="!includeBuffer ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'"
-            class="px-3 py-1.5 rounded-md text-sm font-medium transition-all"
-          >
-            📊 Faktisk
-          </button>
-          <button 
-            @click="includeBuffer = true"
-            :class="includeBuffer ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'"
-            class="px-3 py-1.5 rounded-md text-sm font-medium transition-all"
-          >
-            🕒 Effektiv (m/buffer)
-          </button>
-        </div>
-        
         <!-- View Toggle -->
         <div class="flex items-center gap-2">
           <button 
@@ -56,26 +38,6 @@
             </svg>
           </button>
         </div>
-      </div>
-    </div>
-
-    <!-- Information Banner -->
-    <div v-if="includeBuffer" class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-      <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-      </svg>
-      <div class="text-sm text-blue-800">
-        <strong>Effektiv tilgængelighed (med 3-dages buffer):</strong> 
-        Viser hvad der faktisk kan bookes af kunder. Inkluderer 3 dage før levering og 3 dage efter returnering for klargøring og rengøring.
-      </div>
-    </div>
-    <div v-else class="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-start gap-2">
-      <svg class="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-      </svg>
-      <div class="text-sm text-gray-700">
-        <strong>Faktisk tilgængelighed:</strong> 
-        Viser fysisk lager status baseret på aktuelle bookinger uden buffer.
       </div>
     </div>
 
@@ -214,7 +176,7 @@
 
         <!-- Calendar for this product -->
         <div class="p-4">
-          <ProductAvailabilityCalendar :product-id="item.productId" :include-buffer="includeBuffer" />
+          <ProductAvailabilityCalendar :product-id="item.productId" />
         </div>
       </div>
     </div>
@@ -244,7 +206,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 interface InventoryItem {
   productId: number
@@ -266,7 +228,6 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const lastUpdated = ref<string | null>(null)
 const viewMode = ref<'grid' | 'calendar'>('grid')
-const includeBuffer = ref(false) // Toggle between actual and effective (with 3-day buffer) availability
 
 // Computed stats
 const totalProducts = computed(() => inventory.value.length)
@@ -280,13 +241,11 @@ const fetchInventory = async () => {
   error.value = null
   
   try {
-    const response = await $fetch<{ success: boolean; data: InventoryItem[]; lastUpdated: string; includeBuffer: boolean }>('/api/inventory-status', {
-      query: { includeBuffer: includeBuffer.value }
-    })
+    const response = await $fetch('/api/inventory-status')
     
     if (response.success) {
       inventory.value = response.data as InventoryItem[]
-      lastUpdated.value = response.lastUpdated
+      lastUpdated.value = response.timestamp
     } else {
       error.value = 'Kunne ikke hente lagerstatus'
     }
@@ -327,11 +286,6 @@ const handleImageError = (event: Event) => {
 
 // Auto-refresh every 5 minutes
 let refreshInterval: NodeJS.Timeout | null = null
-
-// Watch for buffer toggle changes
-watch(includeBuffer, () => {
-  fetchInventory()
-})
 
 onMounted(() => {
   fetchInventory()
