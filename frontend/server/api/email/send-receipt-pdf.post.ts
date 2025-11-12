@@ -337,7 +337,7 @@ function generateEmailHTML(booking: BookingData): string {
         
         <div class="footer">
           <p>Med venlig hilsen<br><strong>LejGoPro Team</strong></p>
-          <p>Email: admin@lejgopro.dk</p>
+          <p>Email: kontakt@lejgopro.dk</p>
         </div>
       </div>
     </body>
