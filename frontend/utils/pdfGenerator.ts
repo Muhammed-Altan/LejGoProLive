@@ -16,6 +16,82 @@ const getJsPDF = async () => {
   return jsPDF
 }
 
+// Get logo URL from Supabase storage
+const getLogoFromSupabase = async (): Promise<string | null> => {
+  try {
+    console.log('🔍 Fetching logo from Supabase storage...')
+    
+    if (process.server) {
+      // Server-side: use Supabase directly
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseUrl = process.env.SUPABASE_URL
+      const supabaseKey = process.env.SUPABASE_ANON_KEY
+      
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('❌ Supabase credentials not found in environment')
+        return null
+      }
+      
+      const supabase = createClient(supabaseUrl, supabaseKey)
+      
+      // Get the logo from the 'email' folder
+      const { data, error } = await supabase.storage
+        .from('productImage')
+        .list('email', {
+          limit: 10,
+          search: 'lejgopro-email.png'
+        })
+      
+      if (error || !data || data.length === 0) {
+        console.error('❌ Logo not found in Supabase storage:', error)
+        return null
+      }
+      
+      // Get public URL for the logo
+      const { data: publicData } = supabase.storage
+        .from('productImage')
+        .getPublicUrl(`email/${data[0].name}`)
+      
+      if (publicData?.publicUrl) {
+        console.log('✅ Logo URL retrieved from Supabase:', publicData.publicUrl)
+        return publicData.publicUrl
+      }
+      
+      return null
+    } else {
+      // Client-side: use composable or API
+      const { useSupabase } = await import('@/composables/useSupabase')
+      const supabase = useSupabase()
+      
+      if (!supabase) {
+        console.error('❌ Supabase client not available')
+        return null
+      }
+      
+      const { data, error } = await supabase.storage
+        .from('productImage')
+        .list('email', {
+          limit: 10,
+          search: 'lejgopro-email.png'
+        })
+      
+      if (error || !data || data.length === 0) {
+        console.error('❌ Logo not found in Supabase storage (client):', error)
+        return null
+      }
+      
+      const { data: publicData } = supabase.storage
+        .from('productImage')
+        .getPublicUrl(`email/${data[0].name}`)
+      
+      return publicData?.publicUrl || null
+    }
+  } catch (error) {
+    console.error('💥 Error fetching logo from Supabase:', error)
+    return null
+  }
+}
+
 interface BookingItem {
   name: string
   quantity: number
@@ -86,9 +162,9 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
     const lightGray = [128, 128, 128] as const
     const redColor = [185, 12, 44] as const // LejGoPro red
 
-    // Add logo at top right - improved server handling
+    // Add logo at top right - using Supabase storage
     try {
-      console.log('📄 Adding logo to PDF...')
+      console.log('📄 Adding logo to PDF from Supabase...')
       
       // Calculate logo position (top right corner)
       const logoWidth = 40
@@ -96,51 +172,41 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
       const logoX = pageWidth - logoWidth - 20
       const logoY = 20
       
-      if (process.server) {
-        // Server-side: use filesystem with better error handling
-        const fs = await import('fs')
-        const path = await import('path')
+      // Get logo from Supabase storage
+      const logoUrl = await getLogoFromSupabase()
+      
+      if (logoUrl) {
+        console.log('📄 Logo URL retrieved from Supabase:', logoUrl)
         
-        // Try multiple possible paths for logo
-        const possiblePaths = [
-          path.join(process.cwd(), 'public', 'logo', 'lejgopro-email.png'),
-          path.join(process.cwd(), '.output', 'public', 'logo', 'lejgopro-email.png'),
-          path.join(process.cwd(), 'frontend', 'public', 'logo', 'lejgopro-email.png'),
-          '/var/task/public/logo/lejgopro-email.png', // Netlify/Vercel path
-          './public/logo/lejgopro-email.png'
-        ]
-        
-        let logoPath = null
-        for (const testPath of possiblePaths) {
-          if (fs.existsSync(testPath)) {
-            logoPath = testPath
-            console.log('📄 Logo found at:', testPath)
-            break
-          }
-        }
-        
-        if (logoPath) {
+        // For server-side, we need to fetch the image and convert to base64
+        if (process.server) {
           try {
-            const logoBuffer = fs.readFileSync(logoPath)
-            const logoBase64 = logoBuffer.toString('base64')
-            const logoDataUrl = `data:image/png;base64,${logoBase64}`
-            
-            doc.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight)
-            console.log('✅ Logo added successfully via base64')
-          } catch (readError) {
-            console.warn('⚠️ Failed to read logo file:', readError)
-            // Fallback: try direct file path
-            doc.addImage(logoPath, 'PNG', logoX, logoY, logoWidth, logoHeight)
-            console.log('✅ Logo added via direct path fallback')
+            const response = await fetch(logoUrl)
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer()
+              const buffer = Buffer.from(arrayBuffer)
+              const logoBase64 = buffer.toString('base64')
+              const logoDataUrl = `data:image/png;base64,${logoBase64}`
+              
+              doc.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight)
+              console.log('✅ Logo added successfully via Supabase (server-side)')
+            } else {
+              throw new Error(`Failed to fetch logo: ${response.status}`)
+            }
+          } catch (fetchError) {
+            console.warn('⚠️ Failed to fetch logo from Supabase:', fetchError)
           }
         } else {
-          console.warn('⚠️ Logo file not found in any expected location')
-          console.log('📄 Checked paths:', possiblePaths)
+          // Client-side: use URL directly
+          try {
+            doc.addImage(logoUrl, 'PNG', logoX, logoY, logoWidth, logoHeight)
+            console.log('✅ Logo added successfully via Supabase (client-side)')
+          } catch (addError) {
+            console.warn('⚠️ Failed to add logo from URL:', addError)
+          }
         }
       } else {
-        // Client-side: use public path
-        doc.addImage('/logo/lejgopro-email.png', 'PNG', logoX, logoY, logoWidth, logoHeight)
-        console.log('✅ Logo added successfully (client-side)')
+        console.warn('⚠️ No logo URL found in Supabase')
       }
     } catch (logoError) {
       const error = logoError instanceof Error ? logoError : new Error(String(logoError))
