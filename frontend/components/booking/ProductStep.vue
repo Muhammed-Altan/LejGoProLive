@@ -978,6 +978,9 @@ async function onAddSelectedAccessory() {
 
 function removeAccessory(idx: number) {
   selectedAccessories.value.splice(idx, 1);
+  // Immediately sync to store after removal
+  const modelCount = selectedModels.value.reduce((sum, model) => sum + (model.quantity || 1), 0);
+  store.setSelectedAccessories([...selectedAccessories.value], modelCount);
 }
 
 function onAccessoryQuantityChange() {

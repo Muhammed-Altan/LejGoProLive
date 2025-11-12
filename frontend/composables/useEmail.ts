@@ -63,10 +63,21 @@ export const useEmail = () => {
    * Send a booking receipt as PDF attachment
    */
   const sendReceiptPDF = async (bookingData: BookingEmailData): Promise<boolean> => {
+    console.log('📨 useEmail.sendReceiptPDF called with data:', {
+      orderNumber: bookingData.orderNumber,
+      customerEmail: bookingData.customerEmail,
+      customerName: bookingData.customerName,
+      service: bookingData.service,
+      totalAmount: bookingData.totalAmount,
+      itemsCount: bookingData.items?.length || 0
+    })
+
     isLoading.value = true
     error.value = null
 
     try {
+      console.log('🌐 Making API call to /api/email/send-receipt-pdf...')
+      
       const response = await $fetch<{ success: boolean; message: string; messageId?: string; filename?: string }>('/api/email/send-receipt-pdf', {
         method: 'POST',
         body: {
@@ -74,17 +85,36 @@ export const useEmail = () => {
         }
       })
 
+      console.log('📥 API response received:', {
+        success: response.success,
+        message: response.message,
+        messageId: response.messageId,
+        filename: response.filename
+      })
+
       if (response.success) {
+        console.log('✅ PDF email sent successfully!')
         return true
       } else {
-        throw new Error('Failed to send PDF receipt')
+        console.error('❌ API returned success: false')
+        throw new Error(response.message || 'Failed to send PDF receipt')
       }
     } catch (err: any) {
-      console.error('Error sending PDF receipt:', err)
+      console.error('💥 Error in sendReceiptPDF:', err)
+      console.error('🔍 Error details:', {
+        name: err.name,
+        message: err.message,
+        statusCode: err.statusCode,
+        statusMessage: err.statusMessage,
+        data: err.data,
+        stack: err.stack
+      })
+      
       error.value = err.message || 'Failed to send PDF receipt'
       return false
     } finally {
       isLoading.value = false
+      console.log('🏁 sendReceiptPDF process completed')
     }
   }
 
