@@ -232,7 +232,6 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   doc.text('Subtotal', labelAlign, yPos)
   doc.text(`${subtotalAmount.toFixed(2)}`, rightAlign, yPos)
   
-<<<<<<< Updated upstream
   yPos += 15
   // VAT (25%)
   const vatRate = safeBookingData.vatRate || 25
@@ -242,15 +241,6 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   
   yPos += 15
   // Total
-=======
-  yPos += 10
-  // VAT amount
-  doc.text(`Moms (${vatRate},00%)`, labelAlign, yPos)
-  doc.text(vatAmount.toFixed(2), rightAlign, yPos)
-  
-  yPos += 10
-  // Total (final amount including VAT)
->>>>>>> Stashed changes
   doc.setFont('helvetica', 'bold')
   
   // Line above total
