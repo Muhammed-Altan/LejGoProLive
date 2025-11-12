@@ -86,7 +86,7 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
     const lightGray = [128, 128, 128] as const
     const redColor = [185, 12, 44] as const // LejGoPro red
 
-    // Add logo at top right - simpler approach
+    // Add logo at top right - improved server handling
     try {
       console.log('📄 Adding logo to PDF...')
       
@@ -97,20 +97,45 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
       const logoY = 20
       
       if (process.server) {
-        // Server-side: use filesystem
+        // Server-side: use filesystem with better error handling
         const fs = await import('fs')
         const path = await import('path')
         
-        const logoPath = path.join(process.cwd(), 'public', 'logo', 'lejgopro-email.png')
+        // Try multiple possible paths for logo
+        const possiblePaths = [
+          path.join(process.cwd(), 'public', 'logo', 'lejgopro-email.png'),
+          path.join(process.cwd(), '.output', 'public', 'logo', 'lejgopro-email.png'),
+          path.join(process.cwd(), 'frontend', 'public', 'logo', 'lejgopro-email.png'),
+          '/var/task/public/logo/lejgopro-email.png', // Netlify/Vercel path
+          './public/logo/lejgopro-email.png'
+        ]
         
-        if (fs.existsSync(logoPath)) {
-          console.log('📄 Logo file found, attempting to add...')
-          
-          // Simple approach - just try the file path
-          doc.addImage(logoPath, 'PNG', logoX, logoY, logoWidth, logoHeight)
-          console.log('✅ Logo added successfully')
+        let logoPath = null
+        for (const testPath of possiblePaths) {
+          if (fs.existsSync(testPath)) {
+            logoPath = testPath
+            console.log('📄 Logo found at:', testPath)
+            break
+          }
+        }
+        
+        if (logoPath) {
+          try {
+            const logoBuffer = fs.readFileSync(logoPath)
+            const logoBase64 = logoBuffer.toString('base64')
+            const logoDataUrl = `data:image/png;base64,${logoBase64}`
+            
+            doc.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight)
+            console.log('✅ Logo added successfully via base64')
+          } catch (readError) {
+            console.warn('⚠️ Failed to read logo file:', readError)
+            // Fallback: try direct file path
+            doc.addImage(logoPath, 'PNG', logoX, logoY, logoWidth, logoHeight)
+            console.log('✅ Logo added via direct path fallback')
+          }
         } else {
-          console.warn('⚠️ Logo file not found at:', logoPath)
+          console.warn('⚠️ Logo file not found in any expected location')
+          console.log('📄 Checked paths:', possiblePaths)
         }
       } else {
         // Client-side: use public path
@@ -256,7 +281,18 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
                          itemName.toLowerCase().includes('kort') ||
                          itemName.toLowerCase().includes('case') ||
                          itemName.toLowerCase().includes('etui') ||
+                         itemName.toLowerCase().includes('grip') ||
+                         itemName.toLowerCase().includes('bryst') ||
+                         itemName.toLowerCase().includes('sugekop') ||  // Added for "Sugekop til ruder"
+                         itemName.toLowerCase().includes('headstrap') || // Added for "Headstrap"  
+                         itemName.toLowerCase().includes('head strap') || // Alternative spelling
+                         itemName.toLowerCase().includes('strap') ||      // General strap accessories
+                         itemName.toLowerCase().includes('ekstra') ||     // "Ekstra batteri" etc
+                         itemName.toLowerCase().includes('extra') ||      // English version
+                         itemName.toLowerCase().includes('mount') ||
                          itemUnitPrice === 0 // Also hide if price is 0
+      
+      console.log(`📋 PDF Generator - "${itemName}" isAccessory: ${isAccessory}, unitPrice: ${itemUnitPrice}`)
       
       const description = `${itemName} ${dateRange}`
       const quantity = itemQuantity.toString()
@@ -336,9 +372,10 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   doc.text('Total DKK', labelAlign, yPos)
   doc.text(finalTotal.toFixed(2), rightAlign, yPos)
   
-  // Add business information at the bottom
-  const bottomMargin = 30
-  const businessInfoY = pageHeight - bottomMargin
+  // Add business information at the bottom with dynamic spacing
+  yPos += 30  // Add space after totals
+  const minimumBottomMargin = 30
+  const businessInfoY = Math.max(yPos, pageHeight - minimumBottomMargin - 20) // Ensure it doesn't go too close to bottom
   
   // Business info styling
   doc.setFont('helvetica', 'normal')
