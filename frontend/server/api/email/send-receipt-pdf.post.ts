@@ -109,9 +109,12 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    console.log('📧 Starting PDF generation...')
     // Generate PDF
     const pdfBuffer = await getPDFBuffer(bookingData)
+    console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes')
 
+    console.log('📧 Configuring email transporter for SimplyMail...')
     // Configure email transporter for SimplyMail
     const transporter = nodemailer.createTransport({
       host: 'smtp.simply.com',
@@ -131,8 +134,10 @@ export default defineEventHandler(async (event) => {
       rateLimit: 5
     })
 
+    console.log('📧 Generating HTML email content...')
     // Generate HTML email content
     const htmlContent = generateEmailHTML(bookingData)
+    console.log('✅ Email HTML content generated, length:', htmlContent.length, 'characters')
 
     // Email options with PDF attachment
     const mailOptions = {
@@ -150,8 +155,22 @@ export default defineEventHandler(async (event) => {
       ]
     }
 
+    console.log('📧 Email options configured:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      attachmentCount: mailOptions.attachments.length,
+      attachmentSize: pdfBuffer.length
+    })
+
+    console.log('📤 Sending email...')
     // Send email
     const info = await transporter.sendMail(mailOptions)
+    console.log('✅ Email sent successfully:', {
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected
+    })
 
     return {
       success: true,
@@ -161,11 +180,19 @@ export default defineEventHandler(async (event) => {
     }
 
   } catch (error) {
-    console.error('Email sending error:', error)
+    console.error('💥 Email sending error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      cause: error instanceof Error ? error.cause : undefined
+    })
+    
+    // Also log the original error for full context
+    console.error('📋 Full error object:', error)
     
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to send PDF faktura'
+      statusMessage: 'Failed to send PDF faktura: ' + (error instanceof Error ? error.message : String(error))
     })
   }
 })

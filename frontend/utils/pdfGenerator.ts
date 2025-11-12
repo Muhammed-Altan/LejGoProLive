@@ -47,34 +47,43 @@ interface BookingData {
 }
 
 export async function generateReceiptPDF(bookingData: BookingData): Promise<any> {
-  const JsPDFClass = await getJsPDF()
-  const doc = new JsPDFClass()
-  const pageWidth = doc.internal.pageSize.width
-  const pageHeight = doc.internal.pageSize.height
+  console.log('📄 Starting PDF generation...')
   
-  // Validate required fields and provide fallbacks
-  const safeBookingData = {
-    orderNumber: bookingData.orderNumber || 'UNKNOWN-ORDER',
-    customerName: bookingData.customerName || 'Kunde',
-    customerEmail: bookingData.customerEmail || 'kunde@example.com',
-    customerPhone: bookingData.customerPhone,
-    address: bookingData.address,
-    apartment: bookingData.apartment,
-    city: bookingData.city,
-    postalCode: bookingData.postalCode,
-    service: bookingData.service || 'GoPro leje',
-    startDate: bookingData.startDate,
-    endDate: bookingData.endDate,
-    totalAmount: bookingData.totalAmount || 0,
-    items: bookingData.items,
-    vatRate: bookingData.vatRate || 25,
-    rentalPeriod: bookingData.rentalPeriod
-  }
-  
-  // Colors
-  const darkGray = [64, 64, 64] as const
-  const lightGray = [128, 128, 128] as const
-  const redColor = [185, 12, 44] as const // LejGoPro red
+  try {
+    const JsPDFClass = await getJsPDF()
+    console.log('✅ jsPDF class loaded successfully')
+    
+    const doc = new JsPDFClass()
+    const pageWidth = doc.internal.pageSize.width
+    const pageHeight = doc.internal.pageSize.height
+    
+    console.log('✅ PDF document initialized, page size:', pageWidth, 'x', pageHeight)
+    
+    // Validate required fields and provide fallbacks
+    const safeBookingData = {
+      orderNumber: bookingData.orderNumber || 'UNKNOWN-ORDER',
+      customerName: bookingData.customerName || 'Kunde',
+      customerEmail: bookingData.customerEmail || 'kunde@example.com',
+      customerPhone: bookingData.customerPhone,
+      address: bookingData.address,
+      apartment: bookingData.apartment,
+      city: bookingData.city,
+      postalCode: bookingData.postalCode,
+      service: bookingData.service || 'GoPro leje',
+      startDate: bookingData.startDate,
+      endDate: bookingData.endDate,
+      totalAmount: bookingData.totalAmount || 0,
+      items: bookingData.items,
+      vatRate: bookingData.vatRate || 25,
+      rentalPeriod: bookingData.rentalPeriod
+    }
+    
+    console.log('✅ Booking data validated and sanitized')
+    
+    // Colors
+    const darkGray = [64, 64, 64] as const
+    const lightGray = [128, 128, 128] as const
+    const redColor = [185, 12, 44] as const // LejGoPro red
   
   // Top Left - Customer Information
   doc.setFontSize(10)
@@ -277,7 +286,13 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   doc.text(businessInfo1, centerX1, businessInfoY - 8)
   doc.text(businessInfo2, centerX2, businessInfoY)
   
+  console.log('✅ PDF generation completed successfully')
   return doc
+  
+  } catch (error) {
+    console.error('💥 Error in PDF generation:', error)
+    throw error
+  }
 }
 
 export async function downloadPDF(bookingData: BookingData, filename?: string): Promise<void> {
@@ -292,6 +307,26 @@ export async function getPDFBlob(bookingData: BookingData): Promise<Blob> {
 }
 
 export async function getPDFBuffer(bookingData: BookingData): Promise<Buffer> {
-  const doc = await generateReceiptPDF(bookingData)
-  return Buffer.from(doc.output('arraybuffer'))
+  console.log('📄 Starting PDF buffer generation for order:', bookingData.orderNumber)
+  console.log('📄 Booking data for PDF:', {
+    orderNumber: bookingData.orderNumber,
+    customerName: bookingData.customerName,
+    service: bookingData.service,
+    totalAmount: bookingData.totalAmount,
+    itemsCount: bookingData.items?.length || 0
+  })
+  
+  try {
+    const doc = await generateReceiptPDF(bookingData)
+    console.log('✅ PDF document generated successfully')
+    
+    const buffer = Buffer.from(doc.output('arraybuffer'))
+    console.log('✅ PDF buffer created, size:', buffer.length, 'bytes')
+    
+    return buffer
+  } catch (error) {
+    console.error('💥 Error generating PDF buffer:', error)
+    console.error('📋 PDF generation failed for data:', bookingData)
+    throw error
+  }
 }

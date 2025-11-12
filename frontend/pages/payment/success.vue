@@ -257,23 +257,67 @@ const goToHome = () => {
 
 // Automatically send email receipt
 const sendEmailAutomatically = async (bookingData: BookingEmailData) => {
+  console.log('🚀 Starting automatic email sending process...')
+  console.log('📋 Booking data received for email:', {
+    orderNumber: bookingData.orderNumber,
+    customerEmail: bookingData.customerEmail,
+    customerName: bookingData.customerName,
+    service: bookingData.service,
+    totalAmount: bookingData.totalAmount,
+    startDate: bookingData.startDate,
+    endDate: bookingData.endDate,
+    duration: bookingData.duration,
+    itemsCount: bookingData.items ? bookingData.items.length : 0,
+    hasDeliveryAddress: !!bookingData.deliveryAddress,
+    hasRentalPeriod: !!bookingData.rentalPeriod,
+    bookingDate: bookingData.bookingDate
+  })
+
   clearError()
   emailSent.value = false
   
   // Validate data first
   if (!validateBookingData(bookingData)) {
-    console.error('Invalid booking data for email')
+    console.error('❌ Invalid booking data for email validation failed')
+    console.error('🔍 Validation failed for data:', bookingData)
     return
   }
 
-  console.log('🔄 Sending PDF receipt automatically...')
-  const success = await sendReceiptPDF(bookingData)
+  console.log('✅ Booking data validation passed, sending PDF receipt...')
   
-  if (success) {
-    emailSent.value = true
-    console.log('✅ PDF receipt sent successfully!')
-  } else {
-    console.error('❌ Failed to send PDF receipt')
+  try {
+    emailLoading.value = true
+    console.log('🔄 Calling sendReceiptPDF with validated data...')
+    
+    const success = await sendReceiptPDF(bookingData)
+    
+    if (success) {
+      emailSent.value = true
+      console.log('✅ PDF receipt sent successfully!')
+      console.log('📧 Email should arrive at:', bookingData.customerEmail)
+    } else {
+      console.error('❌ Failed to send PDF receipt - sendReceiptPDF returned false')
+      console.error('🔍 Error details from useEmail:', emailError.value)
+      
+      // Log the current environment for debugging
+      console.error('🌍 Environment info:', {
+        isClient: process.client,
+        isDev: process.dev,
+        currentURL: window?.location?.href,
+        userAgent: navigator?.userAgent
+      })
+    }
+  } catch (error) {
+    console.error('💥 Exception during PDF email sending:', error)
+    console.error('🔍 Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('🔍 Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error ? error.cause : undefined
+    })
+  } finally {
+    emailLoading.value = false
+    console.log('🏁 Email sending process completed')
   }
 }
 
@@ -304,13 +348,21 @@ const updatePaymentStatus = async (orderId: string) => {
 
 // Load payment details on mount
 onMounted(async () => {
+  console.log('🚀 Payment success page mounted')
+  
   const orderId = route.query.orderId as string
   const paymentType = route.query.type as string
   const bookingId = route.query.booking as string
   
+  console.log('📋 URL parameters:', {
+    orderId,
+    paymentType,
+    bookingId
+  })
+  
   // If no order ID in URL, redirect to home page
   if (!orderId) {
-    console.log('No order ID in URL - redirecting to home')
+    console.log('❌ No order ID in URL - redirecting to home')
     await navigateTo('/')
     return
   }
@@ -333,6 +385,7 @@ onMounted(async () => {
       isDifferencePayment.value = true
       emailSent.value = true // Assume email was sent
       
+      console.log('✅ Difference payment success handled')
       return
     }
     
@@ -340,19 +393,29 @@ onMounted(async () => {
     console.log('🔍 Fetching booking data for orderId:', orderId)
     const response = await $fetch(`/api/booking/${orderId}`)
     
-    console.log('📋 Booking API response:', response)
+    console.log('� Booking API response received:', {
+      success: response.success,
+      hasData: !!(response as any).data
+    })
     
     if (!response.success) {
-      console.error('Order not found:', response)
+      console.error('❌ Order not found in API response:', response)
       orderNotFound.value = true
       return
     }
     
     // Order exists - update payment status from PensoPay
+    console.log('🔄 Updating payment status from PensoPay...')
     await updatePaymentStatus(orderId)
     
     // Set up the success data
     const booking = (response as any).data
+    console.log('📋 Setting up order details from booking data:', {
+      bookingId: booking.id,
+      totalPrice: booking.totalPrice,
+      paymentStatus: booking.paymentStatus
+    })
+    
     orderDetails.value = {
       order_id: orderId,
       amount: booking.totalPrice || 0, // Use actual price from database (in øre)
@@ -361,23 +424,56 @@ onMounted(async () => {
     }
     bookingDetails.value = booking
     
+    console.log('✅ Payment success page setup completed')
+    
   } catch (err: any) {
-    console.error('Failed to load booking details:', err)
+    console.error('💥 Failed to load booking details:', err)
+    console.error('🔍 Error details:', {
+      statusCode: err.statusCode,
+      status: err.status,
+      message: err.message,
+      stack: err.stack
+    })
     
     // Check if it's a 404 error (order not found)
     if (err.statusCode === 404 || err.status === 404) {
+      console.error('❌ Order not found (404)')
       orderNotFound.value = true
     } else {
       // For other errors, set a general error message
+      console.error('❌ General error occurred')
       error.value = 'Der opstod en fejl ved indlæsning af ordre detaljer'
     }
   }
 })
 
 // Watch for bookingData to become available and automatically send email
-watch(bookingData, async (newBookingData) => {
-  if (newBookingData && !emailSent.value && !emailLoading.value) {
-    await sendEmailAutomatically(newBookingData)
+watch(bookingData, async (newBookingData, oldBookingData) => {
+  console.log('👀 Booking data watcher triggered:', {
+    hasNewData: !!newBookingData,
+    hasOldData: !!oldBookingData,
+    emailSent: emailSent.value,
+    emailLoading: emailLoading.value
+  })
+  
+  if (newBookingData) {
+    console.log('📋 New booking data available for email:', {
+      orderNumber: newBookingData.orderNumber,
+      customerEmail: newBookingData.customerEmail,
+      totalAmount: newBookingData.totalAmount
+    })
+    
+    if (!emailSent.value && !emailLoading.value) {
+      console.log('🚀 Triggering automatic email send...')
+      await sendEmailAutomatically(newBookingData)
+    } else {
+      console.log('⏭️ Skipping email send - already sent or in progress:', {
+        emailSent: emailSent.value,
+        emailLoading: emailLoading.value
+      })
+    }
+  } else {
+    console.log('❌ No booking data available yet')
   }
 }, { immediate: true })
 
