@@ -69,6 +69,7 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
       apartment: bookingData.apartment,
       city: bookingData.city,
       postalCode: bookingData.postalCode,
+      deliveryAddress: bookingData.deliveryAddress,
       service: bookingData.service || 'GoPro leje',
       startDate: bookingData.startDate,
       endDate: bookingData.endDate,
@@ -84,34 +85,76 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
     const darkGray = [64, 64, 64] as const
     const lightGray = [128, 128, 128] as const
     const redColor = [185, 12, 44] as const // LejGoPro red
+
+    // Add logo at top right - simpler approach
+    try {
+      console.log('📄 Adding logo to PDF...')
+      
+      // Calculate logo position (top right corner)
+      const logoWidth = 40
+      const logoHeight = 40
+      const logoX = pageWidth - logoWidth - 20
+      const logoY = 20
+      
+      if (process.server) {
+        // Server-side: use filesystem
+        const fs = await import('fs')
+        const path = await import('path')
+        
+        const logoPath = path.join(process.cwd(), 'public', 'logo', 'lejgopro-email.png')
+        
+        if (fs.existsSync(logoPath)) {
+          console.log('📄 Logo file found, attempting to add...')
+          
+          // Simple approach - just try the file path
+          doc.addImage(logoPath, 'PNG', logoX, logoY, logoWidth, logoHeight)
+          console.log('✅ Logo added successfully')
+        } else {
+          console.warn('⚠️ Logo file not found at:', logoPath)
+        }
+      } else {
+        // Client-side: use public path
+        doc.addImage('/logo/lejgopro-email.png', 'PNG', logoX, logoY, logoWidth, logoHeight)
+        console.log('✅ Logo added successfully (client-side)')
+      }
+    } catch (logoError) {
+      const error = logoError instanceof Error ? logoError : new Error(String(logoError))
+      console.warn('⚠️ Logo failed, skipping it:', error.message)
+      // Continue without logo - this is not critical
+    }
   
-  // Top Left - Customer Information
+    // Top Left - Customer Information
   doc.setFontSize(10)
   doc.setTextColor(...darkGray)
   doc.setFont('helvetica', 'normal')
   
   let yPos = 30
   doc.text(safeBookingData.customerName, 20, yPos)
-  yPos += 12
+  yPos += 8  
   doc.text(safeBookingData.customerEmail, 20, yPos)
   
-  if (safeBookingData.address) {
-    yPos += 12
-    doc.text(safeBookingData.address, 20, yPos)
+  // Include all available address information
+  const addressToShow = safeBookingData.address || safeBookingData.deliveryAddress
+  if (addressToShow) {
+    yPos += 8
+    doc.text(addressToShow, 20, yPos)
     
     if (safeBookingData.apartment) {
-      yPos += 12
+      yPos += 8
       doc.text(safeBookingData.apartment, 20, yPos)
     }
     
     if (safeBookingData.postalCode && safeBookingData.city) {
-      yPos += 12
+      yPos += 8
       doc.text(`${safeBookingData.postalCode} ${safeBookingData.city}`, 20, yPos)
+    } else if (safeBookingData.city) {
+      yPos += 8
+      doc.text(safeBookingData.city, 20, yPos)
     }
   }
   
   if (safeBookingData.customerPhone) {
-    yPos += 12
+    yPos += 8
     doc.text(safeBookingData.customerPhone, 20, yPos)
   }
   
@@ -128,7 +171,11 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   })
   
   doc.text(`Dato: ${currentDate}`, 20, yPos)
-  doc.text(`Fakturanr: ${safeBookingData.orderNumber}`, pageWidth - 100, yPos)
+  
+  // Right-align the invoice number using the full available space
+  const invoiceText = `Fakturanr: ${safeBookingData.orderNumber}`
+  const invoiceTextWidth = doc.getTextWidth(invoiceText)
+  doc.text(invoiceText, pageWidth - invoiceTextWidth - 20, yPos)
   
   // Main "Faktura" heading - smaller size
   yPos += 15
@@ -195,19 +242,43 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
         totalPrice: itemTotalPrice
       })
       
+      // Check if this item is an accessory (hide prices for accessories)
+      const isAccessory = itemName.toLowerCase().includes('tilbehør') || 
+                         itemName.toLowerCase().includes('accessory') ||
+                         itemName.toLowerCase().includes('adapter') ||
+                         itemName.toLowerCase().includes('kabel') ||
+                         itemName.toLowerCase().includes('cable') ||
+                         itemName.toLowerCase().includes('mount') ||
+                         itemName.toLowerCase().includes('holder') ||
+                         itemName.toLowerCase().includes('battery') ||
+                         itemName.toLowerCase().includes('batteri') ||
+                         itemName.toLowerCase().includes('card') ||
+                         itemName.toLowerCase().includes('kort') ||
+                         itemName.toLowerCase().includes('case') ||
+                         itemName.toLowerCase().includes('etui') ||
+                         itemUnitPrice === 0 // Also hide if price is 0
+      
       const description = `${itemName} ${dateRange}`
       const quantity = itemQuantity.toString()
       const unit = 'stk.'
-      const unitPrice = itemUnitPrice.toFixed(2)
-      const totalPrice = itemTotalPrice.toFixed(2)
       
       doc.text(description, 20, yPos)
       doc.text(quantity, 100, yPos)
       doc.text(unit, 130, yPos)
-      doc.text(unitPrice, 150, yPos)
-      doc.text(totalPrice, 180, yPos)
       
-      subtotalAmount += itemTotalPrice
+      if (isAccessory) {
+        // For accessories, don't show any price information - just leave the price columns empty
+        console.log(`📋 PDF Generator - ${itemName} identified as accessory, no price shown`)
+      } else {
+        // For cameras/main items, show actual prices
+        const unitPrice = itemUnitPrice.toFixed(2)
+        const totalPrice = itemTotalPrice.toFixed(2)
+        doc.text(unitPrice, 150, yPos)
+        doc.text(totalPrice, 180, yPos)
+        subtotalAmount += itemTotalPrice
+        console.log(`📋 PDF Generator - ${itemName} is main item, showing price: ${totalPrice}`)
+      }
+      
       yPos += 12
     })
   } else {
@@ -276,7 +347,7 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   
   // Center the business information
   const businessInfo1 = 'lejgopro / Snorresgade 1, st. th / 2300 København S'
-  const businessInfo2 = 'CVR-nr. DK41910437 / Tlf. 53805954 / Web: lejgopro.dk / Mail: jonasfisker123@gmail.com'
+  const businessInfo2 = 'CVR-nr. DK41910437 / Tlf. 53805954 / Web: lejgopro.dk / Mail: kontakt@lejgopro.dk'
   
   const textWidth1 = doc.getTextWidth(businessInfo1)
   const textWidth2 = doc.getTextWidth(businessInfo2)
