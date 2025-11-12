@@ -90,11 +90,87 @@ export default defineEventHandler(async (event) => {
       price: booking.totalPrice
     }))
     
+    // Check if any booking has accessories and fetch them
+    const bookingsWithAccessories = bookings.filter(b => b.accessoryInstanceIds && Array.isArray(b.accessoryInstanceIds) && b.accessoryInstanceIds.length > 0)
+    let accessoryItems: Array<{productName: string, cameraName: string, accessoryId: number, price: number}> = []
+    
+    if (bookingsWithAccessories.length > 0) {
+      console.log('📦 Found bookings with accessories, fetching accessory details...')
+      
+      // Get all accessory instance IDs from all bookings
+      const allAccessoryInstanceIds = bookingsWithAccessories
+        .flatMap(b => b.accessoryInstanceIds)
+        .filter((id, index, arr) => arr.indexOf(id) === index) // Remove duplicates
+      
+      if (allAccessoryInstanceIds.length > 0) {
+        console.log(`🔍 Querying accessory instances with IDs: [${allAccessoryInstanceIds.join(', ')}]`)
+        
+        // First, get the accessory instances
+        const { data: accessoryInstances, error: accessoryInstanceError } = await supabase
+          .from('AccessoryInstance')
+          .select('id, accessoryId')
+          .in('id', allAccessoryInstanceIds)
+          
+        console.log(`🔍 AccessoryInstance query result:`, { accessoryInstances, accessoryInstanceError })
+        
+        if (!accessoryInstanceError && accessoryInstances && accessoryInstances.length > 0) {
+          // Get unique accessory IDs
+          const accessoryIds = [...new Set(accessoryInstances.map(instance => instance.accessoryId))]
+          console.log(`🔍 Fetching accessory details for IDs: [${accessoryIds.join(', ')}]`)
+          
+          // Then get the accessory details separately
+          const { data: accessories, error: accessoryError } = await supabase
+            .from('Accessory')
+            .select('id, name, price')
+            .in('id', accessoryIds)
+            
+          console.log(`🔍 Accessory details query result:`, { accessories, accessoryError })
+          
+          if (!accessoryError && accessories && accessories.length > 0) {
+            // Calculate accessory pricing
+            const startDate = new Date(firstBooking.startDate || new Date())
+            const endDate = new Date(firstBooking.endDate || new Date(Date.now() + 24*60*60*1000))
+            const rentalDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
+            
+            console.log(`🔍 Processing ${accessoryInstances.length} accessory instances for ${rentalDays} days`)
+            
+            // Match instances to accessory details
+            accessoryItems = accessoryInstances.map((instance: any) => {
+              const accessoryDetail = accessories.find(acc => acc.id === instance.accessoryId)
+              return {
+                productName: accessoryDetail?.name || 'Accessory',
+                cameraName: accessoryDetail?.name || 'Accessory',
+                accessoryId: instance.id,
+                price: (accessoryDetail?.price || 0) * rentalDays * 100 // Convert to øre
+              }
+            })
+            
+            console.log(`📦 Found ${accessoryItems.length} accessories for order ${orderId}`)
+          } else if (accessoryError) {
+            console.error(`❌ Error fetching accessory details:`, accessoryError)
+          } else {
+            console.log(`⚠️ No accessory details found for IDs: [${accessoryIds.join(', ')}]`)
+          }
+        } else if (accessoryInstanceError) {
+          console.error(`❌ Error fetching accessory instances:`, accessoryInstanceError)
+        } else {
+          console.log(`⚠️ No accessory instances found for IDs: [${allAccessoryInstanceIds.join(', ')}]`)
+        }
+      }
+    }
+    
+    // Combine cameras and accessories
+    const allItems = [...items, ...accessoryItems]
+    
+    console.log(`📦 Debug - Camera items:`, items)
+    console.log(`📦 Debug - Accessory items:`, accessoryItems) 
+    console.log(`📦 Debug - All items combined:`, allItems)
+    
     // Return combined booking data
     const combinedBooking = {
       ...firstBooking, // Use first booking as base (customer info, dates, etc.)
       totalPrice, // Use combined total price
-      items: JSON.stringify(items), // Store items as JSON for email generation
+      items: JSON.stringify(allItems), // Store all items (cameras + accessories) as JSON for email generation
       bookingCount: bookings.length,
       individualBookings: bookings // Include individual bookings if needed
     }

@@ -138,19 +138,36 @@ export default defineEventHandler(async (event) => {
 
     const paymentData = await paymentResponse.json()
 
+    // Log the PensoPay response for debugging
+    console.log('📋 PensoPay payment data:', {
+      id: paymentData.id,
+      state: paymentData.state,
+      accepted: paymentData.accepted,
+      order_id: paymentData.order_id,
+      amount: paymentData.amount,
+      currency: paymentData.currency
+    })
+
     // Determine payment status based on PensoPay response
     let paymentStatus = 'pending'
     let paidAt = null
 
-    // PensoPay states: 'authorized' means payment is approved and captured
-    // 'processed' means payment is fully completed
-    if (paymentData.state === 'processed' || paymentData.state === 'authorized') {
+    // PensoPay states: 
+    // - 'captured' means payment has been captured/charged (PAID)
+    // - 'authorized' means payment is approved and captured (PAID)
+    // - 'processed' means payment is fully completed (PAID)
+    if (paymentData.state === 'captured' || paymentData.state === 'processed' || paymentData.state === 'authorized') {
       paymentStatus = 'paid'
       paidAt = new Date().toISOString()
+      console.log(`✅ Payment is ${paymentData.state} - setting status to PAID`)
     } else if (paymentData.state === 'cancelled') {
       paymentStatus = 'cancelled'
+      console.log('❌ Payment was cancelled')
     } else if (paymentData.state === 'failed') {
       paymentStatus = 'failed'
+      console.log('❌ Payment failed')
+    } else {
+      console.log(`⏳ Payment state is '${paymentData.state}' - setting status to PENDING`)
     }
 
     // Update the booking in Supabase database
@@ -163,73 +180,126 @@ export default defineEventHandler(async (event) => {
       updateData.paidAt = paidAt
     }
 
-    // Use the actual orderId from the found booking (in case we used pattern matching)
-    const actualOrderId = booking.orderId
-    const updateCondition = orderId ? 'orderId' : 'paymentId'
-    const updateValue = actualOrderId || pensopayPaymentId
+    // Use the base orderId to update ALL related bookings (not just the first one)
+    let actualOrderId = booking.orderId
+    let updateCondition = orderId ? 'orderId' : 'paymentId'
+    let updateValue = actualOrderId || pensopayPaymentId
+    
+    // If we found a booking using pattern matching, we need to update all bookings with the same base orderId
+    if (orderId && actualOrderId !== orderId) {
+      console.log('🔄 Multiple bookings detected - updating all bookings with base orderId:', orderId)
+      // Use LIKE pattern to update all related bookings (ORDER-123, ORDER-123-1, ORDER-123-2, etc.)
+      updateCondition = 'orderId'
+      updateValue = `${orderId}%`
+    }
 
-    console.log('🔄 Updating booking in Supabase...')
+    console.log('🔄 Updating booking(s) in Supabase...')
     console.log('- Update condition:', updateCondition, '=', updateValue)
     console.log('- Original search orderId:', orderId)
     console.log('- Actual booking orderId:', actualOrderId)
     console.log('- Update data:', updateData)
 
-    // First, let's check if the booking exists and what its current state is
-    const { data: existingBooking, error: fetchError } = await supabase
-      .from('Booking')
-      .select('*')
-      .eq(updateCondition, updateValue)
-      .single()
-
-    if (fetchError) {
-      console.error('❌ Error fetching existing booking:', fetchError)
-      console.error('- Condition used:', updateCondition, '=', updateValue)
+    // First, let's check how many bookings will be affected
+    let bookingsToUpdate = []
+    if (updateCondition === 'orderId' && updateValue.includes('%')) {
+      // Pattern matching - get all matching bookings
+      const { data: multipleBookings, error: fetchMultipleError } = await supabase
+        .from('Booking')
+        .select('id, orderId, paymentStatus, paidAt')
+        .like('orderId', updateValue)
+      
+      if (!fetchMultipleError && multipleBookings) {
+        bookingsToUpdate = multipleBookings
+        console.log(`✅ Found ${multipleBookings.length} booking(s) to update:`, multipleBookings.map(b => b.orderId))
+      }
     } else {
-      console.log('✅ Found existing booking:', {
-        id: existingBooking.id,
-        orderId: existingBooking.orderId,
-        paymentId: existingBooking.paymentId,
-        currentPaymentStatus: existingBooking.paymentStatus,
-        currentPaidAt: existingBooking.paidAt
-      })
+      // Single booking update
+      const { data: singleBooking, error: fetchError } = await supabase
+        .from('Booking')
+        .select('*')
+        .eq(updateCondition, updateValue)
+        .single()
+
+      if (fetchError) {
+        console.error('❌ Error fetching existing booking:', fetchError)
+        console.error('- Condition used:', updateCondition, '=', updateValue)
+      } else {
+        bookingsToUpdate = [singleBooking]
+        console.log('✅ Found existing booking:', {
+          id: singleBooking.id,
+          orderId: singleBooking.orderId,
+          paymentId: singleBooking.paymentId,
+          currentPaymentStatus: singleBooking.paymentStatus,
+          currentPaidAt: singleBooking.paidAt
+        })
+      }
     }
 
-    const { data: updatedBooking, error: updateError } = await supabase
-      .from('Booking')
-      .update(updateData)
-      .eq(updateCondition, updateValue)
-      .select()
-      .single()
+    // Update the booking(s) in Supabase database
+    let updatedBooking = null
+    if (updateCondition === 'orderId' && updateValue.includes('%')) {
+      // Pattern-based update for multiple bookings
+      const { data: updatedBookings, error: updateError } = await supabase
+        .from('Booking')
+        .update(updateData)
+        .like('orderId', updateValue)
+        .select()
 
-    if (updateError) {
-      console.error('❌ Error updating booking payment status:', updateError)
-      console.error('- Error message:', updateError.message)
-      console.error('- Error details:', updateError.details)
-      console.error('- Error hint:', updateError.hint)
-      console.error('- Error code:', updateError.code)
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to update booking in database'
+      if (updateError) {
+        console.error('❌ Error updating bookings payment status:', updateError)
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to update bookings in database'
+        })
+      }
+
+      console.log(`✅ Successfully updated ${updatedBookings?.length || 0} booking(s) in Supabase!`)
+      updatedBookings?.forEach((booking, index) => {
+        console.log(`- Updated booking ${index + 1}:`, {
+          id: booking.id,
+          orderId: booking.orderId,
+          paymentStatus: booking.paymentStatus,
+          paidAt: booking.paidAt,
+          paymentId: booking.paymentId
+        })
       })
+      
+      // Return the first updated booking for response consistency
+      updatedBooking = updatedBookings?.[0] || null
+    } else {
+      // Single booking update
+      const { data: singleUpdatedBooking, error: updateError } = await supabase
+        .from('Booking')
+        .update(updateData)
+        .eq(updateCondition, updateValue)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('❌ Error updating booking payment status:', updateError)
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to update booking in database'
+        })
+      }
+
+      console.log('✅ Successfully updated booking in Supabase!')
+      console.log('✅ Successfully updated booking in Supabase!')
+      console.log('- Updated booking data:', singleUpdatedBooking)
+      updatedBooking = singleUpdatedBooking
     }
 
-    console.log('✅ Successfully updated booking in Supabase!')
-    console.log('- Updated booking data:', updatedBooking)
-    console.log('- New paymentStatus:', updatedBooking?.paymentStatus)
-    console.log('- New paidAt:', updatedBooking?.paidAt)
-    console.log('- New paymentId:', updatedBooking?.paymentId)
-
-    // Double-check by fetching the record again
-    const { data: verifyBooking, error: verifyError } = await supabase
+    // Double-check by fetching the record(s) again
+    const baseOrderId = String(orderId).split('-')[0] + '-' + String(orderId).split('-')[1] + '-' + String(orderId).split('-')[2]
+    const { data: verifyBookings, error: verifyError } = await supabase
       .from('Booking')
-      .select('paymentStatus, paidAt, paymentId')
-      .eq(updateCondition, updateValue)
-      .single()
+      .select('paymentStatus, paidAt, paymentId, orderId')
+      .like('orderId', `${baseOrderId}%`)
 
     if (verifyError) {
       console.error('❌ Error verifying update:', verifyError)
     } else {
-      console.log('🔍 Verification check - current database values:', verifyBooking)
+      console.log('🔍 Verification check - current database values:', verifyBookings)
     }
 
     return {

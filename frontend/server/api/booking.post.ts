@@ -219,7 +219,66 @@ export default defineEventHandler(async (event) => {
 
   // Find available cameras for each requested model
   const bookingRecords = [];
+  let allocatedAccessoryInstances: number[] = []; // Track allocated accessory instances
   
+  // First, allocate accessory instances if any accessories are requested
+  if (enrichedAccessories && enrichedAccessories.length > 0) {
+    console.log('🎒 Allocating accessory instances for booking...')
+    
+    for (const accessory of enrichedAccessories) {
+      // First find the accessory by name to get its ID
+      const { data: accessoryData, error: accessoryLookupError } = await supabase
+        .from('Accessory')
+        .select('id')
+        .eq('name', accessory.name)
+        .single()
+      
+      if (accessoryLookupError || !accessoryData) {
+        console.error(`❌ Accessory not found: ${accessory.name}`)
+        return sendError(event, createError({ 
+          statusCode: 400, 
+          statusMessage: `Accessory not found: ${accessory.name}` 
+        }))
+      }
+      
+      // Find available accessory instances for this accessory
+      const { data: accessoryInstances, error: accessoryError } = await supabase
+        .from('AccessoryInstance')
+        .select('id, accessoryId, isAvailable')
+        .eq('accessoryId', accessoryData.id)
+        .eq('isAvailable', true)
+        .limit(accessory.quantity)
+      
+      if (accessoryError || !accessoryInstances || accessoryInstances.length < accessory.quantity) {
+        console.error(`❌ Not enough ${accessory.name} instances available. Requested: ${accessory.quantity}, Available: ${accessoryInstances?.length || 0}`)
+        return sendError(event, createError({ 
+          statusCode: 409, 
+          statusMessage: `Not enough ${accessory.name} available. Requested: ${accessory.quantity}, Available: ${accessoryInstances?.length || 0}` 
+        }))
+      }
+      
+      // Mark these instances as allocated
+      const instanceIds = accessoryInstances.slice(0, accessory.quantity).map(instance => instance.id)
+      allocatedAccessoryInstances.push(...instanceIds)
+      
+      console.log(`✅ Allocated ${instanceIds.length} instances of ${accessory.name}: [${instanceIds.join(', ')}]`)
+    }
+  }
+  
+  // Calculate camera-only pricing (without accessories)
+  const cameraPricing = calculatePricing(
+    enrichedModels,
+    [], // No accessories for camera pricing
+    booking.insurance,
+    booking.startDate,
+    booking.endDate
+  );
+  
+  console.log(`💰 Pricing breakdown:`)
+  console.log(`- Total with accessories: ${pricing.total} DKK`)
+  console.log(`- Camera only: ${cameraPricing.total} DKK`)
+  console.log(`- Accessories cost: ${pricing.total - cameraPricing.total} DKK`)
+
   for (const model of enrichedModels) {
     // Find cameras for this product
     const modelCameras = (allCameras || []).filter((c: any) => c.productId === model.productId);
@@ -248,16 +307,22 @@ export default defineEventHandler(async (event) => {
         fullName: '', // Will be set by payment API
         phone: '', // Will be set by payment API
         totalPrice: enrichedModels.length > 1 || enrichedModels.some(m => m.quantity > 1) 
-          ? Math.round((pricing.total / enrichedModels.reduce((sum, m) => sum + m.quantity, 0)) * 100) // Convert DKK to øre
-          : Math.round(pricing.total * 100), // Convert DKK to øre
+          ? Math.round((cameraPricing.total / enrichedModels.reduce((sum, m) => sum + m.quantity, 0)) * 100) // Convert DKK to øre, use camera-only price
+          : Math.round(cameraPricing.total * 100), // Convert DKK to øre, use camera-only price
         city: '', // Will be set by payment API
         orderId: null, // NULL initially, will be set by payment API to same value for all bookings
         paymentId: '', // Will be set by payment API
         paymentStatus: 'pending',
         paidAt: null, // NULL until payment is confirmed
         postalCode: '', // Will be set by payment API
-        return_processed: false // Boolean field for return process (corrected field name)
+        return_processed: false, // Boolean field for return process (corrected field name)
+        accessoryInstanceIds: allocatedAccessoryInstances.length > 0 ? allocatedAccessoryInstances : null // Add accessories to all bookings
       };
+      
+      console.log(`📦 Debug - Booking record ${i + 1}:`, {
+        ...bookingRecord,
+        accessoryInstanceIds: allocatedAccessoryInstances
+      })
       
       bookingRecords.push(bookingRecord);
       bookedCameraIds.add(camera.id); // Mark this camera as taken for subsequent iterations
@@ -277,12 +342,33 @@ export default defineEventHandler(async (event) => {
     };
   }
 
+  // Mark allocated accessory instances as unavailable
+  if (allocatedAccessoryInstances.length > 0) {
+    console.log(`🎒 Marking ${allocatedAccessoryInstances.length} accessory instances as unavailable...`)
+    
+    const { error: accessoryUpdateError } = await supabase
+      .from('AccessoryInstance')
+      .update({ isAvailable: false })
+      .in('id', allocatedAccessoryInstances)
+    
+    if (accessoryUpdateError) {
+      console.error('Error marking accessory instances as unavailable:', accessoryUpdateError)
+      // Don't fail the booking, just log the error
+    } else {
+      console.log(`✅ Successfully marked ${allocatedAccessoryInstances.length} accessory instances as unavailable`)
+    }
+  }
+
   // Clear availability cache since new bookings affect availability
   console.log('🗑️ Clearing availability cache due to new booking')
   apiCache.clearByPrefix('availability')
 
+  const accessoryMessage = allocatedAccessoryInstances.length > 0 
+    ? ` + ${allocatedAccessoryInstances.length} accessory instance${allocatedAccessoryInstances.length > 1 ? 's' : ''}` 
+    : ''
+
   return {
     status: 200,
-    message: `Booking created successfully (${bookingRecords.length} camera${bookingRecords.length > 1 ? 's' : ''} booked)`,
+    message: `Booking created successfully (${bookingRecords.length} camera${bookingRecords.length > 1 ? 's' : ''}${accessoryMessage} booked)`,
   };
 });

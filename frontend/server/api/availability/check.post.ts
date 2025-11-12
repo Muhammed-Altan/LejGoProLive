@@ -26,6 +26,39 @@ export default defineEventHandler(async (event) => {
   const requestStartTime = Date.now();
   console.log(`🚀 [${requestStartTime}] Availability check request started`);
   
+  // Log request details for debugging
+  console.log('📋 Request details:', {
+    method: event.node.req.method,
+    url: event.node.req.url,
+    headers: {
+      'content-type': event.node.req.headers['content-type'],
+      'content-length': event.node.req.headers['content-length'],
+      'user-agent': event.node.req.headers['user-agent']?.substring(0, 50) + '...',
+      'host': event.node.req.headers['host'],
+      'x-forwarded-for': event.node.req.headers['x-forwarded-for'],
+      'origin': event.node.req.headers['origin']
+    }
+  });
+  
+  // Check if this request has any headers at all (might be internal/cached)
+  const hasHeaders = Object.keys(event.node.req.headers || {}).length > 0;
+  if (!hasHeaders) {
+    console.error('❌ Request has no headers - likely internal/cached request');
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid request - no headers present'
+    });
+  }
+  
+  // Check if this is a GET request (which would be cached and have no body)
+  if (event.node.req.method !== 'POST') {
+    console.error('❌ Invalid method for availability check:', event.node.req.method);
+    throw createError({
+      statusCode: 405,
+      statusMessage: 'Method Not Allowed - POST required'
+    });
+  }
+  
   // Track detailed timing for response
   const timingBreakdown = {
     requestParsing: 0,
@@ -43,11 +76,55 @@ export default defineEventHandler(async (event) => {
   
   try {
     const parseStartTime = Date.now();
-    const body = await readBody(event) as AvailabilityRequest
+    
+    // Check if the event is valid
+    if (!event || !event.node || !event.node.req) {
+      console.error('❌ Invalid event object');
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Internal server error - invalid request event'
+      });
+    }
+    
+    // Log raw body for debugging
+    let rawBody;
+    try {
+      rawBody = await readBody(event);
+      console.log('📦 Raw request body:', JSON.stringify(rawBody, null, 2));
+    } catch (bodyError) {
+      console.error('❌ Failed to read request body:', bodyError);
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Failed to parse request body'
+      });
+    }
+    
+    const body = rawBody as AvailabilityRequest
+    
+    // Validate that body exists and has required properties
+    if (!body) {
+      console.error('❌ Request body is undefined or null');
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Request body is required'
+      });
+    }
+    
+    if (!body.startDate || !body.endDate) {
+      console.error('❌ Missing required date parameters', { body });
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'startDate and endDate are required'
+      });
+    }
+    
     const { startDate, endDate, productIds = [], accessoryIds = [], cacheBypass } = body
     const parseEndTime = Date.now();
     timingBreakdown.requestParsing = parseEndTime - parseStartTime;
     console.log(`📥 Request parsing: ${timingBreakdown.requestParsing}ms`);
+    console.log(`📅 Date range: ${startDate} to ${endDate}`);
+    console.log(`🎥 Product IDs: ${productIds.length ? productIds.join(', ') : 'none'}`);
+    console.log(`🔧 Accessory IDs: ${accessoryIds.length ? accessoryIds.join(', ') : 'none'}`);
 
     if (!startDate || !endDate) {
       throw createError({

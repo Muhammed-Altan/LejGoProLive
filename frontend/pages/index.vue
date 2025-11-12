@@ -5,7 +5,7 @@
   <section class="relative flex flex-col items-center justify-center min-h-[90vh] overflow-hidden">
     <NuxtPicture
       src="/hero-bg/federico-persiani-XvPuZ2Q71GA-unsplash.jpg"
-      alt="Hero background"
+      alt="GoPro actionkamera leje Danmark - professionelt udstyr til eventyr og ferie"
       class="absolute inset-0 w-full h-full object-cover"
       :img-attrs="{
         class: 'w-full h-full object-cover'
@@ -42,12 +42,12 @@
         </h2>
         <!-- Adventure Image Grid -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-10 mb-12">
-          <NuxtImg src="/eventyr/benjamin-voros-FSvn9jMrDyk-unsplash.jpg" alt="Waterfall selfie" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
-          <NuxtImg src="/eventyr/jack-delulio-Sgey0UZt6HY-unsplash.jpg" alt="Skiing" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
-          <NuxtImg src="/eventyr/patrick-hendry-3EtLikBpyfI-unsplash.jpg" alt="Dog adventure" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
-          <NuxtImg src="/eventyr/spenser-sembrat-I-fihlhsBWk-unsplash.jpg" alt="Mountain climbing" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
-          <NuxtImg src="/eventyr/lucas-favre-BRTV55ErUZg-unsplash.jpg" alt="Skiing" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
-          <NuxtImg src="/eventyr/cristian-palmer-RaOKzBtN8fI-unsplash.jpg" alt="Mountain climbing" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
+          <NuxtImg src="/eventyr/benjamin-voros-FSvn9jMrDyk-unsplash.jpg" alt="GoPro actionkamera til vandfald og naturfotografering - perfekt til udendørs eventyr" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
+          <NuxtImg src="/eventyr/jack-delulio-Sgey0UZt6HY-unsplash.jpg" alt="GoPro til skiløb og vintersport - actionkamera leje til ferie" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
+          <NuxtImg src="/eventyr/patrick-hendry-3EtLikBpyfI-unsplash.jpg" alt="GoPro actionkamera til kæledyr og familieaktiviteter - udlejning til alle" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
+          <NuxtImg src="/eventyr/spenser-sembrat-I-fihlhsBWk-unsplash.jpg" alt="GoPro til bjergbestigning og ekstrem sport - professionel actionkamera leje" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
+          <NuxtImg src="/eventyr/lucas-favre-BRTV55ErUZg-unsplash.jpg" alt="GoPro actionkamera til snowboard og alpinaktiviteter - 4K optagelse kvalitet" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
+          <NuxtImg src="/eventyr/cristian-palmer-RaOKzBtN8fI-unsplash.jpg" alt="GoPro til klatring og outdoor aktiviteter - robust actionkamera udlejning" class="rounded-2xl object-cover w-full h-80" width="400" height="320" format="webp" quality="95" loading="lazy" />
         </div>
         <div class="flex justify-center mb-12">
           <NuxtLink to="/checkout" class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition cursor-pointer">Fang dit eventyr her</NuxtLink>
@@ -58,7 +58,7 @@
 
   <!-- Product Cards Section -->
   <section class="max-w-7xl mx-auto mt-16 mb-16">
-    <h1 class="text-3xl md:text-4xl font-bold text-center mb-8 mt-8">Vores GoPro Produkter</h1>
+    <h2 class="text-3xl md:text-4xl font-bold text-center mb-8 mt-8">Vores GoPro Produkter</h2>
     
     <!-- Loading state -->
     <div v-if="loading" class="flex justify-center items-center my-12">
@@ -102,33 +102,33 @@
     </div>
     <div class="flex flex-wrap justify-center gap-8 my-12 max-w-7xl mx-auto">
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a6b3e1087b3473f/663a841c2a72d93452178ba2/01-pdp-h12b-handler-gallery-1920.png?width=400&quality=90&auto=webp" alt="Grip" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a6b3e1087b3473f/663a841c2a72d93452178ba2/01-pdp-h12b-handler-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro grip håndtag til stabil actionkamera optagelse - professionelt tilbehør" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Grip</h4>
         <p class="text-sm text-gray-600 text-center">Stabilt håndtag til actionoptagelser og nem håndtering af kameraet.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a3f356761a12e6d/6465f1c79cb8cadbd353f013/pdp-max-enduro-battery-image01-1920-2x.png?width=400&quality=90&auto=webp" alt="Ekstra batteri" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a3f356761a12e6d/6465f1c79cb8cadbd353f013/pdp-max-enduro-battery-image01-1920-2x.png?width=400&quality=90&auto=webp" alt="GoPro ekstra batteri til forlænget optagetid - actionkamera tilbehør leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Ekstra batteri</h4>
         <p class="text-sm text-gray-600 text-center">Sørger for ekstra strøm, så du kan optage længere tid uden afbrydelser.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt5028e412643854ae/65cbdc3afcd8646428eec8a5/01-pdp-h12b-headstrap-gallery-1920.png?width=400&quality=90&auto=webp" alt="Headstrap" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt5028e412643854ae/65cbdc3afcd8646428eec8a5/01-pdp-h12b-headstrap-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro headstrap hovedrem til hands-free POV optagelser - perfekt til sport" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Headstrap</h4>
         <p class="text-sm text-gray-600 text-center">Monter kameraet på hovedet for hands-free POV-optagelser.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/bltbc6b778286c13383/64ccd3c131eb6a3cbbd4c86f/01-pdp-h12b-chesty-gallery-1920.png?width=400&quality=90&auto=webp" alt="Brystmount" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/bltbc6b778286c13383/64ccd3c131eb6a3cbbd4c86f/01-pdp-h12b-chesty-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro brystmount til sport og aktiviteter - actionkamera fæstning leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Brystmount</h4>
         <p class="text-sm text-gray-600 text-center">Perfekt til sport og aktiviteter, hvor du vil have kameraet tæt på kroppen.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8 relative">
         <span class="absolute top-3 right-3 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Inkluderet</span>
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt412da0ad3ddaa0f6/64835bbbcc30bb258ab04e57/pdp-protective-housing-image03-1920-2x.png?width=400&quality=90&auto=webp" alt="Beskyttelsescase" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt412da0ad3ddaa0f6/64835bbbcc30bb258ab04e57/pdp-protective-housing-image03-1920-2x.png?width=400&quality=90&auto=webp" alt="GoPro beskyttelsescase vandtæt etui - robust beskyttelse mod stød og vand" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Beskyttelsescase</h4>
         <p class="text-sm text-gray-600 text-center">Robust etui der beskytter kameraet mod stød, vand og snavs.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt865a9a20edc4b79b/663a899c8447cbcee89cb5a8/01-pdp-h12b-suction-cup-gallery-1920.png?width=400&quality=90&auto=webp" alt="Sugekop til ruder" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt865a9a20edc4b79b/663a899c8447cbcee89cb5a8/01-pdp-h12b-suction-cup-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro sugekop til bilruder og glatte overflader - actionkamera mount leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Sugekop til ruder</h4>
         <p class="text-sm text-gray-600 text-center">Fastgør kameraet sikkert til bilruder og glatte overflader for unikke vinkler.</p>
       </div>
@@ -183,6 +183,35 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import ProductCard from '../components/ProductCard.vue';
+
+// SEO Meta Tags
+useSeoMeta({
+  title: 'Lej GoPro Kamera Online - Professionel Actionkamera Udlejning | LejGoPro',
+  description: 'Lej et professionelt GoPro actionkamera til dit næste eventyr. Gratis levering i Danmark, konkurrencedygtige priser og komplet udstyr. Book nemt online.',
+  keywords: 'gopro leje, actionkamera udlejning, gopro rental danmark, leje gopro hero, actionkamera til rejse, eventyr kamera',
+  author: 'LejGoPro',
+  robots: 'index, follow',
+  
+  // Open Graph tags for social media
+  ogTitle: 'Lej GoPro Kamera Online - Professionel Actionkamera Udlejning',
+  ogDescription: 'Lej et professionelt GoPro actionkamera til dit næste eventyr. Gratis levering i Danmark og komplet udstyr.',
+  ogType: 'website',
+  ogUrl: 'https://lejgopro.dk',
+  ogImage: 'https://lejgopro.dk/hero-bg/federico-persiani-XvPuZ2Q71GA-unsplash.jpg',
+  
+  // Twitter Card tags
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Lej GoPro Kamera Online - LejGoPro',
+  twitterDescription: 'Professionel GoPro actionkamera udlejning med gratis levering i Danmark.',
+  twitterImage: 'https://lejgopro.dk/hero-bg/federico-persiani-XvPuZ2Q71GA-unsplash.jpg',
+  
+  // Additional SEO
+  viewport: 'width=device-width, initial-scale=1',
+  charset: 'utf-8',
+  httpEquiv: {
+    'X-UA-Compatible': 'IE=edge'
+  }
+})
 
 // Define the product interface to match Supabase table structure
 interface Product {
