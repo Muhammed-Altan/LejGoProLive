@@ -218,23 +218,25 @@ async function fetchBackendTotal() {
       });
     });
     // Calculate total discount for all models
-  breakdown.discountTotal = breakdown.models.reduce((sum: number, m: any) => sum + ((m.discount || 0) * m.quantity * m.days), 0);
+    breakdown.discountTotal = breakdown.models.reduce((sum: number, m: any) => sum + ((m.discount || 0) * m.quantity * m.days), 0);
 
-    // Calculate accessory prices
-    const accessoriesArray = Array.from(accessories.value || []);
+    // Calculate accessory prices - ensure we're using fresh data
+    const currentAccessories = store.selectedAccessories || [];
     
-    for (const accessory of accessoriesArray) {
-      const quantity = accessory.quantity || 1;
-      // Accessory price is for the entire booking, not per day
-      const accessoryTotal = accessory.price * quantity;
-      total += accessoryTotal;
-      
-      breakdown.accessories.push({
-        name: accessory.name,
-        quantity,
-        priceTotal: accessory.price,
-        total: accessoryTotal
-      });
+    if (currentAccessories.length > 0) {
+      for (const accessory of currentAccessories) {
+        const quantity = accessory.quantity || 1;
+        // Accessory price is for the entire booking, not per day
+        const accessoryTotal = accessory.price * quantity;
+        total += accessoryTotal;
+        
+        breakdown.accessories.push({
+          name: accessory.name,
+          quantity,
+          priceTotal: accessory.price,
+          total: accessoryTotal
+        });
+      }
     }
 
     // Add insurance if selected (assuming 10% of subtotal)
@@ -262,7 +264,9 @@ async function fetchBackendTotal() {
 }
 
 // Watch for changes and update price live
-watch([models, accessories, insurance, rentalDays], fetchBackendTotal, { immediate: true, deep: true });
+watch([models, accessories, insurance, rentalDays], () => {
+  fetchBackendTotal();
+}, { immediate: true, deep: true });
 
 function formatCurrency(n: number|null) {
   if (n == null) return '—';
