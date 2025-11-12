@@ -45,32 +45,33 @@
     </div>
     <div class="flex flex-wrap justify-center gap-8 my-12 max-w-7xl mx-auto">
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a6b3e1087b3473f/663a841c2a72d93452178ba2/01-pdp-h12b-handler-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Grip" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a6b3e1087b3473f/663a841c2a72d93452178ba2/01-pdp-h12b-handler-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro grip håndtag til stabil actionkamera optagelse - professionelt tilbehør" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Grip</h4>
         <p class="text-sm text-gray-600 text-center">Stabilt håndtag til actionoptagelser og nem håndtering af kameraet.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a3f356761a12e6d/6465f1c79cb8cadbd353f013/pdp-max-enduro-battery-image01-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Ekstra batteri" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a3f356761a12e6d/6465f1c79cb8cadbd353f013/pdp-max-enduro-battery-image01-1920-2x.png?width=400&quality=90&auto=webp" alt="GoPro ekstra batteri til forlænget optagetid - actionkamera tilbehør leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Ekstra batteri</h4>
         <p class="text-sm text-gray-600 text-center">Sørger for ekstra strøm, så du kan optage længere tid uden afbrydelser.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt5028e412643854ae/65cbdc3afcd8646428eec8a5/01-pdp-h12b-headstrap-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Headstrap" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt5028e412643854ae/65cbdc3afcd8646428eec8a5/01-pdp-h12b-headstrap-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro headstrap hovedrem til hands-free POV optagelser - perfekt til sport" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Headstrap</h4>
         <p class="text-sm text-gray-600 text-center">Monter kameraet på hovedet for hands-free POV-optagelser.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/bltbc6b778286c13383/64ccd3c131eb6a3cbbd4c86f/01-pdp-h12b-chesty-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Brystmount" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/bltbc6b778286c13383/64ccd3c131eb6a3cbbd4c86f/01-pdp-h12b-chesty-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro brystmount til sport og aktiviteter - actionkamera fæstning leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Brystmount</h4>
         <p class="text-sm text-gray-600 text-center">Perfekt til sport og aktiviteter, hvor du vil have kameraet tæt på kroppen.</p>
       </div>
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt412da0ad3ddaa0f6/64835bbbcc30bb258ab04e57/pdp-protective-housing-image03-1920-2x.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Beskyttelsescase" class="w-24 h-24 object-cover rounded-lg mb-3" />
+      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8 relative">
+        <span class="absolute top-3 right-3 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Inkluderet</span>
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt412da0ad3ddaa0f6/64835bbbcc30bb258ab04e57/pdp-protective-housing-image03-1920-2x.png?width=400&quality=90&auto=webp" alt="GoPro beskyttelsescase vandtæt etui - robust beskyttelse mod stød og vand" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Beskyttelsescase</h4>
         <p class="text-sm text-gray-600 text-center">Robust etui der beskytter kameraet mod stød, vand og snavs.</p>
       </div>
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt865a9a20edc4b79b/663a899c8447cbcee89cb5a8/01-pdp-h12b-suction-cup-gallery-1920.png?width=1920&quality=80&auto=webp&disable=upscale" alt="Sugekop til ruder" class="w-24 h-24 object-cover rounded-lg mb-3" />
+        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt865a9a20edc4b79b/663a899c8447cbcee89cb5a8/01-pdp-h12b-suction-cup-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro sugekop til bilruder og glatte overflader - actionkamera mount leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Sugekop til ruder</h4>
         <p class="text-sm text-gray-600 text-center">Fastgør kameraet sikkert til bilruder og glatte overflader for unikke vinkler.</p>
       </div>
@@ -83,6 +84,25 @@
 import ProductCard from '@/components/ProductCard.vue';
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
+
+// SEO Meta Tags
+useSeoMeta({
+  title: 'GoPro Produkter til Leje - Hero 13, Hero 12 & Tilbehør | LejGoPro',
+  description: 'Udforsk vores udvalg af GoPro actionkameraer til leje: Hero 13, Hero 12 og mere. Komplet med tilbehør som grip, ekstra batterier og beskyttelsescase.',
+  keywords: 'gopro hero 13 leje, gopro hero 12 rental, actionkamera produkter, gopro tilbehør leje, grip headstrap brystmount',
+  robots: 'index, follow',
+  
+  // Open Graph
+  ogTitle: 'GoPro Produkter til Leje - Hero 13, Hero 12 & Tilbehør',
+  ogDescription: 'Udforsk vores udvalg af GoPro actionkameraer og tilbehør til leje. Professionelt udstyr til dit næste eventyr.',
+  ogType: 'website',
+  ogUrl: 'https://lejgopro.dk/products',
+  
+  // Twitter Card
+  twitterCard: 'summary',
+  twitterTitle: 'GoPro Produkter til Leje - LejGoPro',
+  twitterDescription: 'Udforsk vores udvalg af GoPro actionkameraer og tilbehør til leje.'
+})
 
 // Define the product interface to match Supabase table structure
 interface Product {

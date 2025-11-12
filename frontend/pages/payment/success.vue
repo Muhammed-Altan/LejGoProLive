@@ -60,17 +60,6 @@
               <span class="text-gray-600">Mail:</span>
               <span class="font-medium">Du vil modtage en mail når din pakke bliver sendt</span>
             </div>
-            
-            <!-- Show booking items if multiple cameras/products -->
-            <div v-if="bookingDetails && bookingDetails.bookingCount > 1" class="pt-4 border-t border-gray-200">
-              <span class="text-gray-600 text-sm font-medium">Dine enheder ({{ bookingDetails.bookingCount }} stk):</span>
-              <div class="mt-2 space-y-1">
-                <div v-for="(item, index) in parsedItems" :key="index" class="flex justify-between text-sm">
-                  <span class="text-gray-700">{{ item.cameraName || item.productName }}</span>
-                  <span class="text-gray-600">{{ formatAmount(item.price) }} DKK</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -180,6 +169,28 @@ const bookingData = computed<BookingEmailData | null>(() => {
     return null
   }
 
+  // Process items array to match PDF generator expectations
+  let processedItems = undefined
+  
+  if (bookingDetails.value.items) {
+    try {
+      const rawItems = JSON.parse(bookingDetails.value.items)
+      console.log('🔍 Raw items from booking API:', rawItems)
+      
+      processedItems = rawItems.map((item: any) => ({
+        name: item.productName || item.cameraName || 'GoPro kamera', // Use productName first (e.g. "Hero 10", "Hero 11")
+        quantity: 1, // Each camera booking is quantity 1
+        unitPrice: (item.price || 0) / 100, // Convert from øre to kroner
+        totalPrice: (item.price || 0) / 100 // Convert from øre to kroner
+      }))
+      
+      console.log('🔍 Processed items for PDF:', processedItems)
+    } catch (error) {
+      console.error('Failed to parse booking items:', error)
+      processedItems = undefined
+    }
+  }
+
   return {
     orderNumber: orderDetails.value.order_id,
     customerName,
@@ -187,6 +198,8 @@ const bookingData = computed<BookingEmailData | null>(() => {
     customerPhone,
     service: bookingDetails.value.productName || bookingDetails.value.service || bookingDetails.value.cameraName || 'LejGoPro Service',
     duration: `${bookingDetails.value.startDate ? new Date(bookingDetails.value.startDate).toLocaleDateString('da-DK') : ''} - ${bookingDetails.value.endDate ? new Date(bookingDetails.value.endDate).toLocaleDateString('da-DK') : ''}`,
+    startDate: bookingDetails.value.startDate || new Date().toISOString(),
+    endDate: bookingDetails.value.endDate || new Date(Date.now() + 24*60*60*1000).toISOString(),
     totalAmount: orderDetails.value.amount / 100, // Convert from øre to kroner
     bookingDate: bookingDetails.value.created_at || new Date().toISOString(),
     rentalPeriod: bookingDetails.value.startDate && bookingDetails.value.endDate ? {
@@ -194,7 +207,7 @@ const bookingData = computed<BookingEmailData | null>(() => {
       endDate: bookingDetails.value.endDate
     } : undefined,
     deliveryAddress: bookingDetails.value.address ? `${bookingDetails.value.address}${bookingDetails.value.apartment ? ', ' + bookingDetails.value.apartment : ''}, ${bookingDetails.value.postalCode || ''} ${bookingDetails.value.city || ''}`.trim() : undefined,
-    items: bookingDetails.value.items ? JSON.parse(bookingDetails.value.items) : undefined
+    items: processedItems
   }
 })
 
@@ -203,7 +216,13 @@ const parsedItems = computed(() => {
   if (!bookingDetails.value?.items) return []
   
   try {
-    return JSON.parse(bookingDetails.value.items)
+    const rawItems = JSON.parse(bookingDetails.value.items)
+    return rawItems.map((item: any) => ({
+      name: item.productName || item.cameraName || 'GoPro kamera', // Use productName first (e.g. "Hero 10", "Hero 11")
+      quantity: 1, // Each camera booking is quantity 1
+      unitPrice: (item.price || 0) / 100, // Convert from øre to kroner
+      totalPrice: (item.price || 0) / 100 // Convert from øre to kroner
+    }))
   } catch (error) {
     console.error('Failed to parse booking items:', error)
     return []

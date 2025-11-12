@@ -42,4 +42,23 @@
 <script setup>
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
+
+// SEO Meta Tags
+useSeoMeta({
+  title: 'Hvorfor Leje GoPro i Stedet for at Købe? Fordele & Besparelser | LejGoPro',
+  description: 'Opdag fordelene ved at leje GoPro frem for køb: Spar penge, beskyt miljøet og få gratis levering. Perfekt til ferie og eventyr uden store investeringer.',
+  keywords: 'hvorfor leje gopro, gopro leje fordele, spare penge actionkamera, miljøvenlig udlejning, ferie kamera leje',
+  robots: 'index, follow',
+  
+  // Open Graph
+  ogTitle: 'Hvorfor Leje GoPro i Stedet for at Købe? Fordele & Besparelser',
+  ogDescription: 'Lær hvorfor det er smartere at leje GoPro: Spar penge, beskyt miljøet og få professionelt udstyr uden store investeringer.',
+  ogType: 'article',
+  ogUrl: 'https://lejgopro.dk/hvorfor',
+  
+  // Twitter Card
+  twitterCard: 'summary',
+  twitterTitle: 'Hvorfor Leje GoPro? Fordele & Besparelser - LejGoPro',
+  twitterDescription: 'Opdag fordelene ved GoPro leje: Økonomi, miljø, bekvemmelighed og fleksibilitet.'
+})
 </script>

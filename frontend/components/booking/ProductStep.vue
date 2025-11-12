@@ -79,7 +79,7 @@
             {{ model.name }} fra {{ Math.ceil(model.twoWeekPrice ? (model.twoWeekPrice / 14) : (model.price)) }} kr./dag
             <span v-if="datesSelected">
               <template v-if="getMaxProductQuantity(model.id) === 0"> - Ikke tilgængelig</template>
-              <template v-else-if="getMaxProductQuantity(model.id) > 0"> - Tilgængelig ({{ getMaxProductQuantity(model.id) }} stk)</template>
+              <template v-else-if="getMaxProductQuantity(model.id) > 0"> - Tilgængelig</template>
             </span>
             <!-- TEMPORARILY DISABLED: <span v-else-if="datesSelected && availabilityLoading"> - Tjekker...</span> -->
           </option>

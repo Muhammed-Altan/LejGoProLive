@@ -379,7 +379,7 @@
         <div v-else-if="activeTab === 'orders'">
             <div class="max-w-4xl mx-auto py-8">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-semibold text-center">Produktinformation</h2>
+                    <h2 class="text-xl font-semibold text-center">Ordrer</h2>
                     <button 
                         @click="fixBookingCameraIds" 
                         class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
@@ -388,80 +388,154 @@
                     </button>
                 </div>
                 
-                <div v-if="products.length === 0" class="text-center text-gray-500 py-12">
-                    <p>Ingen produkter at vise endnu.</p>
+                <div v-if="groupedOrders.length === 0" class="text-center text-gray-500 py-12">
+                    <p>Ingen ordrer at vise endnu.</p>
                 </div>
                 
                 <div v-else class="space-y-6">
                     <!-- Debug info -->
                     <div class="bg-yellow-50 border border-yellow-200 p-4 rounded mb-4">
                         <h4 class="font-bold mb-2">Debug Info:</h4>
-                        <p>Total bookings: {{ bookings.length }}</p>
-                        <div v-for="product in products" :key="product.id">
-                            <p><strong>{{ product.name }} (Product ID: {{ product.id }}):</strong></p>
-                            <div v-for="(camera, index) in product.cameras" :key="camera.id" class="ml-4">
-                                <p>Camera ID {{ camera.id }} (Kamera {{ index + 1 }}): {{ getBookingsForCamera(camera.id).length }} bookings</p>
-                            </div>
-                        </div>
+                        <p>Total individual bookings: {{ bookings.length }}</p>
+                        <p>Grouped orders: {{ groupedOrders.length }}</p>
                     </div>
                     
-                    <div v-for="product in products" :key="product.id" class="border rounded-xl p-6 bg-white shadow">
+                    <!-- Grouped Orders Display -->
+                    <div v-for="order in groupedOrders" :key="order.baseOrderId" class="border rounded-xl p-6 bg-white shadow">
                         <div class="mb-4">
-                            <h3 class="text-lg font-bold text-red-600 mb-2">Produktinformation</h3>
-                        </div>
-                        
-                        <!-- Loop through each camera for this product -->
-                        <div v-for="(camera, cameraIndex) in product.cameras" :key="camera.id" class="mb-6">
-                            <div class="border-l-4 border-gray-300 pl-4">
-                                <div class="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h4 class="font-bold text-lg">Kamera: Kamera {{ cameraIndex + 1 }} (ID: {{ camera.id }})</h4>
-                                        <p class="text-gray-600">Produkt: {{ product.name }} (ID: {{ product.id }})</p>
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-lg font-bold text-red-600 mb-2">Ordre: {{ order.baseOrderId }}</h3>
+                                    <div class="text-sm text-gray-600 space-y-1">
+                                        <div><strong>Kunde:</strong> {{ order.customer.fullName || order.customer.name }}</div>
+                                        <div><strong>Email:</strong> {{ order.customer.email }}</div>
+                                        <div><strong>Telefon:</strong> {{ order.customer.phone }}</div>
+                                        <div><strong>Periode:</strong> {{ formatDateRange(order.startDate, order.endDate) }}</div>
+                                        <div><strong>Samlet pris:</strong> {{ (order.totalPrice / 100).toFixed(2) }} kr</div>
+                                        <div><strong>Betalingsstatus:</strong> 
+                                            <span :class="getPaymentStatusColor(order.paymentStatus)">
+                                                {{ getPaymentStatusText(order.paymentStatus) }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                                
-                                <div class="ml-4">
-                                    <h5 class="font-semibold text-red-600 mb-3">Bookinger:</h5>
-                                    
-                                    <!-- Get bookings for this specific camera -->
-                                    <div v-if="getBookingsForCamera(camera.id).length === 0" class="text-gray-500 italic">
-                                        Ingen bookinger for dette kamera.
-                                    </div>
-                                    
-                                    <div v-else class="space-y-3">
-                                        <div v-for="booking in getBookingsForCamera(camera.id)" :key="booking.id" 
-                                             class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                            <div class="flex justify-between items-start">
-                                                <div class="flex-1">
-                                                    <div class="font-medium text-sm">
-                                                        {{ booking.startDate && booking.endDate ? formatDateRange(booking.startDate, booking.endDate) : 'Ukendt periode' }} 
-                                                        <span class="text-red-600">{{ booking.fullName || booking.customerName || booking.name || 'Ukendt kunde' }}</span>
-                                                    </div>
-                                                </div>
-                                                <div class="flex gap-2 ml-4">
-                                                    <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs cursor-pointer" @click="openEditBooking(booking)">Rediger</button>
-                                                    <button class="bg-green-600 text-white px-2 py-1 rounded text-xs cursor-pointer" @click="createInvoice(booking)" :disabled="creatingInvoice === booking.id">
-                                                        {{ creatingInvoice === booking.id ? 'Opretter...' : 'Faktura' }}
-                                                    </button>
-                                                    <button class="bg-red-500 text-white px-2 py-1 rounded text-xs cursor-pointer" @click="deleteBooking(booking.id)">Slet</button>
-                                                </div>
+                                <div class="flex gap-2 ml-4">
+                                    <button 
+                                        class="bg-blue-500 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-blue-600 transition" 
+                                        @click="openEditOrder(order)"
+                                    >
+                                        Rediger ordre
+                                    </button>
+                                    <button 
+                                        class="bg-green-600 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-green-700 transition" 
+                                        @click="createOrderInvoice(order)" 
+                                        :disabled="creatingInvoice === order.baseOrderId"
+                                    >
+                                        {{ creatingInvoice === order.baseOrderId ? 'Opretter...' : 'Samlet faktura' }}
+                                    </button>
+                                    <button 
+                                        class="bg-red-500 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-red-600 transition" 
+                                        @click="deleteOrder(order)"
+                                    >
+                                        Slet ordre
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Individual bookings within the order -->
+                        <div class="mt-4 border-t pt-4">
+                            <h5 class="font-semibold text-gray-700 mb-3">Booking detaljer:</h5>
+                            <div class="grid gap-3">
+                                <div v-for="booking in order.bookings" :key="booking.id" 
+                                     class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <div class="font-medium text-sm">
+                                                <span class="text-blue-600">{{ booking.productName }} (Kamera {{ getCameraNumber(booking.cameraId) }})</span>
                                             </div>
-                                            
-                                            <!-- Additional booking details -->
-                                            <div class="mt-2 text-xs text-gray-600 space-y-1">
-                                                <div>Email: {{ booking.email }}</div>
-                                                <div>Telefon: {{ booking.phone }}</div>
-                                                <div>Adresse: {{ booking.address }}, {{ booking.city }} {{ booking.postalCode }}</div>
-                                                <div>Total pris: {{ booking.totalPrice ? (booking.totalPrice / 100).toFixed(2) : '0.00' }} kr</div>
+                                            <div class="text-xs text-gray-600 space-y-1 mt-1">
+                                                <div>Booking ID: {{ booking.id }} | Order ID: {{ booking.orderId }}</div>
+                                                <div>Pris: {{ (booking.totalPrice / 100).toFixed(2) }} kr</div>
                                                 <div v-if="booking.accessoryInstanceNames && booking.accessoryInstanceNames.length > 0">
                                                     Tilbehør: {{ booking.accessoryInstanceNames.join(', ') }}
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="flex gap-1 ml-3">
+                                            <button class="bg-blue-400 text-white px-2 py-1 rounded text-xs cursor-pointer hover:bg-blue-500 transition" 
+                                                    @click="openEditBooking(booking)">
+                                                Rediger
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- Edit Order Modal -->
+                <div v-if="showEditOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative overflow-y-auto" style="max-height: 90vh;">
+                        <button @click="closeEditOrder" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold">&times;</button>
+                        <h2 class="mb-1 text-xl font-semibold cursor-pointer">Rediger Ordre</h2>
+                        <form @submit.prevent="submitEditOrder" class="space-y-7">
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Navn</label>
+                                <input v-model="editOrderForm.fullName" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Email</label>
+                                <input v-model="editOrderForm.email" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Telefon</label>
+                                <input v-model="editOrderForm.phone" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Adresse</label>
+                                <input v-model="editOrderForm.address" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Lejlighed</label>
+                                <input v-model="editOrderForm.apartment" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">By</label>
+                                <input v-model="editOrderForm.city" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Postnummer</label>
+                                <input v-model="editOrderForm.postalCode" required class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Start dato (dd-mm-yyyy)</label>
+                                <input v-model="editOrderForm.startDate" type="date" @change="calculateOrderPriceDifference" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Slut dato (dd-mm-yyyy)</label>
+                                <input v-model="editOrderForm.endDate" type="date" @change="calculateOrderPriceDifference" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                            </div>
+                            
+                            <!-- Show price difference if applicable -->
+                            <div v-if="Math.abs(orderPriceDifference) > 0.01" class="bg-yellow-50 border border-yellow-200 p-4 rounded">
+                                <h4 class="font-semibold text-yellow-800">Prisændring:</h4>
+                                <p class="text-sm text-yellow-700">
+                                    {{ orderPriceDifference > 0 ? 'Ekstra betaling:' : 'Refusion:' }} 
+                                    {{ Math.abs(orderPriceDifference / 100).toFixed(2) }} kr
+                                </p>
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-[#B8082A] text-white p-3 rounded-lg font-semibold hover:bg-[#a10725] transition">
+                                Gem ændringer
+                            </button>
+                            
+                            <!-- Send invoice button if there's a price difference -->
+                            <button v-if="showOrderInvoiceButton" type="button" @click="sendOrderInvoice" class="w-full bg-green-600 text-white p-3 rounded-lg font-semibold hover:bg-green-700 transition">
+                                Send opdateret faktura til kunde
+                            </button>
+                        </form>
                     </div>
                 </div>
                 
@@ -501,35 +575,42 @@
                             </div>
                             <!-- Status field removed -->
                             <div class="flex flex-col">
-                                <label class="text-base font-semibold mb-1 text-gray-900">Produkt navn</label>
-                                <select v-model="editBookingForm.productName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base">
-                                    <option v-for="product in products" :key="product.id" :value="product.name">{{ product.name }}</option>
+                                <label class="text-base font-semibold mb-1 text-gray-900">Produkt</label>
+                                <select v-model="editBookingForm.productName" @change="onProductChange" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base">
+                                    <option value="">Vælg produkt...</option>
+                                    <option v-for="product in products" :key="product.id" :value="product.name">
+                                        {{ product.name }} ({{ product.cameras?.length || 0 }} kameraer tilgængelig)
+                                    </option>
                                 </select>
                             </div>
                             <div class="flex flex-col">
-                                <label class="text-base font-semibold mb-1 text-gray-900">Kamera navn</label>
-                                <select v-model="editBookingForm.cameraName" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" @change="updateCameraId">
-                                    <option v-for="camera in selectedProductCameras" :key="camera.id" :value="`Kamera ${camera.id}`">Kamera {{ camera.id }}</option>
+                                <label class="text-base font-semibold mb-1 text-gray-900">Kamera/Enhed</label>
+                                <select v-model="editBookingForm.cameraId" @change="updateCameraSelection" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base">
+                                    <option value="">Vælg kamera...</option>
+                                    <option v-for="camera in selectedProductCameras" :key="camera.id" :value="camera.id">
+                                        {{ editBookingForm.productName }} - Kamera {{ getCameraDisplayNumber(camera.id) }} (ID: {{ camera.id }})
+                                    </option>
                                 </select>
                             </div>
-                            <!-- Kamera ID field removed -->
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h4 class="font-semibold text-blue-800 mb-2">📋 Booking Information</h4>
+                                <div class="text-sm text-blue-700 space-y-1">
+                                    <div><strong>Nuværende produkt:</strong> {{ editBookingForm.productName || 'Ikke valgt' }}</div>
+                                    <div><strong>Nuværende kamera:</strong> {{ getCurrentCameraDisplay() }}</div>
+                                    <div><strong>Booking periode:</strong> Datoer redigeres på ordreniveau</div>
+                                    <div class="text-xs text-blue-600 mt-2">
+                                        💡 Tip: Datoer kan kun ændres via "Rediger ordre" for at sikre konsistens på tværs af alle kameraer i ordren.
+                                    </div>
+                                </div>
+                            </div>
                             <div class="flex flex-col">
                                 <label class="text-base font-semibold mb-1 text-gray-900">Tilbehør enheder (kommasepareret)</label>
                                 <input v-model="editBookingForm.accessoryInstanceIds" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" placeholder="fx: 1,2,3" />
                             </div>
-                            <div class="flex flex-col md:flex-row gap-4">
-                                <div class="flex-1">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Start dato</label>
-                                    <input v-model="editBookingForm.startDate" type="date" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base w-full" />
-                                </div>
-                                <div class="flex-1">
-                                    <label class="text-base font-semibold mb-1 text-gray-900">Slut dato</label>
-                                    <input v-model="editBookingForm.endDate" type="date" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base w-full" />
-                                </div>
-                            </div>
                             <div class="flex flex-col">
-                                <label class="text-base font-semibold mb-1 text-gray-900">Total pris</label>
-                                <input v-model="editBookingForm.totalPrice" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" />
+                                <label class="text-base font-semibold mb-1 text-gray-900">Total pris (øre)</label>
+                                <input v-model="editBookingForm.totalPrice" type="number" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" readonly />
+                                <small class="text-gray-600 mt-1">Prisen opdateres automatisk baseret på produkt og periode fra ordren</small>
                             </div>
                             
                             <!-- Price Difference Display -->
@@ -1045,8 +1126,8 @@ function openEditBooking(booking: any) {
         productName: booking.productName || '',
         accessoryInstanceIds: booking.accessoryInstanceIds ? booking.accessoryInstanceIds.join(',') : '',
         totalPrice: booking.totalPrice || '',
-        startDate: '', // Leave empty to show dd-mm-yyyy placeholder
-        endDate: ''   // Leave empty to show dd-mm-yyyy placeholder
+        startDate: booking.startDate ? new Date(booking.startDate).toISOString().split('T')[0] : '',
+        endDate: booking.endDate ? new Date(booking.endDate).toISOString().split('T')[0] : ''
     };
 }
 
@@ -1120,6 +1201,15 @@ function closeEditBooking() {
 async function submitEditBooking() {
     try {
         const id = editBookingForm.value.id;
+        
+        // Validate required fields
+        if (!editBookingForm.value.productName) {
+            throw new Error('Vælg venligst et produkt');
+        }
+        if (!editBookingForm.value.cameraId) {
+            throw new Error('Vælg venligst et kamera');
+        }
+        
         // Build payload with correct field mapping based on the actual booking schema
         const payload = {
             id,
@@ -1127,18 +1217,21 @@ async function submitEditBooking() {
             email: editBookingForm.value.email,
             phone: editBookingForm.value.phone,
             address: editBookingForm.value.address,
+            apartment: editBookingForm.value.apartment,
             city: editBookingForm.value.city,
             postalCode: editBookingForm.value.postalCode,
-            cameraId: editBookingForm.value.cameraId ? Number(editBookingForm.value.cameraId) : null,
+            cameraId: Number(editBookingForm.value.cameraId),
             accessoryInstanceIds: editBookingForm.value.accessoryInstanceIds
                 ? editBookingForm.value.accessoryInstanceIds.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x))
                 : [],
             totalPrice: Number(editBookingForm.value.totalPrice) || 0,
             status: editBookingForm.value.status,
             productName: editBookingForm.value.productName,
-            startDate: editBookingForm.value.startDate,
-            endDate: editBookingForm.value.endDate
+            cameraName: editBookingForm.value.cameraName
+            // Note: dates are not included as they should be managed at order level
         };
+        
+        console.log('📝 Updating individual booking with payload:', payload);
         
         // Use authenticated API endpoint
         const response = await auth.authenticatedFetch('/api/admin/bookings', {
@@ -1154,7 +1247,7 @@ async function submitEditBooking() {
         await fetchBookings();
         toast.add({ 
             title: 'Booking opdateret!',
-            description: 'Bookingen blev opdateret succesfuldt',
+            description: `Bookingen blev skiftet til ${editBookingForm.value.productName} (Kamera ${getCameraDisplayNumber(Number(editBookingForm.value.cameraId))})`,
             color: 'success',
             ui: {
                 title: 'text-gray-900 font-semibold',
@@ -1174,6 +1267,7 @@ async function submitEditBooking() {
         });
     }
 }
+
 const accessoryInstances = reactive<Record<number, AccessoryInstance[]>>({});
 
 async function fetchAccessoryInstances(accessoryId: number) {
@@ -1654,11 +1748,497 @@ interface Booking {
     accessoryInstanceIds?: number[];
     accessoryInstanceNames?: string[];
     totalPrice?: number;
+    orderId?: string;
+    paymentStatus?: string;
+    createdAt?: string;
 }
 const bookings = ref<Booking[]>([]);
 const creatingInvoice = ref<number | null>(null);
 const testingOAuth = ref(false);
 const oauthTestResult = ref<any>(null);
+
+// Helper function to convert øre to DKK if needed
+const convertToDKK = (amount: number) => {
+    // If amount is a large integer (>1000), it's likely in øre, convert to DKK
+    if (amount > 1000 && Number.isInteger(amount)) {
+        return amount / 100;
+    }
+    return amount;
+};
+
+// Order editing modal state
+const showEditOrderModal = ref(false);
+const orderPriceDifference = ref(0);
+const originalOrderPrice = ref(0);
+const calculatingOrderPrice = ref(false);
+const showOrderInvoiceButton = ref(false);
+const editOrderForm = ref({
+    baseOrderId: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    apartment: '',
+    city: '',
+    postalCode: '',
+    startDate: '',
+    endDate: '',
+    totalPrice: 0
+});
+
+// Computed property to group bookings by base order ID
+const groupedOrders = computed(() => {
+    const orderGroups = new Map();
+    
+    // Group bookings by base order ID
+    bookings.value.forEach(booking => {
+        if (!booking.orderId) return;
+        
+        // Extract base order ID (remove -1, -2, etc. suffix)
+        const baseOrderId = booking.orderId.replace(/-\d+$/, '');
+        
+        if (!orderGroups.has(baseOrderId)) {
+            orderGroups.set(baseOrderId, {
+                baseOrderId: baseOrderId,
+                bookings: [],
+                customer: {
+                    fullName: booking.fullName || booking.customerName || booking.name,
+                    email: booking.email,
+                    phone: booking.phone,
+                    address: booking.address,
+                    apartment: booking.apartment,
+                    city: booking.city,
+                    postalCode: booking.postalCode
+                },
+                startDate: booking.startDate,
+                endDate: booking.endDate,
+                totalPrice: 0,
+                paymentStatus: booking.paymentStatus || 'unknown'
+            });
+        }
+        
+        const orderGroup = orderGroups.get(baseOrderId);
+        orderGroup.bookings.push(booking);
+        orderGroup.totalPrice += booking.totalPrice || 0;
+        
+        // Update payment status (use the most recent or 'paid' if any booking is paid)
+        if (booking.paymentStatus === 'paid' || orderGroup.paymentStatus !== 'paid') {
+            orderGroup.paymentStatus = booking.paymentStatus || 'unknown';
+        }
+    });
+    
+    // Convert map to array and sort by creation date (newest first)
+    return Array.from(orderGroups.values()).sort((a, b) => {
+        const aLatest = Math.max(...a.bookings.map((booking: Booking) => new Date(booking.createdAt || 0).getTime()));
+        const bLatest = Math.max(...b.bookings.map((booking: Booking) => new Date(booking.createdAt || 0).getTime()));
+        return bLatest - aLatest;
+    });
+});
+
+// Helper function to get camera number from camera ID
+function getCameraNumber(cameraId: number): string {
+    // Find the camera in all products to determine its index
+    for (const product of products.value) {
+        if (product.cameras) {
+            const cameraIndex = product.cameras.findIndex(camera => camera.id === cameraId);
+            if (cameraIndex !== -1) {
+                return `${cameraIndex + 1}`;
+            }
+        }
+    }
+    return cameraId.toString();
+}
+
+// Helper function to get camera display number (for dropdowns)
+function getCameraDisplayNumber(cameraId: number): string {
+    // Find the camera in all products to determine its index within that product
+    for (const product of products.value) {
+        if (product.cameras) {
+            const cameraIndex = product.cameras.findIndex(camera => camera.id === cameraId);
+            if (cameraIndex !== -1) {
+                return `${cameraIndex + 1}`;
+            }
+        }
+    }
+    return cameraId.toString();
+}
+
+// Helper function to get current camera display info
+function getCurrentCameraDisplay(): string {
+    if (!editBookingForm.value.cameraId || !editBookingForm.value.productName) {
+        return 'Ikke valgt';
+    }
+    return `${editBookingForm.value.productName} - Kamera ${getCameraDisplayNumber(Number(editBookingForm.value.cameraId))} (ID: ${editBookingForm.value.cameraId})`;
+}
+
+// Handle product change in edit modal
+function onProductChange() {
+    // Reset camera selection when product changes
+    editBookingForm.value.cameraId = '';
+    editBookingForm.value.cameraName = '';
+}
+
+// Handle camera selection change
+function updateCameraSelection() {
+    // Update the camera name when camera ID changes
+    if (editBookingForm.value.cameraId) {
+        const selectedCamera = selectedProductCameras.value.find(camera => camera.id === Number(editBookingForm.value.cameraId));
+        if (selectedCamera) {
+            editBookingForm.value.cameraName = `Kamera ${getCameraDisplayNumber(selectedCamera.id)}`;
+        }
+    } else {
+        editBookingForm.value.cameraName = '';
+    }
+}
+
+// Helper function to get payment status display text
+function getPaymentStatusText(status: string): string {
+    switch (status) {
+        case 'paid': return 'Betalt';
+        case 'pending': return 'Afventer betaling';
+        case 'cancelled': return 'Annulleret';
+        case 'failed': return 'Fejlet';
+        default: return 'Ukendt';
+    }
+}
+
+// Helper function to get payment status color classes
+function getPaymentStatusColor(status: string): string {
+    switch (status) {
+        case 'paid': return 'text-green-600 font-semibold';
+        case 'pending': return 'text-yellow-600 font-semibold';
+        case 'cancelled': return 'text-gray-600 font-semibold';
+        case 'failed': return 'text-red-600 font-semibold';
+        default: return 'text-gray-600';
+    }
+}
+
+// Open order edit modal
+function openEditOrder(order: any) {
+    showEditOrderModal.value = true;
+    originalOrderPrice.value = order.totalPrice;
+    orderPriceDifference.value = 0;
+    showOrderInvoiceButton.value = false;
+    
+    editOrderForm.value = {
+        baseOrderId: order.baseOrderId,
+        fullName: order.customer.fullName || '',
+        email: order.customer.email || '',
+        phone: order.customer.phone || '',
+        address: order.customer.address || '',
+        apartment: order.customer.apartment || '',
+        city: order.customer.city || '',
+        postalCode: order.customer.postalCode || '',
+        startDate: order.startDate ? new Date(order.startDate).toISOString().split('T')[0] : '',
+        endDate: order.endDate ? new Date(order.endDate).toISOString().split('T')[0] : '',
+        totalPrice: order.totalPrice
+    };
+}
+
+function closeEditOrder() {
+    showEditOrderModal.value = false;
+    orderPriceDifference.value = 0;
+    showOrderInvoiceButton.value = false;
+}
+
+// Calculate price difference for order when dates change
+async function calculateOrderPriceDifference() {
+    if (!editOrderForm.value.startDate || !editOrderForm.value.endDate || !editOrderForm.value.baseOrderId) {
+        return;
+    }
+    
+    calculatingOrderPrice.value = true;
+    
+    try {
+        // Get all bookings for this order
+        const orderBookings = bookings.value.filter(booking => 
+            booking.orderId && booking.orderId.startsWith(editOrderForm.value.baseOrderId)
+        );
+        
+        if (orderBookings.length === 0) {
+            return;
+        }
+        
+        // Calculate new price for all bookings in the order
+        let totalNewPrice = 0;
+        
+        for (const booking of orderBookings) {
+            const payload = {
+                id: booking.id,
+                startDate: editOrderForm.value.startDate,
+                endDate: editOrderForm.value.endDate,
+                calculateOnly: true
+            };
+            
+            const response = await auth.authenticatedFetch('/api/admin/bookings', {
+                method: 'POST',
+                body: payload
+            });
+            
+            if (response.success && response.newTotalPrice !== undefined) {
+                totalNewPrice += response.newTotalPrice;
+            } else {
+                totalNewPrice += booking.totalPrice || 0; // fallback to original price
+            }
+        }
+        
+        orderPriceDifference.value = totalNewPrice - originalOrderPrice.value;
+        editOrderForm.value.totalPrice = totalNewPrice;
+        showOrderInvoiceButton.value = Math.abs(orderPriceDifference.value) > 0.01;
+        
+        console.log('Order price difference calculated:', orderPriceDifference.value);
+    } catch (error) {
+        console.error('Error calculating order price difference:', error);
+        toast.add({
+            title: 'Fejl ved prisberegning',
+            description: 'Kunne ikke beregne prisforskellen for ordren. Prøv igen.',
+            color: 'error'
+        });
+    } finally {
+        calculatingOrderPrice.value = false;
+    }
+}
+
+// Submit order edit (updates all bookings in the order)
+async function submitEditOrder() {
+    try {
+        // Get all bookings for this order
+        const orderBookings = bookings.value.filter(booking => 
+            booking.orderId && booking.orderId.startsWith(editOrderForm.value.baseOrderId)
+        );
+        
+        if (orderBookings.length === 0) {
+            throw new Error('Ingen bookinger fundet for denne ordre');
+        }
+        
+        // Update all bookings in the order
+        for (const booking of orderBookings) {
+            const payload = {
+                id: booking.id,
+                fullName: editOrderForm.value.fullName,
+                email: editOrderForm.value.email,
+                phone: editOrderForm.value.phone,
+                address: editOrderForm.value.address,
+                apartment: editOrderForm.value.apartment,
+                city: editOrderForm.value.city,
+                postalCode: editOrderForm.value.postalCode,
+                startDate: editOrderForm.value.startDate,
+                endDate: editOrderForm.value.endDate
+            };
+            
+            const response = await auth.authenticatedFetch('/api/admin/bookings', {
+                method: 'POST',
+                body: payload
+            });
+            
+            if (!response.success) {
+                throw new Error(`Fejl ved opdatering af booking ${booking.id}: ${response.message}`);
+            }
+        }
+        
+        await fetchBookings();
+        closeEditOrder();
+        
+        toast.add({
+            title: 'Ordre opdateret!',
+            description: `Alle bookinger for ordre ${editOrderForm.value.baseOrderId} blev opdateret succesfuldt`,
+            color: 'success',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    } catch (error: any) {
+        console.error('Error updating order:', error);
+        toast.add({
+            title: 'Fejl ved opdatering af ordre',
+            description: error?.message || 'Kunne ikke opdatere ordren. Prøv igen.',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    }
+}
+
+// Delete entire order (all bookings)
+async function deleteOrder(order: any) {
+    const confirmDelete = confirm(`Er du sikker på, at du vil slette hele ordren "${order.baseOrderId}" med ${order.bookings.length} booking(s)? Denne handling kan ikke fortrydes.`);
+    if (!confirmDelete) {
+        return;
+    }
+    
+    try {
+        // Delete all bookings in the order
+        for (const booking of order.bookings) {
+            const response = await auth.authenticatedFetch('/api/admin/bookings', {
+                method: 'DELETE',
+                body: { id: booking.id }
+            });
+            
+            if (!response.success) {
+                throw new Error(`Fejl ved sletning af booking ${booking.id}: ${response.message}`);
+            }
+        }
+        
+        await fetchBookings();
+        
+        toast.add({
+            title: 'Ordre slettet!',
+            description: `Ordre ${order.baseOrderId} med ${order.bookings.length} booking(s) blev slettet succesfuldt`,
+            color: 'success',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    } catch (error: any) {
+        console.error('Error deleting order:', error);
+        toast.add({
+            title: 'Fejl ved sletning af ordre',
+            description: error?.message || 'Kunne ikke slette ordren. Prøv igen.',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    }
+}
+
+// Create combined invoice for entire order
+async function createOrderInvoice(order: any) {
+    creatingInvoice.value = order.baseOrderId;
+    
+    try {
+        // Prepare combined order data for invoice
+        const orderData = {
+            orderNumber: order.baseOrderId,
+            customerName: order.customer.fullName,
+            customerEmail: order.customer.email,
+            customerPhone: order.customer.phone,
+            startDate: order.startDate,
+            endDate: order.endDate,
+            duration: formatDateRange(order.startDate, order.endDate),
+            totalAmount: convertToDKK(order.totalPrice),
+            bookingDate: new Date().toISOString(),
+            deliveryAddress: order.customer.address ? 
+                `${order.customer.address}${order.customer.apartment ? ', ' + order.customer.apartment : ''}, ${order.customer.postalCode || ''} ${order.customer.city || ''}`.trim() 
+                : undefined,
+            items: order.bookings.map((booking: any) => ({
+                name: `${booking.productName || 'LejGoPro'} (Kamera ${getCameraNumber(booking.cameraId)})`,
+                quantity: 1,
+                unitPrice: convertToDKK(booking.totalPrice || 0),
+                totalPrice: convertToDKK(booking.totalPrice || 0)
+            }))
+        };
+        
+        console.log('📄 Creating combined order invoice:', orderData);
+        
+        const response = await $fetch('/api/email/send-receipt', {
+            method: 'POST',
+            body: orderData
+        });
+        
+        if (response.success) {
+            toast.add({
+                title: 'Samlet faktura sendt!',
+                description: `En samlet faktura for ordre ${order.baseOrderId} blev sendt til ${order.customer.email}`,
+                color: 'success',
+                ui: {
+                    title: 'text-gray-900 font-semibold',
+                    description: 'text-gray-700'
+                }
+            });
+        } else {
+            throw new Error('Kunne ikke sende samlet faktura');
+        }
+    } catch (error: any) {
+        console.error('Error creating order invoice:', error);
+        toast.add({
+            title: 'Fejl ved oprettelse af samlet faktura',
+            description: error.message || 'Kunne ikke sende den samlede faktura. Prøv igen.',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    } finally {
+        creatingInvoice.value = null;
+    }
+}
+
+// Send order invoice for price differences
+async function sendOrderInvoice() {
+    try {
+        // Prepare order data for updated invoice
+        const order = groupedOrders.value.find(o => o.baseOrderId === editOrderForm.value.baseOrderId);
+        if (!order) {
+            throw new Error('Ordre ikke fundet');
+        }
+        
+        const orderEmailData = {
+            orderNumber: `UPDATED-${editOrderForm.value.baseOrderId}`,
+            customerName: editOrderForm.value.fullName,
+            customerEmail: editOrderForm.value.email,
+            customerPhone: editOrderForm.value.phone,
+            startDate: editOrderForm.value.startDate,
+            endDate: editOrderForm.value.endDate,
+            duration: formatDateRange(editOrderForm.value.startDate, editOrderForm.value.endDate),
+            totalAmount: convertToDKK(editOrderForm.value.totalPrice),
+            bookingDate: new Date().toISOString(),
+            deliveryAddress: editOrderForm.value.address ? 
+                `${editOrderForm.value.address}${editOrderForm.value.apartment ? ', ' + editOrderForm.value.apartment : ''}, ${editOrderForm.value.postalCode || ''} ${editOrderForm.value.city || ''}`.trim() 
+                : undefined,
+            items: order.bookings.map((booking: any) => ({
+                name: `${booking.productName || 'LejGoPro'} (Kamera ${getCameraNumber(booking.cameraId)}) - Opdateret`,
+                quantity: 1,
+                unitPrice: convertToDKK(booking.totalPrice || 0),
+                totalPrice: convertToDKK(booking.totalPrice || 0)
+            })),
+            priceDifference: orderPriceDifference.value,
+            isUpdate: true
+        };
+        
+        console.log('📧 Sending updated order invoice:', orderEmailData);
+        
+        const response = await $fetch('/api/email/send-receipt', {
+            method: 'POST',
+            body: orderEmailData
+        });
+        
+        if (response.success) {
+            toast.add({
+                title: 'Opdateret faktura sendt!',
+                description: `En opdateret faktura for ordre ${editOrderForm.value.baseOrderId} blev sendt til ${editOrderForm.value.email}`,
+                color: 'success',
+                ui: {
+                    title: 'text-gray-900 font-semibold',
+                    description: 'text-gray-700'
+                }
+            });
+            
+            // Reset price difference after sending invoice
+            showOrderInvoiceButton.value = false;
+            orderPriceDifference.value = 0;
+        } else {
+            throw new Error('Kunne ikke sende opdateret faktura');
+        }
+    } catch (error: any) {
+        console.error('Error sending updated order invoice:', error);
+        toast.add({
+            title: 'Fejl ved afsendelse af opdateret faktura',
+            description: error.message || 'Kunne ikke sende den opdaterede faktura. Prøv igen.',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    }
+}
 
 async function fetchBookings() {
     try {
