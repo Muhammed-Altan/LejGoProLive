@@ -227,20 +227,26 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   const rightAlign = pageWidth - 40
   const labelAlign = pageWidth - 100
   
-  // Subtotal
+  // The totalAmount is the final price including VAT
+  const finalTotal = safeBookingData.totalAmount || 0
+  
+  // Calculate VAT-exclusive amount (subtotal)
+  const vatRate = safeBookingData.vatRate || 25
+  const subtotalExcludingVat = finalTotal / (1 + vatRate / 100)
+  const vatAmount = finalTotal - subtotalExcludingVat
+  
+  // Subtotal (VAT excluded)
   doc.setFont('helvetica', 'normal')
   doc.text('Subtotal', labelAlign, yPos)
-  doc.text(`${subtotalAmount.toFixed(2)}`, rightAlign, yPos)
+  doc.text(`${subtotalExcludingVat.toFixed(2)}`, rightAlign, yPos)
   
   yPos += 15
-  // VAT (25%)
-  const vatRate = safeBookingData.vatRate || 25
-  const vatAmount = (subtotalAmount * vatRate / (100 + vatRate))
+  // VAT amount
   doc.text(`Moms (${vatRate},00%)`, labelAlign, yPos)
   doc.text(vatAmount.toFixed(2), rightAlign, yPos)
   
   yPos += 15
-  // Total
+  // Total (final amount including VAT)
   doc.setFont('helvetica', 'bold')
   
   // Line above total
@@ -248,7 +254,7 @@ export async function generateReceiptPDF(bookingData: BookingData): Promise<any>
   doc.line(labelAlign - 10, yPos - 5, rightAlign + 20, yPos - 5)
   
   doc.text('Total DKK', labelAlign, yPos)
-  doc.text(subtotalAmount.toFixed(2), rightAlign, yPos)
+  doc.text(finalTotal.toFixed(2), rightAlign, yPos)
   
   // Add business information at the bottom
   const bottomMargin = 30

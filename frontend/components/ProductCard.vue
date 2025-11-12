@@ -15,16 +15,6 @@
     <ul class="text-sm text-gray-500 mb-6 space-y-1">
       <li v-for="feature in features" :key="feature">{{ feature }}</li>
     </ul>
-    <!-- <div class="flex items-end gap-4 mb-4">
-      <div>
-        <span class="font-bold text-[#B8082A] text-2xl">{{ priceDay }} kr</span>
-        <span class="text-gray-500 text-sm">/dag</span>
-      </div>
-      <div>
-        <span class="font-bold text-[#B8082A] text-xl">{{ priceWeek }} kr</span>
-        <span class="text-gray-500 text-sm">/uge</span>
-      </div>
-    </div> -->
   <NuxtLink :to="`/checkout?product=${productId}`" class="bg-[#B8082A] text-white font-semibold py-2 px-6 rounded-full mt-auto text-center block hover:bg-[#a10725] transition">Se pris og tilgængelighed</NuxtLink>
   </div>
 </template>

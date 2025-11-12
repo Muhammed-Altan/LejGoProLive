@@ -198,6 +198,8 @@ const bookingData = computed<BookingEmailData | null>(() => {
     customerPhone,
     service: bookingDetails.value.productName || bookingDetails.value.service || bookingDetails.value.cameraName || 'LejGoPro Service',
     duration: `${bookingDetails.value.startDate ? new Date(bookingDetails.value.startDate).toLocaleDateString('da-DK') : ''} - ${bookingDetails.value.endDate ? new Date(bookingDetails.value.endDate).toLocaleDateString('da-DK') : ''}`,
+    startDate: bookingDetails.value.startDate || new Date().toISOString(),
+    endDate: bookingDetails.value.endDate || new Date(Date.now() + 24*60*60*1000).toISOString(),
     totalAmount: orderDetails.value.amount / 100, // Convert from øre to kroner
     bookingDate: bookingDetails.value.created_at || new Date().toISOString(),
     rentalPeriod: bookingDetails.value.startDate && bookingDetails.value.endDate ? {
