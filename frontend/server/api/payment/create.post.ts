@@ -414,7 +414,8 @@ export default defineEventHandler(async (event) => {
     // Use the first booking for reference (they all have the same customer/date info)
     const referenceBooking = existingBookings[0]
 
-    const isTestMode = true
+    // const isTestMode = true // Commented out for production
+    const isTestMode = false // Production mode
 
     const paymentData = {
       order_id: orderId,

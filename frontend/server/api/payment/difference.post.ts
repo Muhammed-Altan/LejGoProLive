@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
       order_id: `DIFF-${booking.id}-${Date.now()}`, // Unique order ID for the difference payment
       amount: amountInOre, // Amount in øre
       currency: 'DKK',
-      testmode: true, // Set to false for production
+      testmode: false, // Production mode - was: testmode: true
       callback_url: `${baseUrl}/api/payment/callback`,
       success_url: `${baseUrl}/payment/success?type=difference&booking=${booking.id}`,
       cancel_url: `${baseUrl}/payment/cancelled?type=difference&booking=${booking.id}`,
