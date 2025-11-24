@@ -380,12 +380,21 @@
             <div class="max-w-4xl mx-auto py-8">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-semibold text-center">Ordrer</h2>
-                    <button 
-                        @click="fixBookingCameraIds" 
-                        class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
-                    >
-                        Distribute Bookings
-                    </button>
+                    <div class="flex gap-2">
+                        <button 
+                            @click="openAdminBooking" 
+                            type="button"
+                            class="bg-green-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-green-700 transition cursor-pointer text-sm"
+                        >
+                            Opret Booking
+                        </button>
+                        <button 
+                            @click="fixBookingCameraIds" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
+                        >
+                            Distribute Bookings
+                        </button>
+                    </div>
                 </div>
                 
                 <div v-if="groupedOrders.length === 0" class="text-center text-gray-500 py-12">
@@ -716,6 +725,14 @@
             </div>
         </div>
     </div>
+    
+    <!-- Admin Booking Modal - Outside of tabs so it can render on any tab -->
+    <AdminBooking 
+        v-if="showAdminBookingModal" 
+        @close="closeAdminBooking"
+        @success="onAdminBookingSuccess"
+    />
+    
     <Footer />
 </template>
 
@@ -723,6 +740,7 @@
 import { ref, onMounted, computed, reactive } from 'vue';
 import ProductCalendar from '@/components/booking/ProductCalendar.vue';
 import DineroAuth from '@/components/integrations/DineroAuth.vue';
+import AdminBooking from '@/components/admin/AdminBooking.vue';
 
 definePageMeta({
   middleware: 'admin'
@@ -1772,6 +1790,38 @@ const orderPriceDifference = ref(0);
 const originalOrderPrice = ref(0);
 const calculatingOrderPrice = ref(false);
 const showOrderInvoiceButton = ref(false);
+
+// Admin booking modal state
+const showAdminBookingModal = ref(false);
+
+// Open admin booking modal
+function openAdminBooking() {
+    console.log('🔵 openAdminBooking called - current modal state:', showAdminBookingModal.value);
+    showAdminBookingModal.value = true;
+    console.log('🟢 openAdminBooking - modal state after:', showAdminBookingModal.value);
+}
+
+// Close admin booking modal
+function closeAdminBooking() {
+    console.log('🔴 closeAdminBooking called');
+    showAdminBookingModal.value = false;
+}
+
+// Handler for successful admin booking
+const onAdminBookingSuccess = async () => {
+    showAdminBookingModal.value = false;
+    // Refresh bookings list
+    await fetchBookings();
+    toast.add({
+        title: 'Booking oprettet!',
+        description: 'Admin booking blev oprettet succesfuldt',
+        color: 'success',
+        ui: {
+            title: 'text-gray-900 font-semibold',
+            description: 'text-gray-700'
+        }
+    });
+};
 const editOrderForm = ref({
     baseOrderId: '',
     fullName: '',
