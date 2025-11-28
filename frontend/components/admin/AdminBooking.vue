@@ -225,6 +225,24 @@
           </div>
         </section>
 
+        <!-- Custom Price -->
+        <section class="bg-gray-50 rounded-xl p-6 shadow">
+          <h3 class="font-semibold text-lg mb-4">Pris</h3>
+          <div>
+            <label class="block text-sm font-medium mb-2">Total pris (DKK) *</label>
+            <input
+              type="number"
+              v-model.number="form.customPrice"
+              required
+              min="0"
+              step="0.01"
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="0.00"
+            />
+            <p class="text-xs text-gray-500 mt-1">Indtast den totale pris for denne booking i DKK</p>
+          </div>
+        </section>
+
         <!-- Error Message -->
         <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4">
           <p class="text-red-700">{{ errorMessage }}</p>
@@ -280,6 +298,7 @@ const form = ref({
   city: '',
   insurance: false,
   notes: '',
+  customPrice: 0,
 });
 
 const loading = ref(false);
@@ -408,7 +427,8 @@ const canSubmit = computed(() => {
     form.value.phone &&
     form.value.address &&
     form.value.postalCode &&
-    form.value.city
+    form.value.city &&
+    form.value.customPrice > 0
   );
 });
 
@@ -443,6 +463,7 @@ const submitBooking = async () => {
         city: form.value.city,
         insurance: form.value.insurance,
         notes: form.value.notes,
+        customPrice: form.value.customPrice,
       },
     });
 

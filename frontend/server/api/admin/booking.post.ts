@@ -32,6 +32,7 @@ const adminBookingSchema = z.object({
   // Optional fields
   insurance: z.boolean().optional(),
   notes: z.string().optional(),
+  customPrice: z.number().positive('Price must be greater than 0'),
 });
 
 export default defineEventHandler(async (event) => {
@@ -75,6 +76,7 @@ export default defineEventHandler(async (event) => {
     city: sanitizeString(body.city),
     insurance: !!body.insurance,
     notes: sanitizeString(body.notes || ''),
+    customPrice: sanitizeNumber(body.customPrice),
   };
 
   // --- Zod Validation ---
@@ -219,7 +221,7 @@ export default defineEventHandler(async (event) => {
         email: booking.email,
         fullName: booking.fullName,
         phone: booking.phone,
-        totalPrice: Math.round((pricing.total / enrichedModels.reduce((sum, m) => sum + m.quantity, 0)) * 100), // Convert to øre
+        totalPrice: Math.round((booking.customPrice / enrichedModels.reduce((sum, m) => sum + m.quantity, 0)) * 100), // Divide custom price among cameras and convert to øre
         city: booking.city,
         orderId: orderId,
         paymentId: 'ADMIN-MANUAL', // Mark as admin manual booking
@@ -274,7 +276,7 @@ export default defineEventHandler(async (event) => {
     message: `Admin booking created successfully`,
     orderId: orderId,
     bookingCount: bookingRecords.length,
-    totalPrice: pricing.total,
+    totalPrice: booking.customPrice,
     bookings: insertedBookings,
   };
 });
