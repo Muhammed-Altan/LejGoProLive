@@ -10,29 +10,30 @@
                 Log ud
             </button>
         </div>
-        <div class="flex justify-center gap-4 mb-8">
+        <!-- Tab Navigation: Horizontal on desktop, 2x2 grid on mobile (at burger menu breakpoint) -->
+        <div class="flex flex-wrap justify-center gap-4 mb-8 lg:flex-nowrap">
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'products' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'products'"
             >Produkter</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'accessory' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'accessory'"
             >Tilbehør</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'orders' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'orders'"
             >Ordrer</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'inventory' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'inventory'"
             >Lager</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'integrations' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'integrations'"
             >Integrationer</button>

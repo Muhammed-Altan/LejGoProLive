@@ -85,25 +85,6 @@ import ProductCard from '@/components/ProductCard.vue';
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
 
-// SEO Meta Tags
-useSeoMeta({
-  title: 'GoPro Produkter til Leje - Hero 13, Hero 12 & Tilbehør | LejGoPro',
-  description: 'Udforsk vores udvalg af GoPro actionkameraer til leje: Hero 13, Hero 12 og mere. Komplet med tilbehør som grip, ekstra batterier og beskyttelsescase.',
-  keywords: 'gopro hero 13 leje, gopro hero 12 rental, actionkamera produkter, gopro tilbehør leje, grip headstrap brystmount',
-  robots: 'index, follow',
-  
-  // Open Graph
-  ogTitle: 'GoPro Produkter til Leje - Hero 13, Hero 12 & Tilbehør',
-  ogDescription: 'Udforsk vores udvalg af GoPro actionkameraer og tilbehør til leje. Professionelt udstyr til dit næste eventyr.',
-  ogType: 'website',
-  ogUrl: 'https://lejgopro.dk/products',
-  
-  // Twitter Card
-  twitterCard: 'summary',
-  twitterTitle: 'GoPro Produkter til Leje - LejGoPro',
-  twitterDescription: 'Udforsk vores udvalg af GoPro actionkameraer og tilbehør til leje.'
-})
-
 // Define the product interface to match Supabase table structure
 interface Product {
   id: number;
@@ -124,6 +105,47 @@ const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/bl
 
 // Get Supabase client
 const supabase = useSupabase();
+
+// Generate SEO-optimized meta description based on available products
+const generateMetaDescription = (productsList: Product[]) => {
+  if (productsList.length === 0) {
+    return 'Udforsk vores udvalg af GoPro actionkameraer til leje. Professionelt udstyr til dit næste eventyr med tilbehør og konkurrencedygtige priser.';
+  }
+  
+  const productNames = productsList.map(p => p.name).join(', ');
+  const lowestPrice = Math.min(...productsList.map(p => p.dailyPrice));
+  
+  return `Lej ${productNames} fra kun ${lowestPrice}kr/dag. Professionelt GoPro udstyr med komplet tilbehør til eventyr, sport og rejser. Hurtig levering i Danmark.`;
+};
+
+// Dynamic SEO Meta Tags - will update when products load
+const metaTitle = computed(() => {
+  if (products.value.length > 0) {
+    const names = products.value.map(p => p.name).join(', ');
+    return `Lej ${names} - GoPro Actionkamera Udlejning | LejGoPro`;
+  }
+  return 'GoPro Produkter til Leje - Hero 13, Hero 12 & Tilbehør | LejGoPro';
+});
+
+const metaDescription = computed(() => generateMetaDescription(products.value));
+
+useSeoMeta({
+  title: metaTitle,
+  description: metaDescription,
+  keywords: 'gopro hero 13 leje, gopro hero 12 rental, gopro hero 11 udlejning, actionkamera produkter, gopro tilbehør leje, grip headstrap brystmount',
+  robots: 'index, follow',
+  
+  // Open Graph
+  ogTitle: metaTitle,
+  ogDescription: metaDescription,
+  ogType: 'website',
+  ogUrl: 'https://lejgopro.dk/products',
+  
+  // Twitter Card
+  twitterCard: 'summary_large_image',
+  twitterTitle: metaTitle,
+  twitterDescription: metaDescription
+})
 
 // Fetch products from Supabase
 const fetchProducts = async () => {
