@@ -24,6 +24,9 @@ export const useCheckoutStore = defineStore('checkout', {
     apartment: '',
     postalCode: '',
     city: '',
+    // Delivery method
+    deliveryMethod: 'home' as 'home' | 'servicepoint',
+    selectedServicePoint: null as any | null,
     // Price
     backendTotal: 0,
     // Booking ID for tracking
@@ -115,6 +118,19 @@ export const useCheckoutStore = defineStore('checkout', {
       if (info.apartment !== undefined) this.apartment = info.apartment;
       if (info.postalCode !== undefined) this.postalCode = info.postalCode;
       if (info.city !== undefined) this.city = info.city;
+      this.logState();
+    },
+    setDeliveryMethod(method: 'home' | 'servicepoint') {
+      this.deliveryMethod = method;
+      // Clear service point if switching to home delivery
+      if (method === 'home') {
+        this.selectedServicePoint = null;
+      }
+      this.logState();
+    },
+    setSelectedServicePoint(servicePoint: any) {
+      this.selectedServicePoint = servicePoint;
+      this.deliveryMethod = 'servicepoint';
       this.logState();
     },
     setBackendTotal(total: number) {
