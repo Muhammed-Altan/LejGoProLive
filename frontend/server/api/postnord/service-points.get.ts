@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   try {
     const config = useRuntimeConfig()
     const query = getQuery(event)
-    const { postalCode, countryCode = 'DK', numberOfServicePoints = '10' } = query
+    const { postalCode, city, streetName, streetNumber, countryCode = 'DK', numberOfServicePoints = '10' } = query
 
     // Validation
     if (!postalCode || typeof postalCode !== 'string') {
@@ -23,7 +23,8 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check cache first (1 hour TTL for service points)
-    const cacheKey = createCacheKey('postnord-servicepoints', postalCode, countryCode as string)
+    // Include address in cache key for more specific results
+    const cacheKey = createCacheKey('postnord-servicepoints', postalCode, city as string || '', streetName as string || '', countryCode as string)
     const cachedData = apiCache.get(cacheKey)
     
     if (cachedData) {
@@ -44,7 +45,18 @@ export default defineEventHandler(async (event) => {
       responseFilter: 'public'
     })
 
-    console.log(`🔍 Fetching PostNord service points for postal code: ${postalCode}`)
+    // Add optional address parameters for more precise location
+    if (city) {
+      params.append('city', String(city))
+    }
+    if (streetName) {
+      params.append('streetName', String(streetName))
+    }
+    if (streetNumber) {
+      params.append('streetNumber', String(streetNumber))
+    }
+
+    console.log(`🔍 Fetching PostNord service points for: ${streetName || ''} ${streetNumber || ''}, ${postalCode} ${city || ''}`)
     
     const response = await fetch(`${apiUrl}?${params.toString()}`, {
       method: 'GET',

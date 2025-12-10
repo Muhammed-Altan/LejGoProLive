@@ -16,12 +16,22 @@ export interface ServicePoint {
   distance: number
 }
 
+export interface FetchServicePointsParams {
+  postalCode: string
+  city?: string
+  streetName?: string
+  streetNumber?: string
+  countryCode?: string
+}
+
 export const usePostNord = () => {
   const servicePoints = ref<ServicePoint[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  const fetchServicePoints = async (postalCode: string, countryCode: string = 'DK') => {
+  const fetchServicePoints = async (params: FetchServicePointsParams) => {
+    const { postalCode, city, streetName, streetNumber, countryCode = 'DK' } = params
+
     if (!postalCode || !/^\d{4}$/.test(postalCode)) {
       error.value = 'Invalid postal code'
       servicePoints.value = []
@@ -32,13 +42,20 @@ export const usePostNord = () => {
     error.value = null
 
     try {
+      const queryParams: Record<string, any> = {
+        postalCode,
+        countryCode,
+        numberOfServicePoints: 10
+      }
+
+      // Add optional address parameters
+      if (city) queryParams.city = city
+      if (streetName) queryParams.streetName = streetName
+      if (streetNumber) queryParams.streetNumber = streetNumber
+
       const response = await $fetch<{ success: boolean; data: ServicePoint[] }>('/api/postnord/service-points', {
         method: 'GET',
-        query: {
-          postalCode,
-          countryCode,
-          numberOfServicePoints: 10
-        }
+        query: queryParams
       })
 
       if (response.success && Array.isArray(response.data)) {

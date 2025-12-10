@@ -80,7 +80,12 @@
 	</form>
 
 	<!-- Service Point Selector -->
-	<ServicePointSelector v-if="isPostalCodeValid" :postal-code="postalCode" />
+	<ServicePointSelector 
+		v-if="isPostalCodeValid" 
+		:postal-code="postalCode" 
+		:city="city"
+		:address="address"
+	/>
 </template>
 
 <script setup>

@@ -46,7 +46,7 @@
 
 			<div v-else class="space-y-3">
 				<p class="text-sm text-gray-600 mb-3">
-					{{ servicePoints.length }} afhentningssteder nær {{ postalCode }}
+					{{ servicePoints.length }} afhentningssteder nær dig
 				</p>
 				
 				<div
@@ -93,17 +93,46 @@ import { watch } from 'vue'
 
 const props = defineProps<{
 	postalCode: string
+	city?: string
+	address?: string
 }>()
 
 const store = useCheckoutStore()
 const { servicePoints, loading, error, fetchServicePoints } = usePostNord()
 
-// Fetch service points when postal code changes
+// Parse street name and number from address
+const parseAddress = (address: string) => {
+	if (!address) return { streetName: '', streetNumber: '' }
+	
+	// Try to extract street number (last set of digits/letters)
+	const match = address.match(/^(.+?)\s+(\d+[a-zA-Z]*)$/)
+	if (match) {
+		return {
+			streetName: match[1].trim(),
+			streetNumber: match[2].trim()
+		}
+	}
+	
+	// If no number found, return the whole address as street name
+	return {
+		streetName: address.trim(),
+		streetNumber: ''
+	}
+}
+
+// Fetch service points when postal code, city, or address changes
 watch(
-	() => props.postalCode,
-	(newPostalCode) => {
-		if (newPostalCode && /^\d{4}$/.test(newPostalCode)) {
-			fetchServicePoints(newPostalCode)
+	() => [props.postalCode, props.city, props.address],
+	([newPostalCode, newCity, newAddress]) => {
+		if (newPostalCode && /^\d{4}$/.test(newPostalCode as string)) {
+			const { streetName, streetNumber } = parseAddress(newAddress as string || '')
+			
+			fetchServicePoints({
+				postalCode: newPostalCode as string,
+				city: newCity as string,
+				streetName,
+				streetNumber
+			})
 		}
 	},
 	{ immediate: true }
