@@ -86,6 +86,19 @@ export default defineNuxtConfig({
       ],
       script: [
         {
+          src: 'https://www.googletagmanager.com/gtag/js?id=G-BLPL60XBB8',
+          async: true
+        },
+        {
+          innerHTML: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-BLPL60XBB8');
+          `,
+          type: 'text/javascript'
+        },
+        {
           src: '/silktide-consent-manager.js'
         },
         {
