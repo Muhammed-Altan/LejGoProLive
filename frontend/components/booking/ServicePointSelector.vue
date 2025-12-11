@@ -44,40 +44,42 @@
 				Ingen afhentningssteder fundet for dit postnummer.
 			</div>
 
-			<div v-else class="space-y-3">
+			<div v-else>
 				<p class="text-sm text-gray-600 mb-3">
 					{{ servicePoints.length }} afhentningssteder nær dig
 				</p>
 				
-				<div
-					v-for="point in servicePoints"
-					:key="point.id"
-					@click="selectServicePoint(point)"
-					:class="[
-						'border rounded-lg p-4 cursor-pointer transition-all',
-						store.selectedServicePoint?.id === point.id
-							? 'border-blue-500 bg-blue-50'
-							: 'border-gray-300 hover:border-blue-300 hover:bg-gray-50'
-					]"
-				>
-					<div class="flex justify-between items-start">
-						<div class="flex-1">
-							<h4 class="font-semibold text-gray-900">{{ point.name }}</h4>
-							<p class="text-sm text-gray-600 mt-1">
-								{{ point.address.street }} {{ point.address.streetNumber }}
-							</p>
-							<p class="text-sm text-gray-600">
-								{{ point.address.postalCode }} {{ point.address.city }}
-							</p>
-							<p class="text-xs text-gray-500 mt-2">
-								📍 {{ formatDistance(point.distance) }}
-							</p>
-						</div>
-						<div
-							v-if="store.selectedServicePoint?.id === point.id"
-							class="text-blue-500 ml-4"
-						>
-							✓
+				<div class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+					<div
+						v-for="point in servicePoints"
+						:key="point.id"
+						@click="selectServicePoint(point)"
+						:class="[
+							'border rounded-lg p-4 cursor-pointer transition-all',
+							store.selectedServicePoint?.id === point.id
+								? 'border-blue-500 bg-blue-50'
+								: 'border-gray-300 hover:border-blue-300 hover:bg-gray-50'
+						]"
+					>
+						<div class="flex justify-between items-start">
+							<div class="flex-1">
+								<h4 class="font-semibold text-gray-900">{{ point.name }}</h4>
+								<p class="text-sm text-gray-600 mt-1">
+									{{ point.address.street }} {{ point.address.streetNumber }}
+								</p>
+								<p class="text-sm text-gray-600">
+									{{ point.address.postalCode }} {{ point.address.city }}
+								</p>
+								<p class="text-xs text-gray-500 mt-2">
+									📍 {{ formatDistance(point.distance) }}
+								</p>
+							</div>
+							<div
+								v-if="store.selectedServicePoint?.id === point.id"
+								class="text-blue-500 ml-4"
+							>
+								✓
+							</div>
 						</div>
 					</div>
 				</div>
