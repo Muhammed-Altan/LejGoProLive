@@ -442,9 +442,6 @@ export default defineEventHandler(async (event) => {
 
     console.log('Creating PensoPay payment:', { ...paymentData, apiKey: PENSOPAY_API_KEY ? '***' : 'missing' })
 
-    // 🧪 TEST MODE: Uncomment to simulate PensoPay failure and test rollback
-    throw new Error('TEST: Simulated PensoPay failure')
-
     const paymentResponse = await fetch(`${PENSOPAY_BASE_URL}/payments`, {
       method: 'POST',
       headers: {
@@ -515,47 +512,6 @@ export default defineEventHandler(async (event) => {
 
   } catch (error: any) {
     console.error('Payment creation error:', error)
-    
-    // ROLLBACK MECHANISM: Cancel any pending bookings if payment creation failed
-    try {
-      const body = await readBody(event).catch(() => null)
-      if (body?.bookingData?.email) {
-        console.log('🔄 Attempting to rollback pending bookings due to payment failure...')
-        
-        // Find all pending bookings for this user
-        const { data: pendingBookings } = await supabase
-          .from('Booking')
-          .select('id')
-          .eq('paymentStatus', 'pending')
-          .eq('email', body.bookingData.email)
-          .order('createdAt', { ascending: false })
-          .limit(10)
-        
-        if (pendingBookings && pendingBookings.length > 0) {
-          const bookingIdsToCancel = pendingBookings.map((b: any) => b.id)
-          
-          // Cancel the bookings
-          const { error: cancelError } = await supabase
-            .from('Booking')
-            .update({ 
-              paymentStatus: 'cancelled',
-              notes: 'Auto-cancelled: Payment creation failed - ' + new Date().toISOString()
-            })
-            .in('id', bookingIdsToCancel)
-          
-          if (cancelError) {
-            console.error('❌ Failed to rollback bookings:', cancelError)
-          } else {
-            console.log(`✅ Successfully rolled back ${bookingIdsToCancel.length} bookings`)
-          }
-        } else {
-          console.log('ℹ️ No pending bookings found to rollback')
-        }
-      }
-    } catch (rollbackError) {
-      console.error('❌ Error during rollback attempt:', rollbackError)
-      // Don't fail the error response if rollback fails
-    }
     
     if (error.statusCode) {
       throw error // Re-throw HTTP errors

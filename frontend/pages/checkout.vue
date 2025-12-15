@@ -39,6 +39,14 @@ const showPayment = computed(() => {
 });
 
 onMounted(async () => {
+  // Run cleanup of old pending bookings in background
+  try {
+    await $fetch('/api/cleanup-old-bookings');
+  } catch (error) {
+    // Silently fail - don't block checkout if cleanup fails
+    console.log('Cleanup skipped:', error);
+  }
+
   const productId = route.query.product;
   
   if (productId && typeof productId === 'string') {

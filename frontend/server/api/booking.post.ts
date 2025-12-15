@@ -265,20 +265,6 @@ export default defineEventHandler(async (event) => {
     }
   }
   
-  // Calculate camera-only pricing (without accessories)
-  const cameraPricing = calculatePricing(
-    enrichedModels,
-    [], // No accessories for camera pricing
-    booking.insurance,
-    booking.startDate,
-    booking.endDate
-  );
-  
-  console.log(`💰 Pricing breakdown:`)
-  console.log(`- Total with accessories: ${pricing.total} DKK`)
-  console.log(`- Camera only: ${cameraPricing.total} DKK`)
-  console.log(`- Accessories cost: ${pricing.total - cameraPricing.total} DKK`)
-
   for (const model of enrichedModels) {
     // Find cameras for this product
     const modelCameras = (allCameras || []).filter((c: any) => c.productId === model.productId);
@@ -307,8 +293,8 @@ export default defineEventHandler(async (event) => {
         fullName: '', // Will be set by payment API
         phone: '', // Will be set by payment API
         totalPrice: enrichedModels.length > 1 || enrichedModels.some(m => m.quantity > 1) 
-          ? Math.round((cameraPricing.total / enrichedModels.reduce((sum, m) => sum + m.quantity, 0)) * 100) // Convert DKK to øre, use camera-only price
-          : Math.round(cameraPricing.total * 100), // Convert DKK to øre, use camera-only price
+          ? Math.round((pricing.total / enrichedModels.reduce((sum, m) => sum + m.quantity, 0)) * 100) // Convert DKK to øre
+          : Math.round(pricing.total * 100), // Convert DKK to øre
         city: '', // Will be set by payment API
         orderId: null, // NULL initially, will be set by payment API to same value for all bookings
         paymentId: '', // Will be set by payment API
@@ -316,7 +302,8 @@ export default defineEventHandler(async (event) => {
         paidAt: null, // NULL until payment is confirmed
         postalCode: '', // Will be set by payment API
         return_processed: false, // Boolean field for return process (corrected field name)
-        accessoryInstanceIds: allocatedAccessoryInstances.length > 0 ? allocatedAccessoryInstances : null // Add accessories to all bookings
+        accessoryInstanceIds: allocatedAccessoryInstances.length > 0 ? allocatedAccessoryInstances : null, // Add accessories to all bookings
+        createdAt: new Date().toISOString() // Timestamp when booking is created
       };
       
       console.log(`📦 Debug - Booking record ${i + 1}:`, {

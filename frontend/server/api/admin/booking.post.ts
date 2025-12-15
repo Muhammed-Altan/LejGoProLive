@@ -229,7 +229,8 @@ export default defineEventHandler(async (event) => {
         paidAt: new Date().toISOString(),
         postalCode: booking.postalCode,
         return_processed: false,
-        accessoryInstanceIds: allocatedAccessoryInstances.length > 0 ? allocatedAccessoryInstances : null
+        accessoryInstanceIds: allocatedAccessoryInstances.length > 0 ? allocatedAccessoryInstances : null,
+        createdAt: new Date().toISOString() // Timestamp when booking is created
       };
       
       bookingRecords.push(bookingRecord);
