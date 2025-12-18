@@ -1,36 +1,10 @@
 <template>
 	<div class="bg-white rounded-xl p-4 border border-gray-200">
 		<div class="mb-4">
-			<h3 class="font-semibold text-lg mb-2">Vælg leveringsmetode</h3>
-			<div class="flex gap-4">
-				<button
-					type="button"
-					@click="store.setDeliveryMethod('home')"
-					:class="[
-						'flex-1 py-3 px-4 rounded-lg border-2 transition-all',
-						store.deliveryMethod === 'home'
-							? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold'
-							: 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-					]"
-				>
-					🏠 Hjemlevering
-				</button>
-				<button
-					type="button"
-					@click="store.setDeliveryMethod('servicepoint')"
-					:class="[
-						'flex-1 py-3 px-4 rounded-lg border-2 transition-all',
-						store.deliveryMethod === 'servicepoint'
-							? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold'
-							: 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-					]"
-				>
-					📦 Afhentningssted
-				</button>
-			</div>
+			<h3 class="font-semibold text-lg mb-2">Vælg afhentningssted</h3>
 		</div>
 
-		<div v-if="store.deliveryMethod === 'servicepoint'">
+		<div>
 			<div v-if="loading" class="text-center py-8 text-gray-600">
 				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2"></div>
 				<p>Henter afhentningssteder...</p>
@@ -91,7 +65,7 @@
 <script setup lang="ts">
 import { useCheckoutStore } from '@/stores/checkout'
 import { usePostNord } from '@/composables/usePostNord'
-import { watch } from 'vue'
+import { watch, onMounted } from 'vue'
 
 const props = defineProps<{
 	postalCode: string
@@ -121,6 +95,11 @@ const parseAddress = (address: string) => {
 		streetNumber: ''
 	}
 }
+
+// Set delivery method to servicepoint on mount
+onMounted(() => {
+	store.setDeliveryMethod('servicepoint')
+})
 
 // Fetch service points when postal code, city, or address changes
 watch(
