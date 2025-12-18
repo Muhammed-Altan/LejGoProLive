@@ -227,7 +227,10 @@ export const useCheckoutStore = defineStore('checkout', {
           totalPrice: typeof this.backendTotal === 'number' ? this.backendTotal : (parseFloat(this.backendTotal) || 0),
           // Store accessory instance IDs as JSONB array (after recreating column)
           accessoryInstanceIds: accessoryInstanceIds.length > 0 ? accessoryInstanceIds : null,
-          city: this.city
+          city: this.city,
+          postalCode: this.postalCode,
+          deliveryMethod: this.deliveryMethod,
+          selectedServicePoint: this.selectedServicePoint ? JSON.stringify(this.selectedServicePoint) : null
         };
         
         console.log('=== BOOKING DEBUG ===');
