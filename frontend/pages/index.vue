@@ -162,6 +162,123 @@
     </div>
   </section>
 
+  <!-- Why Rent GoPro Equipment Section -->
+  <section class="bg-gray-50 py-16">
+    <div class="max-w-6xl mx-auto px-4">
+      <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">
+        Hvorfor <span class="text-[#B8082A]">Leje</span> GoPro Udstyr?
+      </h2>
+      <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+        Oplev fordelene ved at leje professionelt GoPro udstyr i stedet for at købe. Få adgang til det nyeste udstyr uden den store investering.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">💰</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Økonomisk Smart</h3>
+          <p class="text-gray-600 text-center">
+            Spar tusindvis af kroner ved at leje i stedet for at købe. Perfekt til enkeltture, ferier eller specielle begivenheder. Få professionelt udstyr til en brøkdel af købsprisen.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">🎯</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Nyeste Teknologi</h3>
+          <p class="text-gray-600 text-center">
+            Få altid adgang til de nyeste GoPro modeller med de bedste funktioner. Vi opdaterer løbende vores udvalg, så du kan teste det nyeste udstyr uden forpligtelser.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">📦</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Komplet Pakke</h3>
+          <p class="text-gray-600 text-center">
+            Alle vores kameraer leveres med komplet tilbehør: beskyttelsescase, opladere, og memory cards. Du skal bare pakke ud og komme i gang med at filme.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">🚚</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Gratis Levering</h3>
+          <p class="text-gray-600 text-center">
+            Vi sender til hele Danmark uden ekstra omkostninger. Dit udstyr ankommer sikkert pakket til din nærmeste pakkeboks, klar til brug når du skal afsted.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">✅</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Kvalitet Garanteret</h3>
+          <p class="text-gray-600 text-center">
+            Alt vores udstyr er testet og kvalitetssikret før hver udlejning. Du kan være sikker på at få fuldt funktionelt professionelt udstyr hver gang.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">🔄</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Fleksible Perioder</h3>
+          <p class="text-gray-600 text-center">
+            Vælg den lejeperiode der passer dig - fra 3 dage til flere uger. Perfekt til både weekendture og længere rejser. Nem online booking.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Popular Use Cases Section -->
+  <section class="bg-white py-16">
+    <div class="max-w-6xl mx-auto px-4">
+      <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">
+        Populære <span class="text-[#B8082A]">Anvendelser</span>
+      </h2>
+      <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+        GoPro actionkameraer er perfekte til mange forskellige aktiviteter og eventyr. Se hvad andre bruger deres lejede GoPro til.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border-2 border-blue-100">
+          <div class="text-3xl mb-3">🏔️</div>
+          <h3 class="text-lg font-bold mb-2">Action Sport & Eventyr</h3>
+          <p class="text-gray-600 text-sm">
+            Perfekt til skiløb, snowboard, mountainbike, klatring og andre ekstreme sportsgrene. Fang dine vildeste stunts i fantastisk 4K kvalitet.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-green-50 to-white p-6 rounded-xl border-2 border-green-100">
+          <div class="text-3xl mb-3">🌊</div>
+          <h3 class="text-lg font-bold mb-2">Vandsport & Dykning</h3>
+          <p class="text-gray-600 text-sm">
+            Vandtæt op til 10 meter uden ekstra hus. Ideel til surfing, snorkling, dykning, kajak og andre vandaktiviteter. Fang undervandsverdenen i klar HD.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-orange-50 to-white p-6 rounded-xl border-2 border-orange-100">
+          <div class="text-3xl mb-3">✈️</div>
+          <h3 class="text-lg font-bold mb-2">Rejser & Ferie</h3>
+          <p class="text-gray-600 text-sm">
+            Dokumentér dine rejseoplevelser i høj kvalitet. Kompakt og let at pakke - perfekt companion til backpacking, city trips og eksotiske destinationer.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl border-2 border-purple-100">
+          <div class="text-3xl mb-3">🎬</div>
+          <h3 class="text-lg font-bold mb-2">Vlogging & Content Creation</h3>
+          <p class="text-gray-600 text-sm">
+            Skab professionelt indhold til YouTube, Instagram og TikTok. Fantastisk stabilisering og lyd gør det nemt at producere engaging video content.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-pink-50 to-white p-6 rounded-xl border-2 border-pink-100">
+          <div class="text-3xl mb-3">🎉</div>
+          <h3 class="text-lg font-bold mb-2">Events & Begivenheder</h3>
+          <p class="text-gray-600 text-sm">
+            Bryllupper, fødselsdage, festivals og koncerter. Fang de særlige øjeblikke fra unikke vinkler og skab minder der holder livet ud.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border-2 border-yellow-100">
+          <div class="text-3xl mb-3">🐕</div>
+          <h3 class="text-lg font-bold mb-2">Familie & Kæledyr</h3>
+          <p class="text-gray-600 text-sm">
+            Følg dine børn eller kæledyr på deres eventyr. Robust og sikker til aktive familieaktiviteter, legepladser og udforskning af naturen.
+          </p>
+        </div>
+      </div>
+      <div class="flex justify-center mt-10">
+        <NuxtLink to="/checkout" class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition cursor-pointer">
+          Book Dit GoPro Nu
+        </NuxtLink>
+      </div>
+    </div>
+  </section>
+
   <!-- FAQ Section -->
   <section class="bg-white py-16 ">
     <h2 class="text-2xl md:text-3xl font-bold text-center mb-12">Frequently asked <span class="text-[#B8082A]">questions.</span></h2>
@@ -207,10 +324,7 @@ useSeoMeta({
   
   // Additional SEO
   viewport: 'width=device-width, initial-scale=1',
-  charset: 'utf-8',
-  httpEquiv: {
-    'X-UA-Compatible': 'IE=edge'
-  }
+  charset: 'utf-8'
 })
 
 // Define the product interface to match Supabase table structure
