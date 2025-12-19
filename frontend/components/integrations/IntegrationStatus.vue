@@ -153,7 +153,7 @@
           </div>
           <div class="flex-1">
             <div class="flex items-center gap-2">
-              <h4 class="font-bold text-gray-900">API Seenrver</h4>
+              <h4 class="font-bold text-gray-900">API Server</h4>
               <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-200 text-green-800">
                 Aktiv
               </span>
