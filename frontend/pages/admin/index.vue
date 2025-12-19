@@ -10,29 +10,30 @@
                 Log ud
             </button>
         </div>
-        <div class="flex justify-center gap-4 mb-8">
+        <!-- Tab Navigation: Horizontal on desktop, 2x2 grid on mobile (at burger menu breakpoint) -->
+        <div class="flex flex-wrap justify-center gap-4 mb-8 lg:flex-nowrap">
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'products' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'products'"
             >Produkter</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'accessory' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'accessory'"
             >Tilbehør</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'orders' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'orders'"
             >Ordrer</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'inventory' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'inventory'"
             >Lager</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'integrations' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'integrations'"
             >Integrationer</button>
@@ -380,12 +381,21 @@
             <div class="max-w-4xl mx-auto py-8">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-semibold text-center">Ordrer</h2>
-                    <button 
-                        @click="fixBookingCameraIds" 
-                        class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
-                    >
-                        Distribute Bookings
-                    </button>
+                    <div class="flex gap-2">
+                        <button 
+                            @click="openAdminBooking" 
+                            type="button"
+                            class="bg-green-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-green-700 transition cursor-pointer text-sm"
+                        >
+                            Opret Booking
+                        </button>
+                        <button 
+                            @click="fixBookingCameraIds" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
+                        >
+                            Distribute Bookings
+                        </button>
+                    </div>
                 </div>
                 
                 <div v-if="groupedOrders.length === 0" class="text-center text-gray-500 py-12">
@@ -592,17 +602,6 @@
                                     </option>
                                 </select>
                             </div>
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <h4 class="font-semibold text-blue-800 mb-2">📋 Booking Information</h4>
-                                <div class="text-sm text-blue-700 space-y-1">
-                                    <div><strong>Nuværende produkt:</strong> {{ editBookingForm.productName || 'Ikke valgt' }}</div>
-                                    <div><strong>Nuværende kamera:</strong> {{ getCurrentCameraDisplay() }}</div>
-                                    <div><strong>Booking periode:</strong> Datoer redigeres på ordreniveau</div>
-                                    <div class="text-xs text-blue-600 mt-2">
-                                        💡 Tip: Datoer kan kun ændres via "Rediger ordre" for at sikre konsistens på tværs af alle kameraer i ordren.
-                                    </div>
-                                </div>
-                            </div>
                             <div class="flex flex-col">
                                 <label class="text-base font-semibold mb-1 text-gray-900">Tilbehør enheder (kommasepareret)</label>
                                 <input v-model="editBookingForm.accessoryInstanceIds" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" placeholder="fx: 1,2,3" />
@@ -687,42 +686,26 @@
 
         <div v-else-if="activeTab === 'integrations'">
             <div class="max-w-4xl mx-auto py-8">
-                <h2 class="text-2xl font-bold text-center mb-8 text-gray-900">Integrationer</h2>
-                <div class="space-y-6">
-                    <DineroAuth />
-                    
-                    <!-- Dinero API Test Section -->
-                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">Dinero API Test</h3>
-                        <div class="space-y-4">
-                            <button 
-                                @click="testDineroOAuth"
-                                class="bg-blue-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-700 transition"
-                                :disabled="testingOAuth"
-                            >
-                                {{ testingOAuth ? 'Testing OAuth...' : 'Test OAuth Authentication' }}
-                            </button>
-                            
-                            <div v-if="oauthTestResult" class="mt-4 p-4 rounded-lg" 
-                                 :class="oauthTestResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
-                                <h4 class="font-semibold" :class="oauthTestResult.success ? 'text-green-700' : 'text-red-700'">
-                                    {{ oauthTestResult.success ? 'Success!' : 'Error' }}
-                                </h4>
-                                <pre class="text-sm mt-2 whitespace-pre-wrap" :class="oauthTestResult.success ? 'text-green-600' : 'text-red-600'">{{ JSON.stringify(oauthTestResult, null, 2) }}</pre>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <IntegrationStatus />
             </div>
         </div>
     </div>
+    
+    <!-- Admin Booking Modal - Outside of tabs so it can render on any tab -->
+    <AdminBooking 
+        v-if="showAdminBookingModal" 
+        @close="closeAdminBooking"
+        @success="onAdminBookingSuccess"
+    />
+    
     <Footer />
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive } from 'vue';
 import ProductCalendar from '@/components/booking/ProductCalendar.vue';
-import DineroAuth from '@/components/integrations/DineroAuth.vue';
+import IntegrationStatus from '@/components/integrations/IntegrationStatus.vue';
+import AdminBooking from '@/components/admin/AdminBooking.vue';
 
 definePageMeta({
   middleware: 'admin'
@@ -1015,50 +998,6 @@ function formatDateRange(startDate: string, endDate: string): string {
     const start = new Date(startDate).toLocaleDateString('da-DK');
     const end = new Date(endDate).toLocaleDateString('da-DK');
     return `${start} - ${end}`;
-}
-
-// Test Dinero OAuth authentication
-async function testDineroOAuth() {
-    testingOAuth.value = true;
-    oauthTestResult.value = null;
-    
-    try {
-        const response = await $fetch('/api/dinero/test-oauth', {
-            method: 'POST'
-        });
-        
-        oauthTestResult.value = response;
-        
-        if ((response as any).success) {
-            toast.add({
-                title: 'OAuth Test Successful!',
-                description: `Found ${(response as any).organizationCount || 0} organization(s)`,
-                color: 'success',
-                ui: {
-                    title: 'text-gray-900 font-semibold',
-                    description: 'text-gray-700'
-                }
-            });
-        }
-    } catch (error: any) {
-        console.error('OAuth test error:', error);
-        oauthTestResult.value = {
-            success: false,
-            error: error.data?.message || error.message || 'Unknown error'
-        };
-        
-        toast.add({
-            title: 'OAuth Test Failed',
-            description: error.data?.message || 'Authentication test failed',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    } finally {
-        testingOAuth.value = false;
-    }
 }
 
 function updateCameraId() {
@@ -1754,8 +1693,6 @@ interface Booking {
 }
 const bookings = ref<Booking[]>([]);
 const creatingInvoice = ref<number | null>(null);
-const testingOAuth = ref(false);
-const oauthTestResult = ref<any>(null);
 
 // Helper function to convert øre to DKK if needed
 const convertToDKK = (amount: number) => {
@@ -1772,6 +1709,38 @@ const orderPriceDifference = ref(0);
 const originalOrderPrice = ref(0);
 const calculatingOrderPrice = ref(false);
 const showOrderInvoiceButton = ref(false);
+
+// Admin booking modal state
+const showAdminBookingModal = ref(false);
+
+// Open admin booking modal
+function openAdminBooking() {
+    console.log('🔵 openAdminBooking called - current modal state:', showAdminBookingModal.value);
+    showAdminBookingModal.value = true;
+    console.log('🟢 openAdminBooking - modal state after:', showAdminBookingModal.value);
+}
+
+// Close admin booking modal
+function closeAdminBooking() {
+    console.log('🔴 closeAdminBooking called');
+    showAdminBookingModal.value = false;
+}
+
+// Handler for successful admin booking
+const onAdminBookingSuccess = async () => {
+    showAdminBookingModal.value = false;
+    // Refresh bookings list
+    await fetchBookings();
+    toast.add({
+        title: 'Booking oprettet!',
+        description: 'Admin booking blev oprettet succesfuldt',
+        color: 'success',
+        ui: {
+            title: 'text-gray-900 font-semibold',
+            description: 'text-gray-700'
+        }
+    });
+};
 const editOrderForm = ref({
     baseOrderId: '',
     fullName: '',
