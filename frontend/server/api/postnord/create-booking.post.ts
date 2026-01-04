@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import QRCode from 'qrcode'
 import { authenticateAdmin } from '../../utils/adminAuth'
 import { createServerSupabaseClient } from '../../utils/supabase'
 
@@ -69,8 +70,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Prepare shipment data for PostNord API
-    const shipmentData = {
+    // Create OUTBOUND booking (Shop → Customer)
+    const outboundBookingData = {
       shipment: {
         sender: {
           name: process.env.SENDER_NAME || "LejGoPro",
@@ -92,27 +93,25 @@ export default defineEventHandler(async (event) => {
         },
         parcels: [
           {
-            weight: 5000, // Weight in grams (5kg default)
-            length: 40,   // Dimensions in cm
+            weight: 5000,
+            length: 40,
             width: 30,
             height: 20,
             contents: bookings.map(b => b.productName || 'GoPro').join(', ')
           }
         ],
-        serviceCode: "19", // PostNord MyPack Collect (to service point)
+        serviceCode: "19",
         additionalService: {
           servicePointId: servicePoint.id
         },
         orderNumber: orderId,
         reference: `Order ${orderId}`
-      },
-      labelFormat: "PDF",
-      layout: "A4"
+      }
     }
 
-    console.log('🔍 Creating PostNord outbound shipment:', JSON.stringify(shipmentData, null, 2))
+    console.log('🔍 Creating PostNord outbound booking:', JSON.stringify(outboundBookingData, null, 2))
 
-    // Call PostNord Business Shipping API for outbound label
+    // Call PostNord API to create booking (no label yet)
     const apiUrl = 'https://api2.postnord.com/rest/businessship/v5/shipments'
     
     const outboundResponse = await fetch(apiUrl, {
@@ -123,7 +122,7 @@ export default defineEventHandler(async (event) => {
         'apikey': String(config.postNordApiKey),
         'Consumer-ID': String(config.postNordConsumerId)
       },
-      body: JSON.stringify(shipmentData)
+      body: JSON.stringify(outboundBookingData)
     })
 
     if (!outboundResponse.ok) {
@@ -136,21 +135,20 @@ export default defineEventHandler(async (event) => {
     }
 
     const outboundShipment = await outboundResponse.json()
-    console.log('✅ Outbound shipment created:', outboundShipment)
+    console.log('✅ Outbound booking created:', outboundShipment)
 
-    // Extract outbound label data
-    const outboundLabelData = outboundShipment.labels?.[0]?.labelData
-    const trackingNumber = outboundShipment.items?.[0]?.shipmentNumber
+    const outboundShipmentId = outboundShipment.items?.[0]?.shipmentNumber
+    const outboundItemId = outboundShipment.items?.[0]?.itemId
 
-    if (!outboundLabelData) {
+    if (!outboundShipmentId) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'No outbound label data received from PostNord'
+        statusMessage: 'No shipment ID received from PostNord'
       })
     }
 
-    // Create RETURN shipment (customer → shop)
-    const returnShipmentData = {
+    // Create RETURN booking (Customer → Shop)
+    const returnBookingData = {
       shipment: {
         sender: {
           name: mainBooking.fullName || mainBooking.customerName,
@@ -185,12 +183,10 @@ export default defineEventHandler(async (event) => {
         },
         orderNumber: `${orderId}-RETURN`,
         reference: `Return ${orderId}`
-      },
-      labelFormat: "PDF",
-      layout: "A4"
+      }
     }
 
-    console.log('🔍 Creating PostNord return shipment:', JSON.stringify(returnShipmentData, null, 2))
+    console.log('🔍 Creating PostNord return booking:', JSON.stringify(returnBookingData, null, 2))
 
     const returnResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -200,31 +196,38 @@ export default defineEventHandler(async (event) => {
         'apikey': String(config.postNordApiKey),
         'Consumer-ID': String(config.postNordConsumerId)
       },
-      body: JSON.stringify(returnShipmentData)
+      body: JSON.stringify(returnBookingData)
     })
 
-    if (!returnResponse.ok) {
-      const errorText = await returnResponse.text()
-      console.error('❌ PostNord API error (return):', errorText)
-      // Continue even if return label fails - we have the outbound label
-      console.warn('⚠️ Return label failed, continuing with outbound label only')
-    }
-
-    let returnLabelData = null
-    let returnTrackingNumber = null
+    let returnShipmentId = null
+    let returnItemId = null
 
     if (returnResponse.ok) {
       const returnShipment = await returnResponse.json()
-      console.log('✅ Return shipment created:', returnShipment)
-      returnLabelData = returnShipment.labels?.[0]?.labelData
-      returnTrackingNumber = returnShipment.items?.[0]?.shipmentNumber
+      console.log('✅ Return booking created:', returnShipment)
+      returnShipmentId = returnShipment.items?.[0]?.shipmentNumber
+      returnItemId = returnShipment.items?.[0]?.itemId
+    } else {
+      console.warn('⚠️ Return booking failed, continuing with outbound only')
     }
 
-    // Convert base64 to buffers
-    const outboundLabelBuffer = Buffer.from(outboundLabelData, 'base64')
-    const returnLabelBuffer = returnLabelData ? Buffer.from(returnLabelData, 'base64') : null
+    // Generate QR codes for the shipment IDs
+    const outboundQRCode = await QRCode.toDataURL(outboundShipmentId, {
+      width: 300,
+      margin: 2,
+      errorCorrectionLevel: 'H'
+    })
 
-    // Send label via email to admin
+    let returnQRCode = null
+    if (returnShipmentId) {
+      returnQRCode = await QRCode.toDataURL(returnShipmentId, {
+        width: 300,
+        margin: 2,
+        errorCorrectionLevel: 'H'
+      })
+    }
+
+    // Send QR codes via email to admin
     const transporter = nodemailer.createTransport({
       host: 'smtp.simply.com',
       port: 587,
@@ -240,47 +243,39 @@ export default defineEventHandler(async (event) => {
 
     const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER
 
-    // Prepare email attachments
-    const attachments = [
-      {
-        filename: `postnord-outbound-${orderId}.pdf`,
-        content: outboundLabelBuffer,
-        contentType: 'application/pdf'
-      }
-    ]
-
-    if (returnLabelBuffer) {
-      attachments.push({
-        filename: `postnord-return-${orderId}.pdf`,
-        content: returnLabelBuffer,
-        contentType: 'application/pdf'
-      })
-    }
-
     const mailOptions = {
       from: `"LejGoPro" <${process.env.EMAIL_USER}>`,
       to: adminEmail,
-      subject: `PostNord Shipping Labels - Order ${orderId}`,
+      subject: `PostNord Booking QR Codes - Order ${orderId}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>PostNord Shipping Labels</h2>
-          <p>Shipping labels have been generated for order <strong>${orderId}</strong>.</p>
+          <h2>📦 PostNord Booking QR Codes</h2>
+          <p>QR codes have been generated for order <strong>${orderId}</strong>.</p>
           
+          <div style="background-color: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="margin-top: 0;">✨ How to use:</h4>
+            <p>Print these QR codes and attach them to the packages. When you bring the packages to the PostNord service point, staff will scan the QR codes and print the shipping labels directly.</p>
+          </div>
+
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3>📤 Outbound Shipment (Shop → Customer)</h3>
+            <div style="text-align: center; padding: 20px; background: white; border-radius: 8px; margin: 15px 0;">
+              <img src="${outboundQRCode}" alt="Outbound QR Code" style="max-width: 300px; width: 100%;"/>
+              <p style="margin: 15px 0 5px 0; font-weight: bold;">Shipment ID: ${outboundShipmentId}</p>
+              <p style="margin: 0; color: #666; font-size: 14px;">Print this and attach to package</p>
+            </div>
+            
+            ${returnQRCode ? `
+            <h3>🔄 Return Shipment (Customer → Shop)</h3>
+            <div style="text-align: center; padding: 20px; background: white; border-radius: 8px; margin: 15px 0;">
+              <img src="${returnQRCode}" alt="Return QR Code" style="max-width: 300px; width: 100%;"/>
+              <p style="margin: 15px 0 5px 0; font-weight: bold;">Shipment ID: ${returnShipmentId}</p>
+              <p style="margin: 0; color: #666; font-size: 14px;">Include this inside package for customer</p>
+            </div>
+            ` : '<p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 5px;">⚠️ Return booking failed. You may need to create it separately.</p>'}
+          </div>
+
           <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3>📦 Outbound Label (Shop → Customer)</h3>
-            <ul>
-              <li><strong>Tracking Number:</strong> ${trackingNumber || 'N/A'}</li>
-              <li><strong>Status:</strong> Ready to ship</li>
-            </ul>
-            
-            ${returnTrackingNumber ? `
-            <h3>🔄 Return Label (Customer → Shop)</h3>
-            <ul>
-              <li><strong>Tracking Number:</strong> ${returnTrackingNumber}</li>
-              <li><strong>Status:</strong> Include in package for customer</li>
-            </ul>
-            ` : '<p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 5px;">⚠️ Return label generation failed. You may need to create it manually.</p>'}
-            
             <h3>Order Details:</h3>
             <ul>
               <li><strong>Customer:</strong> ${mainBooking.fullName}</li>
@@ -300,32 +295,38 @@ export default defineEventHandler(async (event) => {
               ${bookings.map(b => `<li>${b.productName || 'GoPro'}</li>`).join('')}
             </ul>
           </div>
-          
-          <div style="background-color: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h4 style="margin-top: 0;">📋 Instructions:</h4>
+
+          <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="margin-top: 0;">📋 Step-by-Step Instructions:</h4>
             <ol style="margin: 10px 0; padding-left: 20px;">
-              <li>Print both labels attached to this email</li>
-              <li>Attach the <strong>outbound label</strong> to the outside of the package</li>
-              <li>Include the <strong>return label</strong> inside the package for the customer</li>
-              <li>Drop off at any PostNord location</li>
+              <li><strong>Print</strong> both QR codes from this email</li>
+              <li><strong>Outbound QR:</strong> Attach to the outside of the package</li>
+              <li><strong>Return QR:</strong> Include inside the package for customer</li>
+              <li><strong>Bring package</strong> to <strong>${servicePoint.name}</strong></li>
+              <li><strong>PostNord staff scan</strong> the QR code and print the label</li>
+              <li>They will attach the printed label to your package</li>
             </ol>
+            <p style="margin: 10px 0 0 0;"><strong>No need to print labels yourself! 🎉</strong></p>
           </div>
           
           <p style="color: #666; font-size: 12px; margin-top: 30px;">
             This is an automated message from LejGoPro.
           </p>
         </div>
-      `,
-      attachments
+      `
     }
 
     const emailResult = await transporter.sendMail(mailOptions)
-    console.log('✅ Label email sent:', emailResult.messageId)
+    console.log('✅ QR codes email sent:', emailResult.messageId)
 
-    // Update booking with tracking numbers
-    const trackingData: any = { trackingNumber }
-    if (returnTrackingNumber) {
-      trackingData.returnTrackingNumber = returnTrackingNumber
+    // Update booking with shipment IDs
+    const trackingData: any = { 
+      trackingNumber: outboundShipmentId,
+      postNordItemId: outboundItemId
+    }
+    if (returnShipmentId) {
+      trackingData.returnTrackingNumber = returnShipmentId
+      trackingData.returnPostNordItemId = returnItemId
     }
 
     await supabase
@@ -335,19 +336,19 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      message: returnLabelBuffer 
-        ? 'Outbound and return labels created and sent to admin email'
-        : 'Outbound label created and sent to admin email (return label failed)',
-      trackingNumber,
-      returnTrackingNumber,
+      message: returnQRCode 
+        ? 'QR codes for outbound and return shipments sent to admin email'
+        : 'QR code for outbound shipment sent to admin email (return booking failed)',
+      outboundShipmentId,
+      returnShipmentId,
       emailSent: true
     }
 
   } catch (error: any) {
-    console.error('❌ Error creating shipment:', error)
+    console.error('❌ Error creating booking:', error)
     throw createError({
       statusCode: error.statusCode || 500,
-      statusMessage: error.statusMessage || error.message || 'Failed to create shipping label'
+      statusMessage: error.statusMessage || error.message || 'Failed to create booking'
     })
   }
 })

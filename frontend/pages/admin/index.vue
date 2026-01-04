@@ -428,10 +428,17 @@
                                     </button>
                                     <button 
                                         class="bg-purple-600 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-purple-700 transition" 
+                                        @click="createShippingQRCode(order.baseOrderId)" 
+                                        :disabled="creatingQRCode === order.baseOrderId"
+                                    >
+                                        {{ creatingQRCode === order.baseOrderId ? 'Opretter...' : '📱 QR Kode' }}
+                                    </button>
+                                    <button 
+                                        class="bg-purple-500 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-purple-600 transition" 
                                         @click="createShippingLabel(order.baseOrderId)" 
                                         :disabled="creatingLabel === order.baseOrderId"
                                     >
-                                        {{ creatingLabel === order.baseOrderId ? 'Opretter...' : '📦 Forsendelseslabel' }}
+                                        {{ creatingLabel === order.baseOrderId ? 'Opretter...' : '🖨️ Print Labels' }}
                                     </button>
                                     <button 
                                         class="bg-green-600 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-green-700 transition" 
@@ -1762,6 +1769,7 @@ interface Booking {
 const bookings = ref<Booking[]>([]);
 const creatingInvoice = ref<number | null>(null);
 const creatingLabel = ref<number | null>(null);
+const creatingQRCode = ref<number | null>(null);
 const testingOAuth = ref(false);
 const oauthTestResult = ref<any>(null);
 
@@ -2115,7 +2123,48 @@ async function deleteOrder(order: any) {
     }
 }
 
-// Create combined invoice for entire order
+// Create combined booking with QR codes
+async function createShippingQRCode(orderId: number) {
+    creatingQRCode.value = orderId;
+    
+    try {
+        console.log('📱 Creating QR codes for order:', orderId);
+        
+        const response = await $fetch('/api/postnord/create-booking', {
+            method: 'POST',
+            body: { orderId }
+        });
+        
+        if (response.success) {
+            toast.add({
+                title: 'QR koder oprettet!',
+                description: `QR koder sendt til admin email. Bring pakken til PostNord og de printer labelen når de scanner koden.`,
+                color: 'success',
+                ui: {
+                    title: 'text-gray-900 font-semibold',
+                    description: 'text-gray-700'
+                }
+            });
+        } else {
+            throw new Error('Kunne ikke oprette QR koder');
+        }
+    } catch (error: any) {
+        console.error('Error creating QR codes:', error);
+        toast.add({
+            title: 'Fejl ved oprettelse af QR koder',
+            description: error.data?.statusMessage || error.message || 'Kunne ikke oprette QR koder. Prøv igen.',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    } finally {
+        creatingQRCode.value = null;
+    }
+}
+
+// Create PostNord invoice for entire order
 // Create PostNord shipping label
 async function createShippingLabel(orderId: number) {
     creatingLabel.value = orderId;
