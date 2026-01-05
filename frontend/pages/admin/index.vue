@@ -2130,9 +2130,12 @@ async function createShippingQRCode(orderId: number) {
     try {
         console.log('📱 Creating QR codes for order:', orderId);
         
-        const response = await $fetch('/api/postnord/create-booking', {
+        const response = await auth.authenticatedFetch('/api/postnord/create-booking', {
             method: 'POST',
-            body: { orderId }
+            body: JSON.stringify({ orderId }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
         
         if (response.success) {
@@ -2172,9 +2175,12 @@ async function createShippingLabel(orderId: number) {
     try {
         console.log('📦 Creating shipping label for order:', orderId);
         
-        const response = await $fetch('/api/postnord/create-shipment', {
+        const response = await auth.authenticatedFetch('/api/postnord/create-shipment', {
             method: 'POST',
-            body: { orderId }
+            body: JSON.stringify({ orderId }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
         
         if (response.success) {

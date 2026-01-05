@@ -69,8 +69,6 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'No service point selected for this order. Please select a pickup location.'
       })
     }
-
-    // Create OUTBOUND booking (Shop → Customer)
     const outboundBookingData = {
       shipment: {
         sender: {
