@@ -483,6 +483,10 @@
                                                     @click="openEditBooking(booking)">
                                                 Rediger
                                             </button>
+                                            <button class="bg-red-500 text-white px-2 py-1 rounded text-xs cursor-pointer hover:bg-red-600 transition" 
+                                                    @click="deleteBooking(booking.id)">
+                                                Slet
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -2050,13 +2054,19 @@ async function submitAddCamera() {
         
         toast.add({
             title: 'Kamera tilføjet!',
-            description: `${addCameraForm.value.productName} blev tilføjet til ordre ${addCameraForm.value.baseOrderId}`,
+            description: `${addCameraForm.value.productName} blev tilføjet til ordre ${addCameraForm.value.baseOrderId}. Betalingslink er sendt til ${addCameraForm.value.customerInfo.email}`,
             color: 'success',
+            timeout: 8000,
             ui: {
                 title: 'text-gray-900 font-semibold',
                 description: 'text-gray-700'
             }
         });
+
+        // Log payment details if available
+        if (response.data?.paymentUrl) {
+            console.log('💳 Payment link created:', response.data.paymentUrl);
+        }
         
         // Close modal and refresh bookings
         closeAddCameraModal();

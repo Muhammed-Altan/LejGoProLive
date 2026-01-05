@@ -44,36 +44,28 @@
       />
     </div>
     <div class="flex flex-wrap justify-center gap-8 my-12 max-w-7xl mx-auto">
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a6b3e1087b3473f/663a841c2a72d93452178ba2/01-pdp-h12b-handler-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro grip håndtag til stabil actionkamera optagelse - professionelt tilbehør" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Grip</h4>
-        <p class="text-sm text-gray-600 text-center">Stabilt håndtag til actionoptagelser og nem håndtering af kameraet.</p>
+      <div 
+        v-for="accessory in accessories" 
+        :key="accessory.id" 
+        class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8"
+        :class="accessory.includedByDefault ? 'relative' : ''"
+      >
+        <span v-if="accessory.includedByDefault" class="absolute top-3 right-3 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Inkluderet</span>
+        <img 
+          :src="accessory.imageUrl || placeholderImage" 
+          :alt="`GoPro ${accessory.name} - ${accessory.description}`" 
+          class="w-24 h-24 object-cover rounded-lg mb-3" 
+          loading="lazy" 
+        />
+        <h4 class="text-lg font-bold mb-1">{{ accessory.name }}</h4>
+        <p class="text-sm text-gray-600 text-center">{{ accessory.description }}</p>
       </div>
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a3f356761a12e6d/6465f1c79cb8cadbd353f013/pdp-max-enduro-battery-image01-1920-2x.png?width=400&quality=90&auto=webp" alt="GoPro ekstra batteri til forlænget optagetid - actionkamera tilbehør leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Ekstra batteri</h4>
-        <p class="text-sm text-gray-600 text-center">Sørger for ekstra strøm, så du kan optage længere tid uden afbrydelser.</p>
-      </div>
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt5028e412643854ae/65cbdc3afcd8646428eec8a5/01-pdp-h12b-headstrap-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro headstrap hovedrem til hands-free POV optagelser - perfekt til sport" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Headstrap</h4>
-        <p class="text-sm text-gray-600 text-center">Monter kameraet på hovedet for hands-free POV-optagelser.</p>
-      </div>
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/bltbc6b778286c13383/64ccd3c131eb6a3cbbd4c86f/01-pdp-h12b-chesty-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro brystmount til sport og aktiviteter - actionkamera fæstning leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Brystmount</h4>
-        <p class="text-sm text-gray-600 text-center">Perfekt til sport og aktiviteter, hvor du vil have kameraet tæt på kroppen.</p>
-      </div>
+      <!-- Hardcoded Beskyttelsescase - always included -->
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8 relative">
         <span class="absolute top-3 right-3 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Inkluderet</span>
         <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt412da0ad3ddaa0f6/64835bbbcc30bb258ab04e57/pdp-protective-housing-image03-1920-2x.png?width=400&quality=90&auto=webp" alt="GoPro beskyttelsescase vandtæt etui - robust beskyttelse mod stød og vand" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Beskyttelsescase</h4>
         <p class="text-sm text-gray-600 text-center">Robust etui der beskytter kameraet mod stød, vand og snavs.</p>
-      </div>
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt865a9a20edc4b79b/663a899c8447cbcee89cb5a8/01-pdp-h12b-suction-cup-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro sugekop til bilruder og glatte overflader - actionkamera mount leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Sugekop til ruder</h4>
-        <p class="text-sm text-gray-600 text-center">Fastgør kameraet sikkert til bilruder og glatte overflader for unikke vinkler.</p>
       </div>
     </div>
     <Footer />
@@ -97,8 +89,20 @@ interface Product {
   imageUrl?: string;
 }
 
+// Define the accessory interface
+interface Accessory {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  imageUrl?: string;
+  includedByDefault?: boolean;
+}
+
 // Reactive state
 const products = ref<Product[]>([]);
+const accessories = ref<Accessory[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/blt6ff9ada3eca94bbc/643ee100b1f4db27b0203e9d/pdp-h10-image01-1920-2x.png';
@@ -183,8 +187,32 @@ const fetchProducts = async () => {
   }
 };
 
+// Fetch accessories from Supabase
+const fetchAccessories = async () => {
+  try {
+    if (!supabase) {
+      throw new Error('Supabase client ikke tilgængelig');
+    }
+    
+    const { data, error: supabaseError } = await supabase
+      .from('Accessory')
+      .select('*')
+      .order('id', { ascending: true });
+    
+    if (supabaseError) {
+      throw supabaseError;
+    }
+    
+    accessories.value = data || [];
+    console.log('Accessories loaded:', accessories.value.length);
+  } catch (err: any) {
+    console.error('Error fetching accessories:', err);
+  }
+};
+
 // Fetch products on component mount
 onMounted(() => {
   fetchProducts();
+  fetchAccessories();
 });
 </script>

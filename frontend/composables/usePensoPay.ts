@@ -47,7 +47,7 @@ export const usePensoPay = () => {
   
   // Enable test mode for development
   // const isTestMode = process.env.NODE_ENV !== 'production' // Commented out for production
-  const isTestMode = false // Production mode
+  const isTestMode = true // Production mode
 
   // Note: This function is deprecated - use server-side /api/payment/create instead
   const createPayment = async (paymentData: CreatePaymentRequest): Promise<CreatePaymentResponse | null> => {
