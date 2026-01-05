@@ -415,7 +415,7 @@ export default defineEventHandler(async (event) => {
     const referenceBooking = existingBookings[0]
 
     // const isTestMode = true // TEST MODE: Use test cards for testing
-    const isTestMode = false // Production mode
+    const isTestMode = true // Production mode
 
     const paymentData = {
       order_id: orderId,

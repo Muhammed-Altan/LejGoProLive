@@ -44,7 +44,9 @@ export default defineEventHandler(async (event) => {
       hasEndDate: !!bookingData.endDate,
       isUpdate: bookingData.isUpdate,
       priceDifference: bookingData.priceDifference,
-      paymentUrl: bookingData.paymentUrl
+      paymentUrl: bookingData.paymentUrl,
+      paymentUrlType: typeof bookingData.paymentUrl,
+      paymentUrlLength: bookingData.paymentUrl ? bookingData.paymentUrl.length : 0
     })
 
     // Validate required fields with detailed error messages
@@ -144,7 +146,9 @@ export default defineEventHandler(async (event) => {
       from: `"${process.env.EMAIL_FROM_NAME || 'LejGoPro Team'}" <${process.env.EMAIL_USER}>`,
       to: bookingData.customerEmail,
       bcc: process.env.EMAIL_USER, // Send copy to sender for records
-      subject: `Faktura - Order #${bookingData.orderNumber}`,
+      subject: bookingData.paymentUrl 
+        ? `Betalingslink - Order #${bookingData.orderNumber}`
+        : `Faktura - Order #${bookingData.orderNumber}`,
       html: htmlContent,
       attachments: [
         {
@@ -154,6 +158,9 @@ export default defineEventHandler(async (event) => {
         }
       ]
     }
+
+    console.log('📧 Email subject line:', mailOptions.subject);
+    console.log('📧 Has payment URL?', !!bookingData.paymentUrl);
 
     console.log('📧 Email options configured:', {
       from: mailOptions.from,
@@ -285,14 +292,20 @@ function generateEmailHTML(booking: BookingData): string {
     <body>
       <div class="header">
         <h1>lejgopro</h1>
-        <h2>Faktura</h2>
+        <h2>${booking.paymentUrl ? 'Betalingsanmodning' : 'Faktura'}</h2>
         <p>Order #${booking.orderNumber}</p>
       </div>
       
       <div class="content">
         <p>Kære ${booking.customerName},</p>
         
-        <p>Tak for din booking hos LejGoPro! Du finder din faktura vedhæftet som PDF.</p>
+        ${booking.paymentUrl ? `
+          <p style="font-weight: bold; color: #dc2626; background-color: #fee2e2; padding: 12px; border-radius: 5px; border-left: 4px solid #dc2626;">
+            BETALING PÅKRÆVET: Denne email er en betalingsanmodning, ikke en kvittering. Du skal gennemføre betalingen via linket nedenfor.
+          </p>
+        ` : `
+          <p>Tak for din booking hos LejGoPro! Du finder din faktura vedhæftet som PDF.</p>
+        `}
         
         <div class="highlight">
           <h3>Booking detaljer:</h3>
@@ -302,24 +315,26 @@ function generateEmailHTML(booking: BookingData): string {
         </div>
 
         ${booking.isUpdate ? `
-          <div class="highlight" style="border-left: 4px solid #f59e0b; background-color: #fffbeb;">
-            <h3 style="color: #d97706;">📋 BOOKING OPDATERING</h3>
+          <div class="highlight" style="border-left: 4px solid #3b82f6; background-color: #eff6ff;">
+            <h3 style="color: #1e40af;">Booking opdatering</h3>
             ${booking.priceDifference && booking.priceDifference > 0 ? `
-              <p style="color: #dc2626;"><strong>YDERLIGERE BETALING PÅKRÆVET:</strong> ${formatCurrency(booking.priceDifference)}</p>
+              <p style="color: #dc2626;"><strong>Yderligere betaling påkrævet:</strong> ${formatCurrency(booking.priceDifference)}</p>
             ` : ''}
             ${booking.priceDifference && booking.priceDifference < 0 ? `
-              <p style="color: #059669;"><strong>REFUNDERINGSBELØB:</strong> ${formatCurrency(Math.abs(booking.priceDifference))}</p>
+              <p style="color: #059669;"><strong>Refunderingsbeløb:</strong> ${formatCurrency(Math.abs(booking.priceDifference))}</p>
             ` : ''}
             ${booking.paymentUrl ? `
-              <div style="margin: 15px 0; padding: 15px; background-color: #dbeafe; border-radius: 5px; border: 2px solid #3b82f6;">
-                <h4 style="color: #1e40af; margin: 0 0 10px 0;">💳 BETALINGSLINK</h4>
-                <p style="margin: 5px 0;">For at gennemføre betalingen af det yderligere beløb, brug venligst dette sikre link:</p>
-                <p style="margin: 10px 0;">
-                  <a href="${booking.paymentUrl}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    BETAL NU - ${formatCurrency(booking.priceDifference || 0)}
+              <div style="margin: 15px 0; padding: 20px; background-color: #eff6ff; border-radius: 8px; border: 3px solid #2563eb;">
+                <h4 style="color: #000; margin: 0 0 10px 0; font-size: 18px;">Handling påkrævet - Betal nu</h4>
+                <p style="margin: 5px 0; font-size: 15px; color: #333;">Din booking er <strong>ikke gennemført</strong> før betalingen er modtaget.</p>
+                <p style="margin: 10px 0; font-size: 15px; color: #333;">Klik på knappen nedenfor for at gennemføre betalingen på <strong>${formatCurrency(booking.priceDifference || 0)}</strong>:</p>
+                <p style="margin: 15px 0; text-align: center;">
+                  <a href="${booking.paymentUrl}" style="display: inline-block; background-color: #16a34a; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    Gennemfør betaling - ${formatCurrency(booking.priceDifference || 0)}
                   </a>
                 </p>
-                <p style="margin: 5px 0; color: #dc2626; font-size: 14px;"><strong>VIGTIGT:</strong> Dette link udløber om 10 minutter. Gennemfør venligst din betaling hurtigt.</p>
+                <p style="margin: 10px 0; color: #000; font-size: 14px; font-weight: bold; text-align: center;">Vigtigt: Betalingslinket udløber om 10 minutter!</p>
+                <p style="margin: 5px 0; color: #666; font-size: 13px; text-align: center;">Du vil modtage en kvittering efter gennemført betaling.</p>
               </div>
             ` : ''}
           </div>
@@ -333,7 +348,11 @@ function generateEmailHTML(booking: BookingData): string {
           </div>
         ` : ''}
         
-        <p>Hvis du har spørgsmål til din faktura, er du velkommen til at kontakte os.</p>
+        ${booking.paymentUrl ? `
+          <p style="color: #666;">Har du spørgsmål til betalingen? Kontakt os på <a href="mailto:kontakt@lejgopro.dk">kontakt@lejgopro.dk</a></p>
+        ` : `
+          <p>Hvis du har spørgsmål til din faktura, er du velkommen til at kontakte os.</p>
+        `}
         
         <div class="footer">
           <p>Med venlig hilsen<br><strong>LejGoPro Team</strong></p>
