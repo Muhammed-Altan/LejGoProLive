@@ -726,10 +726,55 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- PostNord Test Section -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">PostNord QR Test</h3>
+                        <div class="space-y-4">
+                            <p class="text-sm text-gray-600">Generer en test QR-kode til dokumentation/rapport formål.</p>
+                            <button 
+                                @click="generateTestQRCode"
+                                class="bg-yellow-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-yellow-700 transition"
+                            >
+                                📱 Generer Test QR-kode
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Test QR Code Modal -->
+    <div v-if="showTestQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="closeTestQRModal">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-900">PostNord Test QR-kode</h3>
+                <button @click="closeTestQRModal" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
+            </div>
+            
+            <div class="text-center space-y-4">
+                <div v-if="testQRCodeData" class="bg-gray-50 p-6 rounded-lg">
+                    <img :src="testQRCodeData" alt="Test QR Code" class="mx-auto max-w-full" style="width: 300px; height: 300px;" />
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-sm text-blue-800 font-semibold">Tracking nummer:</p>
+                    <p class="text-lg text-blue-900 font-mono">12345678901234</p>
+                </div>
+                
+                <p class="text-sm text-gray-600">Dette er en test QR-kode til dokumentation formål.</p>
+                
+                <button 
+                    @click="closeTestQRModal"
+                    class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-gray-700 transition"
+                >
+                    Luk
+                </button>
+            </div>
+        </div>
+    </div>
+
     <Footer />
 </template>
 
@@ -1073,6 +1118,42 @@ async function testDineroOAuth() {
     } finally {
         testingOAuth.value = false;
     }
+}
+
+async function generateTestQRCode() {
+    try {
+        // Import QRCode dynamically (client-side only)
+        const QRCode = (await import('qrcode')).default;
+        
+        // Generate a dummy PostNord tracking number
+        const dummyTrackingNumber = '12345678901234';
+        
+        // Generate QR code as data URL
+        testQRCodeData.value = await QRCode.toDataURL(dummyTrackingNumber, {
+            width: 300,
+            margin: 2,
+            errorCorrectionLevel: 'H'
+        });
+        
+        showTestQRModal.value = true;
+        
+    } catch (error: any) {
+        console.error('Error generating test QR code:', error);
+        toast.add({
+            title: 'Fejl',
+            description: 'Kunne ikke generere test QR-kode',
+            color: 'error',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+    }
+}
+
+function closeTestQRModal() {
+    showTestQRModal.value = false;
+    testQRCodeData.value = null;
 }
 
 function updateCameraId() {
@@ -1772,6 +1853,8 @@ const creatingLabel = ref<number | null>(null);
 const creatingQRCode = ref<number | null>(null);
 const testingOAuth = ref(false);
 const oauthTestResult = ref<any>(null);
+const showTestQRModal = ref(false);
+const testQRCodeData = ref<string | null>(null);
 
 // Helper function to convert øre to DKK if needed
 const convertToDKK = (amount: number) => {
