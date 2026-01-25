@@ -239,11 +239,9 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER
-
     const mailOptions = {
       from: `"LejGoPro" <${process.env.EMAIL_USER}>`,
-      to: adminEmail,
+      to: 'Kontakt@lejgopro.dk',
       subject: `PostNord Booking QR Codes - Order ${orderId}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
