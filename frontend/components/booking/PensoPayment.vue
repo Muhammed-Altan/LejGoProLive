@@ -344,12 +344,47 @@ const initiatePayment = async () => {
     // Check multiple places where the error message might be
     const errorMessage = err.statusMessage || err.message || err.data?.message || err.cause?.statusMessage || ''
     
+    // Provide user-friendly error messages based on error type
     if (errorMessage.includes('ACCESSORY_UNAVAILABLE:')) {
       const accessories = errorMessage.replace(/.*ACCESSORY_UNAVAILABLE:/, '').trim()
-      error.value = `Fejl ved betaling: ${accessories}.`
+      error.value = `Desværre er følgende udstyr ikke længere tilgængeligt: ${accessories}. Prøv venligst at justere din booking.`
+    } else if (errorMessage.includes('timed out') || errorMessage.includes('timeout')) {
+      error.value = 'Anmodningen tog for lang tid. Tjek venligst din internetforbindelse og prøv igen.'
+    } else if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
+      error.value = 'Netværksfejl. Tjek venligst din internetforbindelse og prøv igen.'
+    } else if (errorMessage.includes('CAMERA_UNAVAILABLE')) {
+      error.value = 'Desværre er der ikke flere kameraer tilgængelige i den valgte periode. Prøv venligst en anden dato.'
+    } else if (err.statusCode === 400) {
+      error.value = 'Ugyldig booking information. Tjek venligst alle felter og prøv igen.'
+    } else if (err.statusCode === 500) {
+      error.value = 'Der opstod en serverfejl. Prøv igen om lidt eller kontakt os hvis problemet fortsætter.'
     } else {
-      error.value = errorMessage || 'Betalingen kunne ikke oprettes. Prøv igen.'
+      error.value = errorMessage || 'Betalingen kunne ikke oprettes. Prøv venligst igen om lidt. Hvis problemet fortsætter, kontakt os venligst.'
     }
+    
+    // Log error for monitoring (can be extended to send to server)
+    console.error('Payment error logged:', {
+      timestamp: new Date().toISOString(),
+      error: errorMessage,
+      userEmail: store.email,
+      orderDetails: {
+        models: store.selectedModels?.length || 0,
+        accessories: store.selectedAccessories?.length || 0,
+        startDate: store.startDate,
+        endDate: store.endDate
+      }
+    })
+    
+    // Log error to server for monitoring (could add error tracking service here)
+    console.error('Payment error logged for monitoring:', {
+      timestamp: new Date().toISOString(),
+      error: errorMessage,
+      userEmail: store.email,
+      orderDetails: {
+        models: store.selectedModels?.length,
+        accessories: store.selectedAccessories?.length
+      }
+    })
   } finally {
     loading.value = false
   }

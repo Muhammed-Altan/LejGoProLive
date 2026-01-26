@@ -101,36 +101,28 @@
       />
     </div>
     <div class="flex flex-wrap justify-center gap-8 my-12 max-w-7xl mx-auto">
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a6b3e1087b3473f/663a841c2a72d93452178ba2/01-pdp-h12b-handler-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro grip håndtag til stabil actionkamera optagelse - professionelt tilbehør" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Grip</h4>
-        <p class="text-sm text-gray-600 text-center">Stabilt håndtag til actionoptagelser og nem håndtering af kameraet.</p>
+      <div 
+        v-for="accessory in accessories" 
+        :key="accessory.id" 
+        class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8"
+        :class="accessory.includedByDefault ? 'relative' : ''"
+      >
+        <span v-if="accessory.includedByDefault" class="absolute top-3 right-3 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Inkluderet</span>
+        <img 
+          :src="accessory.imageUrl || placeholderImage" 
+          :alt="`GoPro ${accessory.name} - ${accessory.description}`" 
+          class="w-24 h-24 object-cover rounded-lg mb-3" 
+          loading="lazy" 
+        />
+        <h4 class="text-lg font-bold mb-1">{{ accessory.name }}</h4>
+        <p class="text-sm text-gray-600 text-center">{{ accessory.description }}</p>
       </div>
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt4a3f356761a12e6d/6465f1c79cb8cadbd353f013/pdp-max-enduro-battery-image01-1920-2x.png?width=400&quality=90&auto=webp" alt="GoPro ekstra batteri til forlænget optagetid - actionkamera tilbehør leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Ekstra batteri</h4>
-        <p class="text-sm text-gray-600 text-center">Sørger for ekstra strøm, så du kan optage længere tid uden afbrydelser.</p>
-      </div>
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt5028e412643854ae/65cbdc3afcd8646428eec8a5/01-pdp-h12b-headstrap-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro headstrap hovedrem til hands-free POV optagelser - perfekt til sport" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Headstrap</h4>
-        <p class="text-sm text-gray-600 text-center">Monter kameraet på hovedet for hands-free POV-optagelser.</p>
-      </div>
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/bltbc6b778286c13383/64ccd3c131eb6a3cbbd4c86f/01-pdp-h12b-chesty-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro brystmount til sport og aktiviteter - actionkamera fæstning leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Brystmount</h4>
-        <p class="text-sm text-gray-600 text-center">Perfekt til sport og aktiviteter, hvor du vil have kameraet tæt på kroppen.</p>
-      </div>
+      <!-- Hardcoded Beskyttelsescase - always included -->
       <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8 relative">
         <span class="absolute top-3 right-3 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Inkluderet</span>
         <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt412da0ad3ddaa0f6/64835bbbcc30bb258ab04e57/pdp-protective-housing-image03-1920-2x.png?width=400&quality=90&auto=webp" alt="GoPro beskyttelsescase vandtæt etui - robust beskyttelse mod stød og vand" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
         <h4 class="text-lg font-bold mb-1">Beskyttelsescase</h4>
         <p class="text-sm text-gray-600 text-center">Robust etui der beskytter kameraet mod stød, vand og snavs.</p>
-      </div>
-      <div class="w-full md:w-[30%] lg:w-[30%] bg-gray-50 rounded-xl p-6 shadow flex flex-col items-center mb-8">
-        <img src="https://static.gopro.com/assets/blta2b8522e5372af40/blt865a9a20edc4b79b/663a899c8447cbcee89cb5a8/01-pdp-h12b-suction-cup-gallery-1920.png?width=400&quality=90&auto=webp" alt="GoPro sugekop til bilruder og glatte overflader - actionkamera mount leje" class="w-24 h-24 object-cover rounded-lg mb-3" loading="lazy" />
-        <h4 class="text-lg font-bold mb-1">Sugekop til ruder</h4>
-        <p class="text-sm text-gray-600 text-center">Fastgør kameraet sikkert til bilruder og glatte overflader for unikke vinkler.</p>
       </div>
     </div>
   </section>
@@ -158,6 +150,123 @@
         <span class="text-5xl mb-4">🚚</span>
         <h3 class="font-bold mb-2">4. Send tilbage</h3>
         <p class="text-center text-gray-600">Send udstyret tilbage med den medfølgende returlabel på slutdatoen.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Rent GoPro Equipment Section -->
+  <section class="bg-gray-50 py-16">
+    <div class="max-w-6xl mx-auto px-4">
+      <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">
+        Hvorfor <span class="text-[#B8082A]">Leje</span> GoPro Udstyr?
+      </h2>
+      <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+        Oplev fordelene ved at leje professionelt GoPro udstyr i stedet for at købe. Få adgang til det nyeste udstyr uden den store investering.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">💰</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Økonomisk Smart</h3>
+          <p class="text-gray-600 text-center">
+            Spar tusindvis af kroner ved at leje i stedet for at købe. Perfekt til enkeltture, ferier eller specielle begivenheder. Få professionelt udstyr til en brøkdel af købsprisen.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">🎯</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Nyeste Teknologi</h3>
+          <p class="text-gray-600 text-center">
+            Få altid adgang til de nyeste GoPro modeller med de bedste funktioner. Vi opdaterer løbende vores udvalg, så du kan teste det nyeste udstyr uden forpligtelser.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">📦</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Komplet Pakke</h3>
+          <p class="text-gray-600 text-center">
+            Alle vores kameraer leveres med komplet tilbehør: beskyttelsescase, opladere, og memory cards. Du skal bare pakke ud og komme i gang med at filme.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">🚚</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Gratis Levering</h3>
+          <p class="text-gray-600 text-center">
+            Vi sender til hele Danmark uden ekstra omkostninger. Dit udstyr ankommer sikkert pakket til din nærmeste pakkeboks, klar til brug når du skal afsted.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">✅</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Kvalitet Garanteret</h3>
+          <p class="text-gray-600 text-center">
+            Alt vores udstyr er testet og kvalitetssikret før hver udlejning. Du kan være sikker på at få fuldt funktionelt professionelt udstyr hver gang.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <div class="text-4xl mb-4 text-center">🔄</div>
+          <h3 class="text-xl font-bold mb-3 text-center">Fleksible Perioder</h3>
+          <p class="text-gray-600 text-center">
+            Vælg den lejeperiode der passer dig - fra 3 dage til flere uger. Perfekt til både weekendture og længere rejser. Nem online booking.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Popular Use Cases Section -->
+  <section class="bg-white py-16">
+    <div class="max-w-6xl mx-auto px-4">
+      <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">
+        Populære <span class="text-[#B8082A]">Anvendelser</span>
+      </h2>
+      <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+        GoPro actionkameraer er perfekte til mange forskellige aktiviteter og eventyr. Se hvad andre bruger deres lejede GoPro til.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border-2 border-blue-100">
+          <div class="text-3xl mb-3">🏔️</div>
+          <h3 class="text-lg font-bold mb-2">Action Sport & Eventyr</h3>
+          <p class="text-gray-600 text-sm">
+            Perfekt til skiløb, snowboard, mountainbike, klatring og andre ekstreme sportsgrene. Fang dine vildeste stunts i fantastisk 4K kvalitet.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-green-50 to-white p-6 rounded-xl border-2 border-green-100">
+          <div class="text-3xl mb-3">🌊</div>
+          <h3 class="text-lg font-bold mb-2">Vandsport & Dykning</h3>
+          <p class="text-gray-600 text-sm">
+            Vandtæt op til 10 meter uden ekstra hus. Ideel til surfing, snorkling, dykning, kajak og andre vandaktiviteter. Fang undervandsverdenen i klar HD.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-orange-50 to-white p-6 rounded-xl border-2 border-orange-100">
+          <div class="text-3xl mb-3">✈️</div>
+          <h3 class="text-lg font-bold mb-2">Rejser & Ferie</h3>
+          <p class="text-gray-600 text-sm">
+            Dokumentér dine rejseoplevelser i høj kvalitet. Kompakt og let at pakke - perfekt companion til backpacking, city trips og eksotiske destinationer.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl border-2 border-purple-100">
+          <div class="text-3xl mb-3">🎬</div>
+          <h3 class="text-lg font-bold mb-2">Vlogging & Content Creation</h3>
+          <p class="text-gray-600 text-sm">
+            Skab professionelt indhold til YouTube, Instagram og TikTok. Fantastisk stabilisering og lyd gør det nemt at producere engaging video content.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-pink-50 to-white p-6 rounded-xl border-2 border-pink-100">
+          <div class="text-3xl mb-3">🎉</div>
+          <h3 class="text-lg font-bold mb-2">Events & Begivenheder</h3>
+          <p class="text-gray-600 text-sm">
+            Bryllupper, fødselsdage, festivals og koncerter. Fang de særlige øjeblikke fra unikke vinkler og skab minder der holder livet ud.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border-2 border-yellow-100">
+          <div class="text-3xl mb-3">🐕</div>
+          <h3 class="text-lg font-bold mb-2">Familie & Kæledyr</h3>
+          <p class="text-gray-600 text-sm">
+            Følg dine børn eller kæledyr på deres eventyr. Robust og sikker til aktive familieaktiviteter, legepladser og udforskning af naturen.
+          </p>
+        </div>
+      </div>
+      <div class="flex justify-center mt-10">
+        <NuxtLink to="/checkout" class="bg-[#B8082A] text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-[#a10725] transition cursor-pointer">
+          Book Dit GoPro Nu
+        </NuxtLink>
       </div>
     </div>
   </section>
@@ -207,10 +316,7 @@ useSeoMeta({
   
   // Additional SEO
   viewport: 'width=device-width, initial-scale=1',
-  charset: 'utf-8',
-  httpEquiv: {
-    'X-UA-Compatible': 'IE=edge'
-  }
+  charset: 'utf-8'
 })
 
 // Define the product interface to match Supabase table structure
@@ -225,8 +331,20 @@ interface Product {
   imageUrl?: string;
 }
 
+// Define the accessory interface
+interface Accessory {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  imageUrl?: string;
+  includedByDefault?: boolean;
+}
+
 // Reactive state
 const products = ref<Product[]>([]);
+const accessories = ref<Accessory[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/blt6ff9ada3eca94bbc/643ee100b1f4db27b0203e9d/pdp-h10-image01-1920-2x.png';
@@ -270,9 +388,33 @@ const fetchProducts = async () => {
   }
 };
 
+// Fetch accessories from Supabase
+const fetchAccessories = async () => {
+  try {
+    if (!supabase) {
+      throw new Error('Supabase client ikke tilgængelig');
+    }
+    
+    const { data, error: supabaseError } = await supabase
+      .from('Accessory')
+      .select('*')
+      .order('id', { ascending: true });
+    
+    if (supabaseError) {
+      throw supabaseError;
+    }
+    
+    accessories.value = data || [];
+    console.log('Accessories loaded:', accessories.value.length);
+  } catch (err: any) {
+    console.error('Error fetching accessories:', err);
+  }
+};
+
 // Fetch products on component mount
 onMounted(() => {
   fetchProducts();
+  fetchAccessories();
 });
 
 import type { AccordionItem } from '@nuxt/ui'

@@ -10,29 +10,30 @@
                 Log ud
             </button>
         </div>
-        <div class="flex justify-center gap-4 mb-8">
+        <!-- Tab Navigation: Horizontal on desktop, 2x2 grid on mobile (at burger menu breakpoint) -->
+        <div class="flex flex-wrap justify-center gap-4 mb-8 lg:flex-nowrap">
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'products' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'products'"
             >Produkter</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'accessory' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'accessory'"
             >Tilbehør</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'orders' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'orders'"
             >Ordrer</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'inventory' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'inventory'"
             >Lager</button>
             <button
-                class="px-6 py-2 rounded font-semibold border transition cursor-pointer"
+                class="px-6 py-2 rounded font-semibold border transition cursor-pointer w-[calc(50%-0.5rem)] lg:w-auto"
                 :class="activeTab === 'integrations' ? 'bg-[#B8082A] text-white border-[#B8082A]' : 'bg-white text-[#B8082A] border-[#B8082A]'"
                 @click="activeTab = 'integrations'"
             >Integrationer</button>
@@ -380,12 +381,21 @@
             <div class="max-w-4xl mx-auto py-8">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-semibold text-center">Ordrer</h2>
-                    <button 
-                        @click="fixBookingCameraIds" 
-                        class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
-                    >
-                        Distribute Bookings
-                    </button>
+                    <div class="flex gap-2">
+                        <button 
+                            @click="openAdminBooking" 
+                            type="button"
+                            class="bg-green-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-green-700 transition cursor-pointer text-sm"
+                        >
+                            Opret Booking
+                        </button>
+                        <button 
+                            @click="fixBookingCameraIds" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-600 transition cursor-pointer text-sm"
+                        >
+                            Distribute Bookings
+                        </button>
+                    </div>
                 </div>
                 
                 <div v-if="groupedOrders.length === 0" class="text-center text-gray-500 py-12">
@@ -480,6 +490,10 @@
                                             <button class="bg-blue-400 text-white px-2 py-1 rounded text-xs cursor-pointer hover:bg-blue-500 transition" 
                                                     @click="openEditBooking(booking)">
                                                 Rediger
+                                            </button>
+                                            <button class="bg-red-500 text-white px-2 py-1 rounded text-xs cursor-pointer hover:bg-red-600 transition" 
+                                                    @click="deleteBooking(booking.id)">
+                                                Slet
                                             </button>
                                         </div>
                                     </div>
@@ -606,17 +620,6 @@
                                     </option>
                                 </select>
                             </div>
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <h4 class="font-semibold text-blue-800 mb-2">📋 Booking Information</h4>
-                                <div class="text-sm text-blue-700 space-y-1">
-                                    <div><strong>Nuværende produkt:</strong> {{ editBookingForm.productName || 'Ikke valgt' }}</div>
-                                    <div><strong>Nuværende kamera:</strong> {{ getCurrentCameraDisplay() }}</div>
-                                    <div><strong>Booking periode:</strong> Datoer redigeres på ordreniveau</div>
-                                    <div class="text-xs text-blue-600 mt-2">
-                                        💡 Tip: Datoer kan kun ændres via "Rediger ordre" for at sikre konsistens på tværs af alle kameraer i ordren.
-                                    </div>
-                                </div>
-                            </div>
                             <div class="flex flex-col">
                                 <label class="text-base font-semibold mb-1 text-gray-900">Tilbehør enheder (kommasepareret)</label>
                                 <input v-model="editBookingForm.accessoryInstanceIds" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" placeholder="fx: 1,2,3" />
@@ -667,6 +670,60 @@
                         </form>
                     </div>
                 </div>
+                
+                <!-- Add Camera to Order Modal -->
+                <div v-if="showAddCameraModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div class="bg-white rounded-xl shadow-md p-8 w-full max-w-lg relative overflow-y-auto" style="max-height: 90vh;">
+                        <button @click="closeAddCameraModal" class="absolute top-4 right-4 text-gray-400 hover:text-[#B8082A] text-2xl font-bold">&times;</button>
+                        <h2 class="mb-4 text-xl font-semibold">Tilføj Kamera til Ordre</h2>
+                        <p class="mb-4 text-sm text-gray-600">Ordre: <strong>{{ addCameraForm.orderId }}</strong></p>
+                        
+                        <form @submit.prevent="submitAddCamera" class="space-y-6">
+                            <div class="flex flex-col">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Vælg Produkt *</label>
+                                <select v-model="addCameraForm.productName" @change="onAddCameraProductChange" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" required>
+                                    <option value="">Vælg produkt...</option>
+                                    <option v-for="product in products" :key="product.id" :value="product.name">
+                                        {{ product.name }} ({{ product.cameras?.length || 0 }} kameraer)
+                                    </option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex flex-col" v-if="addCameraForm.productName">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Vælg Kamera *</label>
+                                <select v-model="addCameraForm.cameraId" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" required>
+                                    <option value="">Vælg kamera...</option>
+                                    <option v-for="camera in selectedProductCamerasForAdd" :key="camera.id" :value="camera.id">
+                                        {{ addCameraForm.productName }} - Kamera {{ getCameraDisplayNumber(camera.id) }} (ID: {{ camera.id }})
+                                    </option>
+                                </select>
+                            </div>
+                            
+                            <div class="bg-blue-50 border border-blue-200 p-4 rounded">
+                                <h4 class="font-semibold text-blue-800 text-sm mb-2">Periode fra eksisterende ordre:</h4>
+                                <p class="text-sm text-blue-700">Start: {{ addCameraForm.startDate }}</p>
+                                <p class="text-sm text-blue-700">Slut: {{ addCameraForm.endDate }}</p>
+                                <p class="text-sm text-blue-700 mt-2">Kunden bruger samme datoer for det nye kamera.</p>
+                            </div>
+                            
+                            <div v-if="addCameraForm.calculatedPrice > 0" class="bg-green-50 border border-green-200 p-4 rounded">
+                                <h4 class="font-semibold text-green-800 text-sm mb-2">Beregnet pris:</h4>
+                                <p class="text-lg text-green-700 font-bold">{{ addCameraForm.calculatedPrice.toFixed(2) }} kr</p>
+                            </div>
+                            
+                            <div v-if="addCameraError" class="bg-red-50 border border-red-200 p-4 rounded">
+                                <p class="text-red-700 text-sm">{{ addCameraError }}</p>
+                            </div>
+                            
+                            <div class="flex justify-end space-x-3">
+                                <button type="button" @click="closeAddCameraModal" class="bg-gray-500 text-white px-6 py-2 rounded font-semibold shadow hover:bg-gray-600 transition">Annuller</button>
+                                <button type="submit" :disabled="!addCameraForm.cameraId || addingCamera" class="bg-purple-600 text-white px-6 py-2 rounded font-semibold shadow hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                    {{ addingCamera ? 'Tilføjer...' : 'Tilføj Kamera' }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -701,49 +758,19 @@
 
         <div v-else-if="activeTab === 'integrations'">
             <div class="max-w-4xl mx-auto py-8">
-                <h2 class="text-2xl font-bold text-center mb-8 text-gray-900">Integrationer</h2>
-                <div class="space-y-6">
-                    <DineroAuth />
-                    
-                    <!-- Dinero API Test Section -->
-                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">Dinero API Test</h3>
-                        <div class="space-y-4">
-                            <button 
-                                @click="testDineroOAuth"
-                                class="bg-blue-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-700 transition"
-                                :disabled="testingOAuth"
-                            >
-                                {{ testingOAuth ? 'Testing OAuth...' : 'Test OAuth Authentication' }}
-                            </button>
-                            
-                            <div v-if="oauthTestResult" class="mt-4 p-4 rounded-lg" 
-                                 :class="oauthTestResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
-                                <h4 class="font-semibold" :class="oauthTestResult.success ? 'text-green-700' : 'text-red-700'">
-                                    {{ oauthTestResult.success ? 'Success!' : 'Error' }}
-                                </h4>
-                                <pre class="text-sm mt-2 whitespace-pre-wrap" :class="oauthTestResult.success ? 'text-green-600' : 'text-red-600'">{{ JSON.stringify(oauthTestResult, null, 2) }}</pre>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- PostNord Test Section -->
-                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">PostNord QR Test</h3>
-                        <div class="space-y-4">
-                            <p class="text-sm text-gray-600">Generer en test QR-kode til dokumentation/rapport formål.</p>
-                            <button 
-                                @click="generateTestQRCode"
-                                class="bg-yellow-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-yellow-700 transition"
-                            >
-                                📱 Generer Test QR-kode
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <IntegrationStatus />
             </div>
         </div>
     </div>
+    
+    <!-- Admin Booking Modal - Outside of tabs so it can render on any tab -->
+    <AdminBooking 
+        v-if="showAdminBookingModal" 
+        @close="closeAdminBooking"
+        @success="onAdminBookingSuccess"
+    />
+    
 
     <!-- Test QR Code Modal -->
     <div v-if="showTestQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="closeTestQRModal">
@@ -781,7 +808,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive } from 'vue';
 import ProductCalendar from '@/components/booking/ProductCalendar.vue';
-import DineroAuth from '@/components/integrations/DineroAuth.vue';
+import IntegrationStatus from '@/components/integrations/IntegrationStatus.vue';
+import AdminBooking from '@/components/admin/AdminBooking.vue';
 
 definePageMeta({
   middleware: 'admin'
@@ -1076,50 +1104,6 @@ function formatDateRange(startDate: string, endDate: string): string {
     return `${start} - ${end}`;
 }
 
-// Test Dinero OAuth authentication
-async function testDineroOAuth() {
-    testingOAuth.value = true;
-    oauthTestResult.value = null;
-    
-    try {
-        const response = await $fetch('/api/dinero/test-oauth', {
-            method: 'POST'
-        });
-        
-        oauthTestResult.value = response;
-        
-        if ((response as any).success) {
-            toast.add({
-                title: 'OAuth Test Successful!',
-                description: `Found ${(response as any).organizationCount || 0} organization(s)`,
-                color: 'success',
-                ui: {
-                    title: 'text-gray-900 font-semibold',
-                    description: 'text-gray-700'
-                }
-            });
-        }
-    } catch (error: any) {
-        console.error('OAuth test error:', error);
-        oauthTestResult.value = {
-            success: false,
-            error: error.data?.message || error.message || 'Unknown error'
-        };
-        
-        toast.add({
-            title: 'OAuth Test Failed',
-            description: error.data?.message || 'Authentication test failed',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    } finally {
-        testingOAuth.value = false;
-    }
-}
-
 async function generateTestQRCode() {
     try {
         // Import QRCode dynamically (client-side only)
@@ -1171,6 +1155,13 @@ const selectedProductCameras = computed(() => {
     const selectedProduct = products.value.find(p => p.name === editBookingForm.value.productName);
     return selectedProduct ? selectedProduct.cameras || [] : [];
 });
+
+// Cameras for selected product when adding camera to order
+const selectedProductCamerasForAdd = computed(() => {
+    const selectedProduct = products.value.find(p => p.name === addCameraForm.value.productName);
+    return selectedProduct ? selectedProduct.cameras || [] : [];
+});
+
 // Aggregate all cameras from all products for select dropdowns
 const allCameras = computed(() => {
     return products.value.flatMap(product => product.cameras || []);
@@ -1871,6 +1862,61 @@ const orderPriceDifference = ref(0);
 const originalOrderPrice = ref(0);
 const calculatingOrderPrice = ref(false);
 const showOrderInvoiceButton = ref(false);
+
+// Add camera to order modal state
+const showAddCameraModal = ref(false);
+const addingCamera = ref(false);
+const addCameraError = ref('');
+const addCameraForm = ref({
+    orderId: '',
+    baseOrderId: '',
+    productName: '',
+    cameraId: '',
+    startDate: '',
+    endDate: '',
+    calculatedPrice: 0,
+    customerInfo: {
+        fullName: '',
+        email: '',
+        phone: '',
+        address: '',
+        apartment: '',
+        city: '',
+        postalCode: ''
+    }
+});
+
+// Admin booking modal state
+const showAdminBookingModal = ref(false);
+
+// Open admin booking modal
+function openAdminBooking() {
+    console.log('🔵 openAdminBooking called - current modal state:', showAdminBookingModal.value);
+    showAdminBookingModal.value = true;
+    console.log('🟢 openAdminBooking - modal state after:', showAdminBookingModal.value);
+}
+
+// Close admin booking modal
+function closeAdminBooking() {
+    console.log('🔴 closeAdminBooking called');
+    showAdminBookingModal.value = false;
+}
+
+// Handler for successful admin booking
+const onAdminBookingSuccess = async () => {
+    showAdminBookingModal.value = false;
+    // Refresh bookings list
+    await fetchBookings();
+    toast.add({
+        title: 'Booking oprettet!',
+        description: 'Admin booking blev oprettet succesfuldt',
+        color: 'success',
+        ui: {
+            title: 'text-gray-900 font-semibold',
+            description: 'text-gray-700'
+        }
+    });
+};
 const editOrderForm = ref({
     baseOrderId: '',
     fullName: '',
@@ -1979,14 +2025,140 @@ function onProductChange() {
 
 // Handle camera selection change
 function updateCameraSelection() {
-    // Update the camera name when camera ID changes
+    // Update camera name based on selected camera ID
     if (editBookingForm.value.cameraId) {
-        const selectedCamera = selectedProductCameras.value.find(camera => camera.id === Number(editBookingForm.value.cameraId));
-        if (selectedCamera) {
-            editBookingForm.value.cameraName = `Kamera ${getCameraDisplayNumber(selectedCamera.id)}`;
+        const cameraNumber = getCameraDisplayNumber(Number(editBookingForm.value.cameraId));
+        editBookingForm.value.cameraName = `Kamera ${cameraNumber}`;
+    }
+}
+
+// Open add camera to order modal
+function openAddCameraToOrder(order: any) {
+    addCameraError.value = '';
+    addCameraForm.value = {
+        orderId: order.baseOrderId,
+        baseOrderId: order.baseOrderId,
+        productName: '',
+        cameraId: '',
+        startDate: order.startDate,
+        endDate: order.endDate,
+        calculatedPrice: 0,
+        customerInfo: {
+            fullName: order.customer.fullName,
+            email: order.customer.email,
+            phone: order.customer.phone,
+            address: order.customer.address,
+            apartment: order.customer.apartment || '',
+            city: order.customer.city,
+            postalCode: order.customer.postalCode
         }
-    } else {
-        editBookingForm.value.cameraName = '';
+    };
+    showAddCameraModal.value = true;
+}
+
+// Close add camera modal
+function closeAddCameraModal() {
+    showAddCameraModal.value = false;
+    addCameraError.value = '';
+}
+
+// Handle product change when adding camera
+async function onAddCameraProductChange() {
+    // Reset camera selection when product changes
+    addCameraForm.value.cameraId = '';
+    addCameraForm.value.calculatedPrice = 0;
+    
+    // Calculate price for the selected product based on rental period
+    if (addCameraForm.value.productName) {
+        await calculatePriceForNewCamera();
+    }
+}
+
+// Calculate price for the new camera
+async function calculatePriceForNewCamera() {
+    if (!addCameraForm.value.productName || !addCameraForm.value.startDate || !addCameraForm.value.endDate) {
+        return;
+    }
+    
+    try {
+        const selectedProduct = products.value.find(p => p.name === addCameraForm.value.productName);
+        if (!selectedProduct) return;
+        
+        // Calculate rental duration
+        const start = new Date(addCameraForm.value.startDate);
+        const end = new Date(addCameraForm.value.endDate);
+        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Determine pricing based on duration
+        let price = 0;
+        if (days >= 14) {
+            price = selectedProduct.twoWeekPrice;
+        } else if (days >= 7) {
+            price = selectedProduct.weeklyPrice;
+        } else {
+            price = selectedProduct.dailyPrice * days;
+        }
+        
+        addCameraForm.value.calculatedPrice = price;
+    } catch (error) {
+        console.error('Error calculating price:', error);
+    }
+}
+
+// Submit add camera to order
+async function submitAddCamera() {
+    if (!addCameraForm.value.cameraId || !addCameraForm.value.productName) {
+        addCameraError.value = 'Vælg venligst både produkt og kamera';
+        return;
+    }
+    
+    addingCamera.value = true;
+    addCameraError.value = '';
+    
+    try {
+        // Create a new booking for the same order
+        const response = await auth.authenticatedFetch('/api/admin/add-camera-to-order', {
+            method: 'POST',
+            body: {
+                baseOrderId: addCameraForm.value.baseOrderId,
+                cameraId: Number(addCameraForm.value.cameraId),
+                productName: addCameraForm.value.productName,
+                startDate: addCameraForm.value.startDate,
+                endDate: addCameraForm.value.endDate,
+                totalPrice: Math.round(addCameraForm.value.calculatedPrice * 100), // Convert to øre
+                customerInfo: addCameraForm.value.customerInfo
+            }
+        });
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Kunne ikke tilføje kamera til ordren');
+        }
+        
+        toast.add({
+            title: 'Kamera tilføjet!',
+            description: `${addCameraForm.value.productName} blev tilføjet til ordre ${addCameraForm.value.baseOrderId}. Betalingslink er sendt til ${addCameraForm.value.customerInfo.email}`,
+            color: 'success',
+            timeout: 8000,
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
+            }
+        });
+
+        // Log payment details if available
+        if (response.data?.paymentUrl) {
+            console.log('💳 Payment link created:', response.data.paymentUrl);
+        }
+        
+        // Close modal and refresh bookings
+        closeAddCameraModal();
+        await fetchBookings();
+        
+    } catch (error: any) {
+        console.error('Error adding camera to order:', error);
+        addCameraError.value = error.message || 'Der opstod en fejl ved tilføjelse af kamera';
+    } finally {
+        addingCamera.value = false;
     }
 }
 

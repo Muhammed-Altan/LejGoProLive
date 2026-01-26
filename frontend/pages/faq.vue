@@ -40,6 +40,93 @@ useSeoMeta({
   twitterDescription: 'Find svar på ofte stillede spørgsmål om GoPro udlejning og booking.'
 })
 
+// FAQ Schema for rich snippets in search results
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      children: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: [
+          {
+            '@type': 'Question',
+            name: 'Hvad er den korteste lejeperiode?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: '3 dage'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'Hvordan og hvornår skal man betale?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Betaling sker online via vores sikre betalingsløsning under checkout processen. Du kan betale med kort (Visa, Mastercard, osv.). Beløbet trækkes med det samme når din booking bekræftes, og du modtager en kvittering på email.'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'Kan man hente kameraet i stedet for at få det leveret?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Ja, men kun i København. Kontakt os for at aftale tid og sted for afhentning.'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'Hvor længe holder et GoPro strøm?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Et GoPro kan optage i cirka 2-3 timer, før batteriet skal oplades eller udskiftes. Du kan tilføje et ekstra batteri for blot 50,- kr.'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'Hvor lang tid tager det at oplade et GoPro?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Cirka 2 timer'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'Er kameraet forsikret?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Det er på nuværende tidspunkt ikke muligt at tilkøbe forsikring hos os. Du er i de fleste tilfælde dækket igennem din egen indboforsikring – vi opfordrer til at snakke med dit forsikringsselskab inden du lejer. Hvis kameraet går i stykker, hæfter du for hele værdien til LejGoPro.'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'Kan jeg få kameraet leveret direkte til døren?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Ja, det kan du. Hvis du ønsker direkte levering til døren bedes du kontakte os inden for mulighed og pris.'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'Kan jeg bruge kameraet uden download af app?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Ja, Kameraet bliver sendt som en "plug & play" løsning. Du kan bruge kameraet fra modtagelsen og ved hjælp af det medfølgende stik kan du nemt og hurtigt overføre alle dine fede billeder og videoer til din computer.'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'Hvad skal jeg gøre når jeg er færdig med at bruge kameraet?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Når du er færdig med at overføre alle dine store øjeblikke til din computer, skal du huske at slette alle billeder på kameraet inden du sender det retur. I tilfælde af at du glemmer dette bedes du kontakte os med det samme.'
+            }
+          }
+        ]
+      })
+    }
+  ]
+})
+
 const items = ref([
   {
     label: 'Hvad er den korteste lejeperiode?',
