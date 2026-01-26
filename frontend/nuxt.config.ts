@@ -68,6 +68,9 @@ export default defineNuxtConfig({
     // Admin credentials
     adminEmail: process.env.ADMIN_EMAIL,
     adminPassword: process.env.ADMIN_PASSWORD,
+    // PostNord API configuration (using test environment)
+    postNordApiKey: process.env.POSTNORD_API_KEY || 'test',
+    postNordConsumerId: process.env.POSTNORD_CONSUMER_ID || 'test',
   },
   app: {
     head: {
