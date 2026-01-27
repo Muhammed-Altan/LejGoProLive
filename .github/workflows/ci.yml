@@ -29,13 +29,7 @@ jobs:
       # 3. Installer dependencies
       - name: Install dependencies
         working-directory: ./frontend
-        run: |
-          if [ ! -f package-lock.json ]; then
-            echo "package-lock.json not found, running npm install"
-            npm install
-          else
-            npm ci
-          fi
+        run: npm ci
       
       # 4. Kør unit tests
       - name: Run unit tests
