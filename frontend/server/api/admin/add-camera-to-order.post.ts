@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
             startDate,
             endDate,
             totalPrice,
+            selectedAccessories = [],
             customerInfo
         } = body;
 
@@ -34,6 +35,14 @@ export default defineEventHandler(async (event) => {
                 statusMessage: 'Missing required fields'
             });
         }
+
+        console.log('📦 Adding camera to order with accessories:', {
+            baseOrderId,
+            cameraId,
+            productName,
+            selectedAccessories,
+            totalPrice
+        });
 
         // Check camera availability for the specified period
         const { data: existingBookings, error: availabilityError } = await supabase
@@ -89,6 +98,39 @@ export default defineEventHandler(async (event) => {
 
         const newOrderId = `${baseOrderId}-${nextSuffix}`;
 
+        // Fetch accessory instances for selected accessories
+        let accessoryInstanceIds: number[] | null = null;
+        let accessoryInstanceNames: string[] = [];
+        
+        if (selectedAccessories && selectedAccessories.length > 0) {
+            console.log('🔧 Fetching accessory instances for accessories:', selectedAccessories);
+            
+            const { data: instances, error: instanceError } = await supabase
+                .from('AccessoryInstance')
+                .select('id, accessoryId, serialNumber')
+                .in('accessoryId', selectedAccessories);
+                
+            if (instanceError) {
+                console.error('Error fetching accessory instances:', instanceError);
+            } else if (instances && instances.length > 0) {
+                // Group instances by accessoryId and take first available instance for each accessory
+                const instancesByAccessory = new Map<number, typeof instances[0]>();
+                instances.forEach(inst => {
+                    if (!instancesByAccessory.has(inst.accessoryId)) {
+                        instancesByAccessory.set(inst.accessoryId, inst);
+                    }
+                });
+                
+                accessoryInstanceIds = Array.from(instancesByAccessory.values()).map(inst => inst.id);
+                accessoryInstanceNames = Array.from(instancesByAccessory.values()).map(inst => inst.serialNumber);
+                
+                console.log('✅ Selected accessory instances:', {
+                    instanceIds: accessoryInstanceIds,
+                    instanceNames: accessoryInstanceNames
+                });
+            }
+        }
+
         // Create new booking
         const { data: newBooking, error: insertError } = await supabase
             .from('Booking')
@@ -111,7 +153,7 @@ export default defineEventHandler(async (event) => {
                 paymentId: '',
                 paidAt: null,
                 return_processed: false,
-                accessoryInstanceIds: null,
+                accessoryInstanceIds: accessoryInstanceIds,
                 createdAt: new Date().toISOString()
             })
             .select()
@@ -217,6 +259,19 @@ export default defineEventHandler(async (event) => {
         console.log('📧 Sending payment request email to customer...');
         
         try {
+            // Build items array including accessories
+            const items = [{
+                name: productName,
+                quantity: 1,
+                unitPrice: parseInt(totalPrice) / 100,
+                totalPrice: parseInt(totalPrice) / 100
+            }];
+            
+            // Note: Accessories are already included in totalPrice from frontend calculation
+            if (accessoryInstanceNames.length > 0) {
+                items[0].name += ` (inkl. ${accessoryInstanceNames.join(', ')})`;
+            }
+            
             const emailData = {
                 bookingData: {
                     orderNumber: newOrderId,
@@ -231,12 +286,7 @@ export default defineEventHandler(async (event) => {
                     apartment: customerInfo.apartment,
                     city: customerInfo.city,
                     postalCode: customerInfo.postalCode,
-                    items: [{
-                        name: productName,
-                        quantity: 1,
-                        unitPrice: parseInt(totalPrice) / 100,
-                        totalPrice: parseInt(totalPrice) / 100
-                    }],
+                    items: items,
                     isUpdate: true,
                     priceDifference: parseInt(totalPrice) / 100,
                     paymentUrl: payment.link
