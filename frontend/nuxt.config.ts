@@ -68,9 +68,6 @@ export default defineNuxtConfig({
     // Admin credentials
     adminEmail: process.env.ADMIN_EMAIL,
     adminPassword: process.env.ADMIN_PASSWORD,
-    // PostNord API configuration (using test environment)
-    postNordApiKey: process.env.POSTNORD_API_KEY || 'test',
-    postNordConsumerId: process.env.POSTNORD_CONSUMER_ID || 'test',
   },
   app: {
     head: {
@@ -88,19 +85,6 @@ export default defineNuxtConfig({
         }
       ],
       script: [
-        {
-          src: 'https://www.googletagmanager.com/gtag/js?id=G-BLPL60XBB8',
-          async: true
-        },
-        {
-          innerHTML: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-BLPL60XBB8');
-          `,
-          type: 'text/javascript'
-        },
         {
           src: '/silktide-consent-manager.js'
         },
