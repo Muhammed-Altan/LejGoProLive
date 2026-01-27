@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
     const payload = {
       name: body.name,
       description: body.description || '',
-      price: body.price || 0,
+      price: Math.round((body.price || 0) * 100), // Convert DKK to øre
       quantity: body.quantity || 1,
       imageUrl: body.imageUrl || null
     }

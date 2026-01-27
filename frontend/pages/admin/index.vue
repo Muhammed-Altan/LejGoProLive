@@ -437,6 +437,12 @@
                                         Rediger ordre
                                     </button>
                                     <button 
+                                        class="bg-indigo-600 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-indigo-700 transition" 
+                                        @click="openAddCameraToOrder(order)"
+                                    >
+                                        ➕ Tilføj kamera
+                                    </button>
+                                    <button 
                                         class="bg-purple-600 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-purple-700 transition" 
                                         @click="createShippingQRCode(order.baseOrderId)" 
                                         :disabled="creatingQRCode === order.baseOrderId"
@@ -691,12 +697,35 @@
                             
                             <div class="flex flex-col" v-if="addCameraForm.productName">
                                 <label class="text-base font-semibold mb-1 text-gray-900">Vælg Kamera *</label>
-                                <select v-model="addCameraForm.cameraId" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" required>
+                                <select v-model="addCameraForm.cameraId" @change="calculateAddCameraPrice" class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-base" required>
                                     <option value="">Vælg kamera...</option>
                                     <option v-for="camera in selectedProductCamerasForAdd" :key="camera.id" :value="camera.id">
                                         {{ addCameraForm.productName }} - Kamera {{ getCameraDisplayNumber(camera.id) }} (ID: {{ camera.id }})
                                     </option>
                                 </select>
+                            </div>
+                            
+                            <!-- Accessory Selection -->
+                            <div class="flex flex-col" v-if="addCameraForm.cameraId">
+                                <label class="text-base font-semibold mb-1 text-gray-900">Vælg Tilbehør (valgfrit)</label>
+                                <div class="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                    <div v-for="acc in accessory" :key="acc.id" class="flex items-center">
+                                        <input 
+                                            type="checkbox" 
+                                            :id="'acc-add-' + acc.id" 
+                                            :value="acc.id"
+                                            v-model="addCameraForm.selectedAccessories"
+                                            @change="calculateAddCameraPrice"
+                                            class="mr-2"
+                                        />
+                                        <label :for="'acc-add-' + acc.id" class="text-sm text-gray-700 cursor-pointer">
+                                            {{ acc.name }} (+{{ Math.ceil(acc.price) }} kr/dag)
+                                        </label>
+                                    </div>
+                                    <div v-if="accessory.length === 0" class="text-sm text-gray-500">
+                                        Ingen tilbehør tilgængelig
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="bg-blue-50 border border-blue-200 p-4 rounded">
@@ -1875,6 +1904,7 @@ const addCameraForm = ref({
     startDate: '',
     endDate: '',
     calculatedPrice: 0,
+    selectedAccessories: [] as number[], // Array of accessory IDs
     customerInfo: {
         fullName: '',
         email: '',
@@ -2043,6 +2073,7 @@ function openAddCameraToOrder(order: any) {
         startDate: order.startDate,
         endDate: order.endDate,
         calculatedPrice: 0,
+        selectedAccessories: [],
         customerInfo: {
             fullName: order.customer.fullName,
             email: order.customer.email,
@@ -2060,6 +2091,7 @@ function openAddCameraToOrder(order: any) {
 function closeAddCameraModal() {
     showAddCameraModal.value = false;
     addCameraError.value = '';
+    addCameraForm.value.selectedAccessories = [];
 }
 
 // Handle product change when adding camera
@@ -2067,6 +2099,7 @@ async function onAddCameraProductChange() {
     // Reset camera selection when product changes
     addCameraForm.value.cameraId = '';
     addCameraForm.value.calculatedPrice = 0;
+    addCameraForm.value.selectedAccessories = [];
     
     // Calculate price for the selected product based on rental period
     if (addCameraForm.value.productName) {
@@ -2105,6 +2138,30 @@ async function calculatePriceForNewCamera() {
     }
 }
 
+// Calculate total price including accessories for adding camera
+async function calculateAddCameraPrice() {
+    // First calculate base camera price
+    await calculatePriceForNewCamera();
+    
+    // Then add accessory prices
+    if (addCameraForm.value.selectedAccessories.length > 0) {
+        const start = new Date(addCameraForm.value.startDate);
+        const end = new Date(addCameraForm.value.endDate);
+        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let accessoryTotal = 0;
+        addCameraForm.value.selectedAccessories.forEach(accId => {
+            const acc = accessory.value.find(a => a.id === accId);
+            if (acc) {
+                // Accessory price is daily, multiply by days
+                accessoryTotal += acc.price * days;
+            }
+        });
+        
+        addCameraForm.value.calculatedPrice += accessoryTotal;
+    }
+}
+
 // Submit add camera to order
 async function submitAddCamera() {
     if (!addCameraForm.value.cameraId || !addCameraForm.value.productName) {
@@ -2126,6 +2183,7 @@ async function submitAddCamera() {
                 startDate: addCameraForm.value.startDate,
                 endDate: addCameraForm.value.endDate,
                 totalPrice: Math.round(addCameraForm.value.calculatedPrice * 100), // Convert to øre
+                selectedAccessories: addCameraForm.value.selectedAccessories, // Include accessories
                 customerInfo: addCameraForm.value.customerInfo
             }
         });
