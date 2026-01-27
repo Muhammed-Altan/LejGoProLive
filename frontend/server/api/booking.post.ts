@@ -80,6 +80,8 @@ const bookingSchema = z.object({
   })),
   insurance: z.boolean(),
   acceptedTerms: z.boolean().refine(val => val === true, { message: 'Rental conditions must be accepted' }),
+  deliveryMethod: z.enum(['home', 'servicepoint']).optional(),
+  selectedServicePoint: z.string().nullable().optional(), // JSON string
 });
 
 export default defineEventHandler(async (event) => {
@@ -303,6 +305,8 @@ export default defineEventHandler(async (event) => {
         postalCode: '', // Will be set by payment API
         return_processed: false, // Boolean field for return process (corrected field name)
         accessoryInstanceIds: allocatedAccessoryInstances.length > 0 ? allocatedAccessoryInstances : null, // Add accessories to all bookings
+        deliveryMethod: booking.deliveryMethod || null, // Save delivery method
+        selectedServicePoint: booking.selectedServicePoint || null, // Save selected service point (JSON)
         createdAt: new Date().toISOString() // Timestamp when booking is created
       };
       
