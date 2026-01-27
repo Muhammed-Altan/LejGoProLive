@@ -234,6 +234,9 @@ export const useCheckoutStore = defineStore('checkout', {
         };
         
         console.log('=== BOOKING DEBUG ===');
+        console.log('deliveryMethod:', this.deliveryMethod);
+        console.log('selectedServicePoint (raw):', this.selectedServicePoint);
+        console.log('selectedServicePoint (stringified):', this.selectedServicePoint ? JSON.stringify(this.selectedServicePoint) : null);
         console.log('productId type:', typeof this.productId, 'value:', this.productId);
         console.log('cameraId type:', typeof bookingData.cameraId, 'value:', bookingData.cameraId);
         console.log('totalPrice type:', typeof this.backendTotal, 'value:', this.backendTotal);

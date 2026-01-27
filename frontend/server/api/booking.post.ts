@@ -124,7 +124,16 @@ export default defineEventHandler(async (event) => {
     accessories: sanitizedAccessories,
     insurance: !!body.insurance,
     acceptedTerms: !!body.acceptedTerms,
+    deliveryMethod: body.deliveryMethod || null,
+    selectedServicePoint: typeof body.selectedServicePoint === 'string' ? body.selectedServicePoint : null,
   };
+
+  console.log('\n=== BOOKING API RECEIVED DATA ===');
+  console.log('Raw deliveryMethod:', body.deliveryMethod);
+  console.log('Raw selectedServicePoint:', body.selectedServicePoint);
+  console.log('Sanitized deliveryMethod:', sanitizedBody.deliveryMethod);
+  console.log('Sanitized selectedServicePoint:', sanitizedBody.selectedServicePoint);
+  console.log('================================\n');
 
   // --- Zod Validation ---
   const result = bookingSchema.safeParse(sanitizedBody);
@@ -312,7 +321,9 @@ export default defineEventHandler(async (event) => {
       
       console.log(`📦 Debug - Booking record ${i + 1}:`, {
         ...bookingRecord,
-        accessoryInstanceIds: allocatedAccessoryInstances
+        accessoryInstanceIds: allocatedAccessoryInstances,
+        deliveryMethod: booking.deliveryMethod,
+        selectedServicePoint: booking.selectedServicePoint ? 'JSON data present' : 'NULL'
       })
       
       bookingRecords.push(bookingRecord);
