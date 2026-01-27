@@ -81,7 +81,15 @@ const bookingSchema = z.object({
   insurance: z.boolean(),
   acceptedTerms: z.boolean().refine(val => val === true, { message: 'Rental conditions must be accepted' }),
   deliveryMethod: z.enum(['home', 'servicepoint']).optional(),
-  selectedServicePoint: z.string().nullable().optional(), // JSON string
+  selectedServicePoint: z.union([z.string(), z.object({}).passthrough()]).nullable().optional(),
+  // Customer info (optional, will be set by payment API if not provided)
+  fullName: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  apartment: z.string().optional(),
+  postalCode: z.string().optional(),
+  city: z.string().optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -125,7 +133,17 @@ export default defineEventHandler(async (event) => {
     insurance: !!body.insurance,
     acceptedTerms: !!body.acceptedTerms,
     deliveryMethod: body.deliveryMethod || null,
-    selectedServicePoint: typeof body.selectedServicePoint === 'string' ? body.selectedServicePoint : null,
+    selectedServicePoint: body.selectedServicePoint 
+      ? (typeof body.selectedServicePoint === 'string' ? body.selectedServicePoint : JSON.stringify(body.selectedServicePoint))
+      : null,
+    // Customer info
+    fullName: body.fullName ? sanitizeString(body.fullName) : undefined,
+    email: body.email ? sanitizeString(body.email) : undefined,
+    phone: body.phone ? sanitizeString(body.phone) : undefined,
+    address: body.address ? sanitizeString(body.address) : undefined,
+    apartment: body.apartment ? sanitizeString(body.apartment) : undefined,
+    postalCode: body.postalCode ? sanitizeString(body.postalCode) : undefined,
+    city: body.city ? sanitizeString(body.city) : undefined,
   };
 
   console.log('\n=== BOOKING API RECEIVED DATA ===');
