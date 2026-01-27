@@ -24,6 +24,9 @@ export const useCheckoutStore = defineStore('checkout', {
     apartment: '',
     postalCode: '',
     city: '',
+    // Delivery method
+    deliveryMethod: 'home' as 'home' | 'servicepoint',
+    selectedServicePoint: null as any | null,
     // Price
     backendTotal: 0,
     // Booking ID for tracking
@@ -115,6 +118,19 @@ export const useCheckoutStore = defineStore('checkout', {
       if (info.apartment !== undefined) this.apartment = info.apartment;
       if (info.postalCode !== undefined) this.postalCode = info.postalCode;
       if (info.city !== undefined) this.city = info.city;
+      this.logState();
+    },
+    setDeliveryMethod(method: 'home' | 'servicepoint') {
+      this.deliveryMethod = method;
+      // Clear service point if switching to home delivery
+      if (method === 'home') {
+        this.selectedServicePoint = null;
+      }
+      this.logState();
+    },
+    setSelectedServicePoint(servicePoint: any) {
+      this.selectedServicePoint = servicePoint;
+      this.deliveryMethod = 'servicepoint';
       this.logState();
     },
     setBackendTotal(total: number) {
@@ -211,7 +227,10 @@ export const useCheckoutStore = defineStore('checkout', {
           totalPrice: typeof this.backendTotal === 'number' ? this.backendTotal : (parseFloat(this.backendTotal) || 0),
           // Store accessory instance IDs as JSONB array (after recreating column)
           accessoryInstanceIds: accessoryInstanceIds.length > 0 ? accessoryInstanceIds : null,
-          city: this.city
+          city: this.city,
+          postalCode: this.postalCode,
+          deliveryMethod: this.deliveryMethod,
+          selectedServicePoint: this.selectedServicePoint ? JSON.stringify(this.selectedServicePoint) : null
         };
         
         console.log('=== BOOKING DEBUG ===');
