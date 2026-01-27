@@ -237,7 +237,17 @@ const initiatePayment = async () => {
         quantity: acc.quantity || 1
       })),
       insurance: false, // You may want to add insurance to the store
-      acceptedTerms: true
+      acceptedTerms: true,
+      // Delivery information
+      fullName: store.fullName,
+      email: store.email,
+      phone: store.phone,
+      address: store.address,
+      apartment: store.apartment,
+      postalCode: store.postalCode,
+      city: store.city,
+      deliveryMethod: store.deliveryMethod,
+      selectedServicePoint: store.selectedServicePoint
     }
 
     console.log('Creating bookings with payload:', bookingPayload)
