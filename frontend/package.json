@@ -7,7 +7,8 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest"
   },
   "dependencies": {
     "@nuxt/image": "^1.11.0",
@@ -38,6 +39,8 @@
   "devDependencies": {
     "@types/jsdom": "^27.0.0",
     "@types/nodemailer": "^7.0.2",
+    "@vitest/ui": "^4.0.17",
+    "vitest": "^4.0.17"
     "@types/qrcode": "^1.5.5"
   },
   "engines": {
