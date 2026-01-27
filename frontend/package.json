@@ -39,9 +39,9 @@
   "devDependencies": {
     "@types/jsdom": "^27.0.0",
     "@types/nodemailer": "^7.0.2",
-    "@types/qrcode": "^1.5.5",
     "@vitest/ui": "^4.0.17",
     "vitest": "^4.0.17"
+    "@types/qrcode": "^1.5.5"
   },
   "engines": {
     "node": ">=22.11.0",
