@@ -1,33 +1,61 @@
+/**
+ * Email Composable
+ * 
+ * Handles all email-related functionality for the LejGoPro system
+ * 
+ * Features:
+ * - Send booking receipts via email
+ * - Generate and send PDF invoices
+ * - Download PDF receipts locally
+ * - Generate mailto links for manual email
+ * - Validate booking data before sending
+ * 
+ * Used by:
+ * - Checkout flow (send receipt after payment)
+ * - Admin panel (resend receipts, update notifications)
+ * - Booking updates (notify customers of changes)
+ */
+
+/**
+ * Booking email data interface
+ * Contains all information needed to generate and send booking emails
+ */
 export interface BookingEmailData {
-  orderNumber: string
-  customerName: string
-  customerEmail: string
-  customerPhone?: string
-  service: string
-  startDate: string
-  endDate: string
-  duration: string
-  totalAmount: number
-  bookingDate: string
-  rentalPeriod?: {
+  orderNumber: string        // Unique order identifier
+  customerName: string       // Full name of customer
+  customerEmail: string      // Email address for receipt
+  customerPhone?: string     // Optional phone number
+  service: string            // Service description (e.g., "GoPro Hero 12 Rental")
+  startDate: string          // Rental start date (ISO format)
+  endDate: string            // Rental end date (ISO format)
+  duration: string           // Human-readable duration (e.g., "7 days")
+  totalAmount: number        // Total price in DKK
+  bookingDate: string        // Date booking was created
+  rentalPeriod?: {           // Optional detailed rental period
     startDate: string
     endDate: string
   }
-  deliveryAddress?: string
-  items?: Array<{
+  deliveryAddress?: string   // Optional delivery address
+  items?: Array<{            // Optional itemized list
     name: string
     quantity: number
     unitPrice: number
     totalPrice: number
   }>
   // Fields for booking updates with price differences
-  priceDifference?: number
-  paymentUrl?: string
-  isUpdate?: boolean
+  priceDifference?: number   // Price change (+/-) from original booking
+  paymentUrl?: string        // Payment link for additional charges
+  isUpdate?: boolean         // Flag indicating this is an update email
 }
 
+/**
+ * Email composable export
+ * Provides methods for sending emails and managing email state
+ */
 export const useEmail = () => {
+  // Loading state - true when email is being sent
   const isLoading = ref(false)
+  // Error message if email sending fails
   const error = ref<string | null>(null)
 
   /**

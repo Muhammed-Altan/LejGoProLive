@@ -4,21 +4,28 @@ import { RateLimiterMemory } from 'rate-limiter-flexible';
 import { getRequestIP, sendError, createError } from 'h3';
 import { calculatePricing } from './pricing';
 import { enrichModelsWithPrices, enrichAccessoriesWithPrices } from './productUtils';
-// Removed problematic import: import { checkAvailability } from './availability';
 import { enforceMaxQuantities, enforceMaxAccessoryQuantities, validateBookingPeriod, validateInsurance, validateAccessoryProductRelation } from './validation';
 import { requireAuth } from './auth';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
 import { apiCache } from '../utils/cache';
 
-// Check accessory availability for a booking period
+/**
+ * Check if requested accessories are available for the booking period
+ * 
+ * @param accessories - Array of accessories with name and quantity
+ * @param startDate - Rental start date
+ * @param endDate - Rental end date
+ * @returns true if all accessories are available, false otherwise
+ */
 async function checkAccessoryAvailability(accessories: Array<{ name: string; quantity: number }>, startDate: string, endDate: string): Promise<boolean> {
-  // If no accessories requested, no need to check
+  // If no accessories requested, no need to check availability
   if (!accessories || accessories.length === 0) {
     console.log('No accessories requested, skipping availability check');
     return true;
   }
 
+  // Validate Supabase environment variables
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) return false;
@@ -27,22 +34,23 @@ async function checkAccessoryAvailability(accessories: Array<{ name: string; qua
   
   console.log('Checking accessory availability for:', accessories);
   
-  // For now, return true since the detailed accessory availability 
-  // checking is handled in the payment API with accessory instances
-  // This function mainly validates that the accessories exist
+  // Basic validation that accessories exist in database
+  // Detailed availability checking is handled in the payment API with accessory instances
   for (const accessory of accessories) {
+    // Query database to verify accessory exists
     const { data: dbAccessory, error } = await supabase
       .from('Accessory')
       .select('id, name, quantity')
       .eq('name', accessory.name)
       .single();
       
+    // If accessory not found, return false
     if (error || !dbAccessory) {
       console.error(`Accessory not found: ${accessory.name}`, error);
       return false;
     }
     
-    // Basic quantity check - detailed availability is done in payment API
+    // Basic quantity check - ensure requested quantity doesn't exceed total available
     if (accessory.quantity > (dbAccessory.quantity || 0)) {
       console.error(`Insufficient quantity for ${accessory.name}: requested ${accessory.quantity}, available ${dbAccessory.quantity}`);
       return false;
@@ -52,12 +60,14 @@ async function checkAccessoryAvailability(accessories: Array<{ name: string; qua
   return true;
 }
 
-// Rate limiter setup: 10 requests per 60 seconds per IP (more reasonable for development/testing)
+// Rate limiter: Allow 10 booking requests per 60 seconds per IP address
+// Prevents abuse and ensures fair usage
 const rateLimiter = new RateLimiterMemory({
-  points: 10,
-  duration: 60,
+  points: 10, // Number of requests allowed
+  duration: 60, // Time window in seconds
 });
 
+// Initialize Supabase client from environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -65,7 +75,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Zod schema for booking validation
+/**
+ * Zod schema for booking validation
+ * Validates:
+ * - Date formats
+ * - Product and accessory quantities
+ * - Insurance flag
+ * - Terms acceptance
+ * - Delivery method and service point
+ * - Customer information
+ */
 const bookingSchema = z.object({
   startDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: 'Invalid start date' }),
   endDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: 'Invalid end date' }),
@@ -92,39 +111,72 @@ const bookingSchema = z.object({
   city: z.string().optional(),
 });
 
+/**
+ * POST /api/booking
+ * 
+ * Create a new booking with products and accessories
+ * 
+ * Flow:
+ * 1. Rate limiting check
+ * 2. Input sanitization (DOMPurify)
+ * 3. Zod schema validation
+ * 4. Business rule validation (dates, quantities, insurance)
+ * 5. Availability checks (products + accessories)
+ * 6. Price calculation
+ * 7. Database insert
+ * 8. Return booking details
+ * 
+ * @requires Valid dates, products, and accepted terms
+ * @returns Booking details with pricing and order ID
+ */
 export default defineEventHandler(async (event) => {
-  // --- Authentication ---
-  // const user = requireAuth(event); // Uncomment if authentication is required
-  // --- Rate limiting ---
+  // Authentication (optional - uncomment if needed)
+  // const user = requireAuth(event);
+  
+  // Rate limiting: Prevent abuse by limiting requests per IP
   const ip = getRequestIP(event) || 'unknown';
   try {
     await rateLimiter.consume(ip);
   } catch {
+    // Return 429 Too Many Requests if rate limit exceeded
     return sendError(event, createError({ statusCode: 429, statusMessage: 'Rate limit exceeded. Prøv igen senere.' }));
   }
 
-  // --- Input Sanitization ---
+  // Input Sanitization: Clean all user input to prevent XSS attacks
   const body = await readBody(event);
-  // Remove any unexpected fields, trim strings, and sanitize with DOMPurify
+  
+  // Initialize DOMPurify for HTML sanitization
   const window = new JSDOM('').window;
   const purify = DOMPurify(window);
 
+  /**
+   * Sanitize string input - removes HTML tags and trims whitespace
+   */
   function sanitizeString(str: unknown): string {
     return typeof str === 'string' ? purify.sanitize(str.trim(), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : '';
   }
+  
+  /**
+   * Sanitize number input - ensures valid number or returns 0
+   */
   function sanitizeNumber(num: unknown): number {
     return typeof num === 'number' && !isNaN(num) ? num : 0;
   }
-  // Sanitize models and accessories arrays
+  
+  // Sanitize models array (products/cameras)
   const sanitizedModels = Array.isArray(body.models) ? body.models.map((m: any) => ({
     name: sanitizeString(m.name),
     quantity: sanitizeNumber(m.quantity),
     productId: sanitizeNumber(m.productId),
   })) : [];
+  
+  // Sanitize accessories array
   const sanitizedAccessories = Array.isArray(body.accessories) ? body.accessories.map((a: any) => ({
     name: sanitizeString(a.name),
     quantity: sanitizeNumber(a.quantity),
   })) : [];
+  
+  // Build sanitized request body
   const sanitizedBody = {
     startDate: sanitizeString(body.startDate),
     endDate: sanitizeString(body.endDate),

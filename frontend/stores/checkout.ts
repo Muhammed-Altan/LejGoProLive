@@ -1,40 +1,89 @@
+/**
+ * Checkout Store (Pinia)
+ * 
+ * Global state management for the booking/checkout flow
+ * 
+ * Responsibilities:
+ * - Track selected products and accessories
+ * - Manage rental dates and pricing
+ * - Store customer delivery information
+ * - Handle delivery method (home delivery or service point)
+ * - Persist state across page navigation
+ * - Provide computed properties for total calculations
+ * 
+ * State Persistence:
+ * - Automatically persisted to localStorage by Pinia
+ * - Survives page reloads during checkout
+ * - Cleared on successful payment
+ * 
+ * Used by:
+ * - checkout.vue (main checkout page)
+ * - ProductStep.vue (product selection)
+ * - DeliveryStep.vue (delivery info)
+ * - PensoPayment.vue (payment processing)
+ * - BasketView.vue (order summary sidebar)
+ */
+
 import { defineStore } from 'pinia'
 
+/**
+ * Selected item interface
+ * Represents a product or accessory in the cart
+ */
 export interface SelectedItem {
-  name: string;
-  price: number;
-  quantity: number;
-  productId?: number;
-  config?: { dailyPrice: number; weeklyPrice: number; twoWeekPrice: number };
+  name: string;          // Product name (e.g., "GoPro Hero 12 Black")
+  price: number;         // Calculated price for selected duration
+  quantity: number;      // Number of units (e.g., 2 cameras)
+  productId?: number;    // Database product ID (for cameras)
+  config?: {             // Optional pricing config for dynamic calculations
+    dailyPrice: number
+    weeklyPrice: number
+    twoWeekPrice: number
+  }
 }
 
+/**
+ * Checkout store definition
+ */
 export const useCheckoutStore = defineStore('checkout', {
   state: () => ({
-    selectedModels: [] as SelectedItem[],
-    selectedAccessories: [] as SelectedItem[],
-    insurance: false,
-    startDate: null as string | null,
-    endDate: null as string | null,
-    productId: null as number | null, // legacy: first selected product id (kept for compatibility)
-    // Delivery info
-    fullName: '',
-    phone: '',
-    email: '',
-    address: '',
-    apartment: '',
-    postalCode: '',
-    city: '',
-    // Delivery method
-    deliveryMethod: 'home' as 'home' | 'servicepoint',
-    selectedServicePoint: null as any | null,
-    // Price
-    backendTotal: 0,
-    // Booking ID for tracking
-    bookingId: null as string | null,
-    // Order ID for payment tracking
-    orderId: null as string | null,
+    // Selected items
+    selectedModels: [] as SelectedItem[],        // GoPro cameras in cart
+    selectedAccessories: [] as SelectedItem[],   // Accessories in cart
+    insurance: false,                            // Insurance option (not implemented yet)
+    
+    // Rental period
+    startDate: null as string | null,  // Rental start date (ISO string)
+    endDate: null as string | null,    // Rental end date (ISO string)
+    
+    // Legacy compatibility
+    productId: null as number | null,  // First selected product ID (kept for old code)
+    
+    // Customer delivery information
+    fullName: '',        // Customer full name
+    phone: '',           // Phone number (format: +45 12345678)
+    email: '',           // Email for receipt
+    address: '',         // Street address
+    apartment: '',       // Optional apartment/floor number
+    postalCode: '',      // 4-digit Danish postal code
+    city: '',            // City name
+    
+    // Delivery method selection
+    deliveryMethod: 'home' as 'home' | 'servicepoint',  // Delivery type
+    selectedServicePoint: null as any | null,           // PostNord service point data
+    
+    // Pricing
+    backendTotal: 0,     // Total price calculated by backend (authoritative)
+    
+    // Tracking IDs
+    bookingId: null as string | null,  // Database booking UUID
+    orderId: null as string | null,    // PensoPay order ID
   }),
   actions: {
+    /**
+     * Log current state for debugging
+     * Disabled in production for performance
+     */
     logState() {
       // Debug logging disabled for production
       // const state = this.$state;
@@ -46,7 +95,15 @@ export const useCheckoutStore = defineStore('checkout', {
       //   }
       // });
     },
+  /**
+   * Set rental dates with serialization handling
+   * Ensures dates are stored as ISO strings for localStorage compatibility
+   * 
+   * @param start - Start date (Date, ISO string, or null)
+   * @param end - End date (Date, ISO string, or null)
+   */
   setDates(start: Date | string | null, end: Date | string | null) {
+      // Validate input types (non-serializable objects cause localStorage errors)
       if (start && typeof start !== 'string' && !(start instanceof Date)) {
         // Log if something weird is passed
         console.error('Non-serializable startDate passed to setDates:', start);
@@ -54,6 +111,7 @@ export const useCheckoutStore = defineStore('checkout', {
       if (end && typeof end !== 'string' && !(end instanceof Date)) {
         console.error('Non-serializable endDate passed to setDates:', end);
       }
+      // Convert to ISO strings for storage (or null if not provided)
       this.startDate = start ? (typeof start === 'string' ? start : start.toISOString()) : null;
       this.endDate = end ? (typeof end === 'string' ? end : end.toISOString()) : null;
   this.logState();

@@ -21,6 +21,28 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Checkout Page
+ * 
+ * Main booking flow page with 3 steps:
+ * 1. Product selection (dates, cameras, accessories)
+ * 2. Delivery information (address, service point)
+ * 3. Payment (PensoPay integration)
+ * 
+ * Features:
+ * - URL parameter support for pre-selecting products (?product=123)
+ * - Sticky basket sidebar showing order summary
+ * - Automatic cleanup of old pending bookings on mount
+ * - Responsive 2-column layout (steps + basket)
+ * 
+ * Flow:
+ * - User selects products and dates
+ * - Fills in delivery information
+ * - Proceeds to payment
+ * - Redirected to PensoPay for payment
+ * - Returns to success/cancel page
+ */
+
 import ProductStep from '@/components/booking/ProductStep.vue';
 import DeliveryStep from '@/components/booking/DeliveryStep.vue';
 import PensoPayment from '@/components/booking/PensoPayment.vue';
@@ -29,24 +51,30 @@ import Header from '~/components/Header.vue';
 import Footer from '~/components/Footer.vue';
 import { useCheckoutStore } from '@/stores/checkout';
 
-// Handle URL parameters for pre-selecting products
+// Get current route for URL parameter handling
 const route = useRoute();
+// Access Pinia checkout store for booking state
 const store = useCheckoutStore();
 
-// Show payment when all required info is filled
+// Show payment step only when all required customer info is filled
+// Validates: name, email, address, city, postal code, phone, dates, and at least 1 product
 const showPayment = computed(() => {
   return !!(store.fullName && store.email && store.address && store.city && store.postalCode && store.phone && store.startDate && store.endDate && (store.selectedModels.length > 0 || store.selectedAccessories.length > 0));
 });
 
+// Initialize checkout page when component mounts
 onMounted(async () => {
-  // Run cleanup of old pending bookings in background
+  // Background cleanup: Remove old pending bookings from database
+  // Prevents database bloat from abandoned carts
   try {
     await $fetch('/api/cleanup-old-bookings');
   } catch (error) {
     // Silently fail - don't block checkout if cleanup fails
+    // This is a non-critical background task
     console.log('Cleanup skipped:', error);
   }
 
+  // Handle pre-selection via URL parameter (e.g., /checkout?product=5)
   const productId = route.query.product;
   
   if (productId && typeof productId === 'string') {

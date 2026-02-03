@@ -1,14 +1,37 @@
-// Dynamic import for jsPDF to handle both client and server environments
+/**
+ * PDF Generator Utility
+ * 
+ * Generates professional invoice PDFs for LejGoPro bookings
+ * 
+ * Features:
+ * - Dynamic jsPDF import (works on both client and server)
+ * - Supabase logo integration
+ * - Formatted invoice with company info and itemized pricing
+ * - Currency formatting (Danish Kroner)
+ * - Date formatting (da-DK locale)
+ * - Downloadable PDF files
+ * 
+ * Used by:
+ * - Email composable (attach PDF to receipt emails)
+ * - Admin panel (generate invoices)
+ * - Customer download receipts
+ */
+
+// Cache jsPDF instance to avoid multiple imports
 let jsPDF: any = null
 
+/**
+ * Get jsPDF library with environment-specific import
+ * Handles differences between server-side (Node.js) and client-side (browser) imports
+ */
 const getJsPDF = async () => {
   if (!jsPDF) {
     if (process.server) {
-      // Server-side import
+      // Server-side: Use named import
       const { jsPDF: JsPDFClass } = await import('jspdf')
       jsPDF = JsPDFClass
     } else {
-      // Client-side import
+      // Client-side: Handle multiple export formats
       const jsPDFModule = await import('jspdf')
       jsPDF = jsPDFModule.default || jsPDFModule.jsPDF || jsPDFModule
     }
@@ -16,17 +39,24 @@ const getJsPDF = async () => {
   return jsPDF
 }
 
-// Get logo URL from Supabase storage
+/**
+ * Fetch LejGoPro logo from Supabase Storage
+ * 
+ * Logo is stored in: productImage bucket → email folder → lejgopro-email.png
+ * 
+ * @returns Base64 encoded logo string or null if fetch fails
+ */
 const getLogoFromSupabase = async (): Promise<string | null> => {
   try {
     console.log('🔍 Fetching logo from Supabase storage...')
     
     if (process.server) {
-      // Server-side: use Supabase directly
+      // Server-side: Create Supabase client directly
       const { createClient } = await import('@supabase/supabase-js')
       const supabaseUrl = process.env.SUPABASE_URL
       const supabaseKey = process.env.SUPABASE_ANON_KEY
       
+      // Validate environment variables
       if (!supabaseUrl || !supabaseKey) {
         console.error('❌ Supabase credentials not found in environment')
         return null
@@ -34,20 +64,21 @@ const getLogoFromSupabase = async (): Promise<string | null> => {
       
       const supabase = createClient(supabaseUrl, supabaseKey)
       
-      // Get the logo from the 'email' folder
+      // List files in email folder to find logo
       const { data, error } = await supabase.storage
-        .from('productImage')
-        .list('email', {
+        .from('productImage')  // Bucket name
+        .list('email', {       // Folder path
           limit: 10,
-          search: 'lejgopro-email.png'
+          search: 'lejgopro-email.png'  // Logo filename
         })
       
+      // Handle errors or missing logo
       if (error || !data || data.length === 0) {
         console.error('❌ Logo not found in Supabase storage:', error)
         return null
       }
       
-      // Get public URL for the logo
+      // Generate public URL for the logo file
       const { data: publicData } = supabase.storage
         .from('productImage')
         .getPublicUrl(`email/${data[0].name}`)

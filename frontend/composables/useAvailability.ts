@@ -1,22 +1,51 @@
+/**
+ * Availability Composable
+ * 
+ * Manages real-time product availability checking with client and server caching
+ * 
+ * Performance Features:
+ * - Client-side cache (2 minutes TTL) - instant results for repeated checks
+ * - Server-side cache (5 minutes TTL) - reduced database load
+ * - Detailed timing metrics for performance monitoring
+ * 
+ * How It Works:
+ * 1. User selects dates and products
+ * 2. Check client cache first (fast)
+ * 3. If not cached, call /api/availability/check
+ * 4. Server checks cache, then queries database if needed
+ * 5. Returns availability status + conflicting bookings
+ * 
+ * Used by:
+ * - ProductStep.vue (date picker validation)
+ * - ProductCalendar.vue (visual availability)
+ * - Checkout flow (pre-booking validation)
+ */
+
 import { ref, computed } from 'vue'
 
+/**
+ * Availability result for a single product or accessory
+ */
 interface AvailabilityResult {
-  productId?: number
-  accessoryId?: number
-  totalQuantity: number
-  availableQuantity: number
-  isAvailable: boolean
-  conflictingBookings?: Array<{
+  productId?: number       // For GoPro cameras
+  accessoryId?: number     // For accessories
+  totalQuantity: number    // Total in inventory
+  availableQuantity: number // Available for selected dates
+  isAvailable: boolean     // True if any quantity available
+  conflictingBookings?: Array<{  // Optional: show which bookings conflict
     startDate: string
     endDate: string
     quantity: number
   }>
 }
 
+/**
+ * API response from /api/availability/check
+ */
 interface AvailabilityResponse {
   success: boolean
   data: AvailabilityResult[]
-  timing?: {
+  timing?: {               // Optional performance metrics
     requestParsing: number
     cacheKeyGeneration: number
     cacheCheck: number
@@ -31,33 +60,57 @@ interface AvailabilityResponse {
   }
 }
 
+/**
+ * Client-side cache entry
+ * Stores availability results with TTL for fast repeated checks
+ */
 interface CacheEntry {
   data: AvailabilityResult[]
-  timestamp: number
-  ttl: number
+  timestamp: number        // When cached (ms since epoch)
+  ttl: number             // Time to live in milliseconds
 }
 
-// Generate cache key for client-side caching
+/**
+ * Generate cache key for client-side caching
+ * Format: "client:availability:{startDate}:{endDate}:p{productIds}:a{accessoryIds}"
+ * 
+ * Example: "client:availability:2024-06-01:2024-06-07:p5,6:a1,2,3"
+ * 
+ * @param startDate - Rental start date
+ * @param endDate - Rental end date
+ * @param productIds - Array of GoPro product IDs
+ * @param accessoryIds - Array of accessory IDs
+ * @returns Unique cache key string
+ */
 function generateClientCacheKey(
   startDate: string | Date,
   endDate: string | Date,
   productIds: number[],
   accessoryIds: number[]
 ): string {
+  // Normalize dates to YYYY-MM-DD format
   const startStr = startDate instanceof Date ? startDate.toISOString().split('T')[0] : startDate
   const endStr = endDate instanceof Date ? endDate.toISOString().split('T')[0] : endDate
+  // Sort IDs to ensure consistent cache keys (e.g., [5,6] and [6,5] produce same key)
   const sortedProductIds = [...productIds].sort()
   const sortedAccessoryIds = [...accessoryIds].sort()
   
   return `client:availability:${startStr}:${endStr}:p${sortedProductIds.join(',')}:a${sortedAccessoryIds.join(',')}`
 }
 
+/**
+ * Availability composable export
+ */
 export const useAvailability = () => {
+  // Loading state - true while checking availability
   const loading = ref(false)
+  // Error message if availability check fails
   const error = ref<string | null>(null)
+  // Array of availability results for all checked products/accessories
   const availabilityResults = ref<AvailabilityResult[]>([])
   
-  // Client-side cache - using a Map for better performance
+  // Client-side cache - Map provides O(1) lookup performance
+  // Key: generated cache key, Value: {data, timestamp, ttl}
   const clientCache = new Map<string, CacheEntry>()
   const CACHE_TTL = 2 * 60 * 1000 // 2 minutes in milliseconds
 
