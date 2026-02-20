@@ -443,20 +443,6 @@
                                         ➕ Tilføj kamera
                                     </button>
                                     <button 
-                                        class="bg-purple-600 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-purple-700 transition" 
-                                        @click="createShippingQRCode(order.baseOrderId)" 
-                                        :disabled="creatingQRCode === order.baseOrderId"
-                                    >
-                                        {{ creatingQRCode === order.baseOrderId ? 'Opretter...' : '📱 QR Kode' }}
-                                    </button>
-                                    <button 
-                                        class="bg-purple-500 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-purple-600 transition" 
-                                        @click="createShippingLabel(order.baseOrderId)" 
-                                        :disabled="creatingLabel === order.baseOrderId"
-                                    >
-                                        {{ creatingLabel === order.baseOrderId ? 'Opretter...' : '🖨️ Print Labels' }}
-                                    </button>
-                                    <button 
                                         class="bg-green-600 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-green-700 transition" 
                                         @click="createOrderInvoice(order)" 
                                         :disabled="creatingInvoice === order.baseOrderId"
@@ -800,37 +786,6 @@
         @success="onAdminBookingSuccess"
     />
     
-
-    <!-- Test QR Code Modal -->
-    <div v-if="showTestQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="closeTestQRModal">
-        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-bold text-gray-900">PostNord Test QR-kode</h3>
-                <button @click="closeTestQRModal" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
-            </div>
-            
-            <div class="text-center space-y-4">
-                <div v-if="testQRCodeData" class="bg-gray-50 p-6 rounded-lg">
-                    <img :src="testQRCodeData" alt="Test QR Code" class="mx-auto max-w-full" style="width: 300px; height: 300px;" />
-                </div>
-                
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p class="text-sm text-blue-800 font-semibold">Tracking nummer:</p>
-                    <p class="text-lg text-blue-900 font-mono">12345678901234</p>
-                </div>
-                
-                <p class="text-sm text-gray-600">Dette er en test QR-kode til dokumentation formål.</p>
-                
-                <button 
-                    @click="closeTestQRModal"
-                    class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-gray-700 transition"
-                >
-                    Luk
-                </button>
-            </div>
-        </div>
-    </div>
-
     <Footer />
 </template>
 
@@ -1131,42 +1086,6 @@ function formatDateRange(startDate: string, endDate: string): string {
     const start = new Date(startDate).toLocaleDateString('da-DK');
     const end = new Date(endDate).toLocaleDateString('da-DK');
     return `${start} - ${end}`;
-}
-
-async function generateTestQRCode() {
-    try {
-        // Import QRCode dynamically (client-side only)
-        const QRCode = (await import('qrcode')).default;
-        
-        // Generate a dummy PostNord tracking number
-        const dummyTrackingNumber = '12345678901234';
-        
-        // Generate QR code as data URL
-        testQRCodeData.value = await QRCode.toDataURL(dummyTrackingNumber, {
-            width: 300,
-            margin: 2,
-            errorCorrectionLevel: 'H'
-        });
-        
-        showTestQRModal.value = true;
-        
-    } catch (error: any) {
-        console.error('Error generating test QR code:', error);
-        toast.add({
-            title: 'Fejl',
-            description: 'Kunne ikke generere test QR-kode',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    }
-}
-
-function closeTestQRModal() {
-    showTestQRModal.value = false;
-    testQRCodeData.value = null;
 }
 
 function updateCameraId() {
@@ -1869,12 +1788,8 @@ interface Booking {
 }
 const bookings = ref<Booking[]>([]);
 const creatingInvoice = ref<number | null>(null);
-const creatingLabel = ref<number | null>(null);
-const creatingQRCode = ref<number | null>(null);
 const testingOAuth = ref(false);
 const oauthTestResult = ref<any>(null);
-const showTestQRModal = ref(false);
-const testQRCodeData = ref<string | null>(null);
 
 // Helper function to convert øre to DKK if needed
 const convertToDKK = (amount: number) => {
@@ -2433,95 +2348,6 @@ async function deleteOrder(order: any) {
                 description: 'text-gray-700'
             }
         });
-    }
-}
-
-// Create combined booking with QR codes
-async function createShippingQRCode(orderId: number) {
-    creatingQRCode.value = orderId;
-    
-    try {
-        console.log('📱 Creating QR codes for order:', orderId);
-        
-        const response = await auth.authenticatedFetch('/api/postnord/create-booking', {
-            method: 'POST',
-            body: JSON.stringify({ orderId }),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (response.success) {
-            toast.add({
-                title: 'QR koder oprettet!',
-                description: `QR koder sendt til admin email. Bring pakken til PostNord og de printer labelen når de scanner koden.`,
-                color: 'success',
-                ui: {
-                    title: 'text-gray-900 font-semibold',
-                    description: 'text-gray-700'
-                }
-            });
-        } else {
-            throw new Error('Kunne ikke oprette QR koder');
-        }
-    } catch (error: any) {
-        console.error('Error creating QR codes:', error);
-        toast.add({
-            title: 'Fejl ved oprettelse af QR koder',
-            description: error.data?.statusMessage || error.message || 'Kunne ikke oprette QR koder. Prøv igen.',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    } finally {
-        creatingQRCode.value = null;
-    }
-}
-
-// Create PostNord invoice for entire order
-// Create PostNord shipping label
-async function createShippingLabel(orderId: number) {
-    creatingLabel.value = orderId;
-    
-    try {
-        console.log('📦 Creating shipping label for order:', orderId);
-        
-        const response = await auth.authenticatedFetch('/api/postnord/create-shipment', {
-            method: 'POST',
-            body: JSON.stringify({ orderId }),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (response.success) {
-            toast.add({
-                title: 'Forsendelseslabel oprettet!',
-                description: `Label sendt til admin email${response.trackingNumber ? `. Tracking: ${response.trackingNumber}` : ''}`,
-                color: 'success',
-                ui: {
-                    title: 'text-gray-900 font-semibold',
-                    description: 'text-gray-700'
-                }
-            });
-        } else {
-            throw new Error('Kunne ikke oprette forsendelseslabel');
-        }
-    } catch (error: any) {
-        console.error('Error creating shipping label:', error);
-        toast.add({
-            title: 'Fejl ved oprettelse af label',
-            description: error.data?.statusMessage || error.message || 'Kunne ikke oprette forsendelseslabel. Prøv igen.',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    } finally {
-        creatingLabel.value = null;
     }
 }
 

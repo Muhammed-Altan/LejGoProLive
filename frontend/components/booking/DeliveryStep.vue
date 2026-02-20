@@ -79,20 +79,12 @@
 		</div> -->
 	</form>
 
-	<!-- Service Point Selector -->
-	<ServicePointSelector 
-		v-if="isPostalCodeValid" 
-		:postal-code="postalCode" 
-		:city="city"
-		:address="address"
-	/>
 </template>
 
 <script setup>
 import { useCheckoutStore } from '@/stores/checkout';
-import { watch, ref, computed, nextTick } from 'vue';
+import { watch, ref, nextTick } from 'vue';
 import DOMPurify from 'dompurify';
-import ServicePointSelector from './ServicePointSelector.vue';
 
 // Field name constants for type safety
 const FIELD_FULL_NAME = 'fullName';
@@ -128,11 +120,6 @@ const errors = ref({
 const touchedFullName = ref(false)
 const touchedPhone = ref(false)
 const touchedEmail = ref(false)
-
-// Check if postal code is valid for showing service point selector
-const isPostalCodeValid = computed(() => {
-	return postalCode.value && /^\d{4}$/.test(postalCode.value)
-})
 
 // Sanitization helper using DOMPurify
 function stripTags(input) {
