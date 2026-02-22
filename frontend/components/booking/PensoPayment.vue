@@ -245,9 +245,7 @@ const initiatePayment = async () => {
       address: store.address,
       apartment: store.apartment,
       postalCode: store.postalCode,
-      city: store.city,
-      deliveryMethod: store.deliveryMethod,
-      selectedServicePoint: store.selectedServicePoint
+      city: store.city
     }
 
     console.log('Creating bookings with payload:', bookingPayload)

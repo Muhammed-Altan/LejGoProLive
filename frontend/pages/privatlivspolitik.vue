@@ -77,7 +77,7 @@
 					<ul class="list-disc ml-6">
 						<li><strong>Webhosting/CDN:</strong> Netlify – drift og hosting af LejGoPro.dk</li>
 						<li><strong>Betalingsgateway:</strong> Pensopay – håndtering af betalinger</li>
-						<li><strong>Fragt:</strong> GLS & PostNord – levering og returnering</li>
+						<li><strong>Fragt:</strong> GLS – levering og returnering</li>
 					</ul>
 				</div>
 

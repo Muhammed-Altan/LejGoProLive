@@ -7,7 +7,7 @@
  * - Track selected products and accessories
  * - Manage rental dates and pricing
  * - Store customer delivery information
- * - Handle delivery method (home delivery or service point)
+ * - Handle delivery information
  * - Persist state across page navigation
  * - Provide computed properties for total calculations
  * 
@@ -67,10 +67,6 @@ export const useCheckoutStore = defineStore('checkout', {
     apartment: '',       // Optional apartment/floor number
     postalCode: '',      // 4-digit Danish postal code
     city: '',            // City name
-    
-    // Delivery method selection
-    deliveryMethod: 'home' as 'home' | 'servicepoint',  // Delivery type
-    selectedServicePoint: null as any | null,           // PostNord service point data
     
     // Pricing
     backendTotal: 0,     // Total price calculated by backend (authoritative)
@@ -178,19 +174,6 @@ export const useCheckoutStore = defineStore('checkout', {
       if (info.city !== undefined) this.city = info.city;
       this.logState();
     },
-    setDeliveryMethod(method: 'home' | 'servicepoint') {
-      this.deliveryMethod = method;
-      // Clear service point if switching to home delivery
-      if (method === 'home') {
-        this.selectedServicePoint = null;
-      }
-      this.logState();
-    },
-    setSelectedServicePoint(servicePoint: any) {
-      this.selectedServicePoint = servicePoint;
-      this.deliveryMethod = 'servicepoint';
-      this.logState();
-    },
     setBackendTotal(total: number) {
       this.backendTotal = total;
       this.logState();
@@ -286,15 +269,10 @@ export const useCheckoutStore = defineStore('checkout', {
           // Store accessory instance IDs as JSONB array (after recreating column)
           accessoryInstanceIds: accessoryInstanceIds.length > 0 ? accessoryInstanceIds : null,
           city: this.city,
-          postalCode: this.postalCode,
-          deliveryMethod: this.deliveryMethod,
-          selectedServicePoint: this.selectedServicePoint ? JSON.stringify(this.selectedServicePoint) : null
+          postalCode: this.postalCode
         };
         
         console.log('=== BOOKING DEBUG ===');
-        console.log('deliveryMethod:', this.deliveryMethod);
-        console.log('selectedServicePoint (raw):', this.selectedServicePoint);
-        console.log('selectedServicePoint (stringified):', this.selectedServicePoint ? JSON.stringify(this.selectedServicePoint) : null);
         console.log('productId type:', typeof this.productId, 'value:', this.productId);
         console.log('cameraId type:', typeof bookingData.cameraId, 'value:', bookingData.cameraId);
         console.log('totalPrice type:', typeof this.backendTotal, 'value:', this.backendTotal);
