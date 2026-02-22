@@ -30,6 +30,7 @@
 
 ### Eksterne APIs
 - **Betaling:** PensoPay 
+- **Forsendelse:** PostNord Shipping API
 - **Email:** SMTP (nodemailer)
 
 ### Utilities
@@ -63,6 +64,7 @@ frontend/
 │   │   ├── booking/    # Booking management
 │   │   ├── email/      # Email forsendelse
 │   │   ├── payment/    # PensoPay integration
+│   │   └── postnord/   # PostNord shipping
 │   └── utils/          # Server utilities (auth, supabase)
 ├── composables/        # Vue composables (reusable logic)
 ├── stores/             # Pinia state stores
@@ -134,6 +136,7 @@ SUPABASE_ANON_KEY=eyJxxx...
 SUPABASE_SERVICE_ROLE_KEY=eyJxxx...  # Server-side only
 ADMIN_JWT_SECRET=your-secret-key
 PENSOPAY_API_KEY=xxx
+POSTNORD_API_KEY=xxx
 SMTP_HOST=smtp.gmail.com
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=app-password
@@ -158,6 +161,23 @@ SMTP_PASS=app-password
 ### Test Mode
 ```typescript
 testmode: process.env.NODE_ENV !== 'production' // true i dev
+```
+
+---
+
+## 📦 PostNord Integration (Forsendelse)
+
+### Service Points
+- `GET /api/postnord/service-points?postalCode=2100` - Find pakkeshops
+
+### Shipping Labels
+- `POST /api/postnord/create-shipment` - Opret forsendelse
+- `POST /api/postnord/create-booking` - Opret QR kode booking (admin)
+
+### QR Code Generation
+```typescript
+import QRCode from 'qrcode'
+const qrDataUrl = await QRCode.toDataURL(trackingNumber)
 ```
 
 ---
@@ -207,6 +227,7 @@ const pdfBuffer = await generateReceiptPDF(bookingData)
 
 **`/components/booking/DeliveryStep.vue`**
 - Kunde info formular
+- PostNord service point selector
 - Validering med Zod
 
 **`/components/booking/PaymentStep.vue`**
@@ -218,6 +239,7 @@ const pdfBuffer = await generateReceiptPDF(bookingData)
 - 5 tabs: Produkter, Tilbehør, Ordrer, Lager, Integrationer
 - CRUD for alt
 - Tilføj kamera til eksisterende ordre
+- QR kode + shipping label generering
 
 ---
 
@@ -323,6 +345,7 @@ GET  /api/products.get.ts          # Hent alle produkter + kameraer
 GET  /api/availability.get.ts      # Check tilgængelighed
 POST /api/booking.post.ts          # Opret booking
 POST /api/payment/create           # Opret betaling
+GET  /api/postnord/service-points  # Find pakkeshops
 ```
 
 ### Admin (JWT Protected)
@@ -420,6 +443,7 @@ git push                 # Trigger GitHub Actions
 - **Pinia:** https://pinia.vuejs.org
 - **Tailwind CSS:** https://tailwindcss.com/docs
 - **PensoPay API:** https://pensopay.com/docs/api
+- **PostNord API:** https://developer.postnord.com
 - **Vitest:** https://vitest.dev
 
 ---
