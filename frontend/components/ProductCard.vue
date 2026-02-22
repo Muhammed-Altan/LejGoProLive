@@ -20,19 +20,39 @@
 </template>
 
 <script setup>
+/**
+ * ProductCard Component
+ * 
+ * Displays a single product (GoPro camera) with pricing and features
+ * 
+ * Features:
+ * - Product image with lazy loading
+ * - Dynamic pricing (calculated from 2-week price for best value)
+ * - Feature list
+ * - "Mest Populær" badge for highlighted products
+ * - Direct link to checkout with pre-selected product
+ * 
+ * Used on:
+ * - Homepage product grid
+ * - Products page
+ */
+
+// Component props - all product display data
 const props = defineProps({
-  title: String,
-  description: String,
-  img: String,
-  features: Array,
-  priceDay: [String, Number],
-  priceWeek: [String, Number],
-  twoWeekPrice: [String, Number],
-  popular: Boolean,
-  productId: Number
+  title: String,           // Product name (e.g., "GoPro Hero 12 Black")
+  description: String,     // Short product description
+  img: String,             // Product image URL
+  features: Array,         // Array of feature strings (max 3 displayed)
+  priceDay: [String, Number],     // Daily rental price
+  priceWeek: [String, Number],    // Weekly rental price
+  twoWeekPrice: [String, Number], // 2-week rental price (best value)
+  popular: Boolean,        // Show "Mest Populær" badge if true
+  productId: Number        // Database product ID for checkout link
 })
 
-// Calculate the display price using the same logic as ProductStep.vue
+// Calculate display price by dividing 2-week price by 14 days
+// This shows the best per-day rate to customers
+// Falls back to daily price if 2-week price not available
 const displayPrice = computed(() => {
   return Math.ceil(props.twoWeekPrice ? (props.twoWeekPrice / 14) : props.priceDay)
 })

@@ -1,12 +1,38 @@
 import { apiCache, createCacheKey } from '../../utils/cache'
 
+/**
+ * GET /api/postnord/service-points
+ * 
+ * Find nearby PostNord service points (pakkeshops) based on address
+ * 
+ * Query Parameters:
+ * - postalCode (required): 4-digit Danish postal code
+ * - city (optional): City name for more precise results
+ * - streetName (optional): Street name
+ * - streetNumber (optional): Street number
+ * - countryCode (optional): Default 'DK'
+ * - numberOfServicePoints (optional): Default '10'
+ * 
+ * Features:
+ * - Validates postal code format (4 digits)
+ * - Caches results for 1 hour to reduce API calls
+ * - Returns sorted list by distance
+ * - Includes full address and opening hours
+ * 
+ * Used by:
+ * - ServicePointSelector.vue in checkout flow
+ * 
+ * @returns Array of service points with addresses and distances
+ */
 export default defineEventHandler(async (event) => {
   try {
+    // Get runtime config for PostNord API key
     const config = useRuntimeConfig()
+    // Parse query parameters from request
     const query = getQuery(event)
     const { postalCode, city, streetName, streetNumber, countryCode = 'DK', numberOfServicePoints = '10' } = query
 
-    // Validation
+    // Validate required postal code parameter
     if (!postalCode || typeof postalCode !== 'string') {
       throw createError({
         statusCode: 400,
@@ -14,7 +40,9 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Validate Danish postal code format
+    // Validate Danish postal code format (must be exactly 4 digits)
+    // Example valid: 2300, 8000, 1000
+    // Example invalid: 230, 23000, abcd
     if (!/^\d{4}$/.test(postalCode)) {
       throw createError({
         statusCode: 400,
@@ -22,8 +50,9 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Check cache first (1 hour TTL for service points)
-    // Include address in cache key for more specific results
+    // Check server-side cache first (1 hour TTL)
+    // Service points rarely change, so caching saves API calls and improves response time
+    // Cache key includes address for location-specific results
     const cacheKey = createCacheKey('postnord-servicepoints', postalCode, city as string || '', streetName as string || '', countryCode as string)
     const cachedData = apiCache.get(cacheKey)
     
@@ -32,7 +61,8 @@ export default defineEventHandler(async (event) => {
       return cachedData
     }
 
-    // Call PostNord API
+    // Call PostNord Business Location API v5
+    // Returns nearest service points sorted by distance
     const apiUrl = `https://api2.postnord.com/rest/businesslocation/v5/servicepoints/nearest/byaddress`
     const params = new URLSearchParams({
       apikey: String(config.postNordApiKey),
