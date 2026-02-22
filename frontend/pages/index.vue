@@ -293,7 +293,22 @@
 import { ref } from 'vue';
 import ProductCard from '../components/ProductCard.vue';
 
-// SEO Meta Tags
+/**
+ * Homepage - Main landing page for LejGoPro
+ * 
+ * Features:
+ * - Hero section with CTA buttons
+ * - Adventure image grid
+ * - Product cards fetched from Supabase
+ * - Accessories display
+ * - Benefits section (why rent)
+ * - Use cases section
+ * - FAQ accordion
+ * 
+ * SEO optimized with meta tags for search engines and social media
+ */
+
+// SEO Meta Tags for search engines and social sharing
 useSeoMeta({
   title: 'Lej GoPro Kamera Online - Professionel Actionkamera Udlejning | LejGoPro',
   description: 'Lej et professionelt GoPro actionkamera til dit næste eventyr. Gratis levering i Danmark, konkurrencedygtige priser og komplet udstyr. Book nemt online.',
@@ -319,7 +334,9 @@ useSeoMeta({
   charset: 'utf-8'
 })
 
-// Define the product interface to match Supabase table structure
+/**
+ * Product interface matching Supabase Product table structure
+ */
 interface Product {
   id: number;
   name: string;
@@ -331,7 +348,9 @@ interface Product {
   imageUrl?: string;
 }
 
-// Define the accessory interface
+/**
+ * Accessory interface matching Supabase Accessory table structure
+ */
 interface Accessory {
   id: number;
   name: string;
@@ -339,41 +358,47 @@ interface Accessory {
   price: number;
   quantity: number;
   imageUrl?: string;
-  includedByDefault?: boolean;
+  includedByDefault?: boolean; // Shows green "Inkluderet" badge if true
 }
 
-// Reactive state
-const products = ref<Product[]>([]);
-const accessories = ref<Accessory[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
-const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/blt6ff9ada3eca94bbc/643ee100b1f4db27b0203e9d/pdp-h10-image01-1920-2x.png';
+// Reactive state management
+const products = ref<Product[]>([]); // List of available GoPro products
+const accessories = ref<Accessory[]>([]); // List of available accessories
+const loading = ref(true); // Loading state for products fetch
+const error = ref<string | null>(null); // Error message if fetch fails
+const placeholderImage = 'https://static.gopro.com/assets/blta2b8522e5372af40/blt6ff9ada3eca94bbc/643ee100b1f4db27b0203e9d/pdp-h10-image01-1920-2x.png'; // Default image if product has no image
 
-// Get Supabase client
+// Initialize Supabase client for database queries
 const supabase = useSupabase();
 
-// Fetch products from Supabase
+/**
+ * Fetch all products from Supabase Product table
+ * Displays loading state and handles errors gracefully
+ */
 const fetchProducts = async () => {
   try {
     loading.value = true;
     error.value = null;
     
+    // Validate Supabase client is available
     if (!supabase) {
       throw new Error('Supabase client ikke tilgængelig');
     }
     
+    // Query all products from database, ordered by ID
     const { data, error: supabaseError } = await supabase
       .from('Product')
       .select('*')
       .order('id', { ascending: true });
     
+    // Handle database errors
     if (supabaseError) {
       throw supabaseError;
     }
     
     console.log('Raw products data from Supabase:', data);
     
-    // Use the data directly as it matches our interface
+    // Assign fetched data to reactive products array
     products.value = data || [];
     
     console.log('Products:', products.value);
@@ -381,14 +406,19 @@ const fetchProducts = async () => {
     console.log('First product weeklyPrice:', products.value[0]?.weeklyPrice);
     console.log('Products length:', products.value.length);
   } catch (err: any) {
+    // Set user-friendly error message
     error.value = err.message || 'Der opstod en fejl ved indlæsning af produkter';
     console.error('Error fetching products:', err);
   } finally {
+    // Stop loading spinner regardless of success/failure
     loading.value = false;
   }
 };
 
-// Fetch accessories from Supabase
+/**
+ * Fetch all accessories from Supabase Accessory table
+ * Accessories are displayed below product cards on homepage
+ */
 const fetchAccessories = async () => {
   try {
     if (!supabase) {
@@ -404,21 +434,25 @@ const fetchAccessories = async () => {
       throw supabaseError;
     }
     
+    // Assign to reactive state
     accessories.value = data || [];
     console.log('Accessories loaded:', accessories.value.length);
   } catch (err: any) {
     console.error('Error fetching accessories:', err);
+    // Note: Accessory fetch errors don't show to user (non-critical)
   }
 };
 
-// Fetch products on component mount
+// Fetch both products and accessories when component mounts
 onMounted(() => {
   fetchProducts();
   fetchAccessories();
 });
 
+// Import accordion item type from Nuxt UI
 import type { AccordionItem } from '@nuxt/ui'
 
+// FAQ items displayed in accordion on homepage
 const items = ref<AccordionItem[]>([
   {
     label: 'Hvad er den korteste lejeperiode?',

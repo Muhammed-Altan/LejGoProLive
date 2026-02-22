@@ -1,21 +1,54 @@
+/**
+ * POST /api/email/send-receipt
+ * 
+ * Send booking receipt email to customer with PDF invoice attachment
+ * 
+ * Features:
+ * - HTML email with professional invoice layout
+ * - PDF attachment with itemized pricing
+ * - Company branding (logo, colors, contact info)
+ * - Development mode simulation (no actual send)
+ * - Nodemailer + Gmail SMTP integration
+ * 
+ * Email Template Includes:
+ * - Order number and booking dates
+ * - Customer information
+ * - Itemized product list with quantities and prices
+ * - Rental period and delivery address
+ * - Contact information for support
+ * 
+ * Security:
+ * - Email credentials from environment variables
+ * - Input validation for required fields
+ * - Rate limiting recommended (not implemented)
+ * 
+ * Used by:
+ * - /api/booking.post.ts (after successful booking)
+ * - Admin panel (resend receipts)
+ * - useEmail composable
+ */
+
 import nodemailer from 'nodemailer'
 
+/**
+ * Booking data interface for email receipt
+ */
 interface BookingData {
-  orderNumber: string
-  customerName: string
-  customerEmail: string
-  customerPhone?: string
-  service?: string
-  productName?: string
-  duration: string
-  totalAmount: number
-  bookingDate: string
-  rentalPeriod?: {
+  orderNumber: string      // Unique booking reference
+  customerName: string     // Full name for personalization
+  customerEmail: string    // Recipient email address
+  customerPhone?: string   // Optional phone number
+  service?: string         // Service description (legacy)
+  productName?: string     // Product name (legacy)
+  duration: string         // Human-readable duration (e.g., "7 days")
+  totalAmount: number      // Total price in DKK
+  bookingDate: string      // When booking was created
+  rentalPeriod?: {         // Optional detailed rental period
     startDate: string
     endDate: string
   }
-  deliveryAddress?: string
-  items?: Array<{
+  deliveryAddress?: string // Optional delivery address
+  items?: Array<{          // Optional itemized list
     name: string
     quantity: number
     price: number
@@ -24,12 +57,13 @@ interface BookingData {
 
 export default defineEventHandler(async (event) => {
   try {
+    // Parse request body
     const body = await readBody(event)
     const { bookingData }: { bookingData: BookingData } = body
 
     console.log('📧 Received booking data for HTML email:', JSON.stringify(bookingData, null, 2))
 
-    // Validate required fields
+    // Validate required fields before attempting to send email
     if (!bookingData || !bookingData.customerEmail || !bookingData.orderNumber) {
       console.error('❌ Missing required fields:', {
         hasBookingData: !!bookingData,
@@ -42,7 +76,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Check if we're in development mode and email is not properly configured
+    // Check environment mode and email configuration
+    // In development, emails are simulated unless proper credentials are configured
     const isDev = process.env.NODE_ENV === 'development'
     const hasValidEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD && 
                                 process.env.EMAIL_PASSWORD !== 'your-16-character-app-password-here'

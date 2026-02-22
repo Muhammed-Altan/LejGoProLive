@@ -11,17 +11,47 @@ interface AuthState {
   isLoading: boolean
 }
 
-// Store access token in memory (secure approach)
+/**
+ * Authentication Composable
+ * 
+ * Manages user authentication state and JWT tokens
+ * 
+ * Features:
+ * - Login/logout functionality
+ * - Access token refresh (automatic)
+ * - Secure token storage in memory (not localStorage for security)
+ * - Refresh token stored in httpOnly cookie (handled by server)
+ * 
+ * Security:
+ * - Access tokens stored in memory (cleared on page refresh)
+ * - Refresh tokens in httpOnly cookies (can't be accessed by JavaScript)
+ * - Automatic token refresh when expired
+ * - Prevents multiple simultaneous refresh requests
+ */
+
+// Store access token in memory only (more secure than localStorage)
 let accessToken: string | null = null
+
+// Promise to prevent multiple simultaneous refresh requests
 let refreshPromise: Promise<any> | null = null
 
 export const useAuth = () => {
+  // Reactive user state
   const user = ref<User | null>(null)
+  
+  // Computed property: user is logged in if both user and token exist
   const isLoggedIn = computed(() => !!user.value && !!accessToken)
+  
+  // Loading state for async operations
   const isLoading = ref(false)
 
   /**
    * Login user with email and password
+   * 
+   * @param email - User email address
+   * @param password - User password (plain text - hashed on server)
+   * @param rememberMe - If true, refresh token lasts 30 days; if false, session only
+   * @returns Success status and message or error
    */
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     console.log('🚀 useAuth.login called with:', { email, passwordLength: password.length, rememberMe })
@@ -69,6 +99,10 @@ export const useAuth = () => {
 
   /**
    * Logout user
+   * 
+   * - Calls server to clear refresh token cookie
+   * - Clears local access token and user state
+   * - Redirects to admin login page
    */
   const logout = async () => {
     try {
@@ -88,7 +122,13 @@ export const useAuth = () => {
   }
 
   /**
-   * Refresh access token using refresh token from cookie
+   * Refresh access token using refresh token from httpOnly cookie
+   * 
+   * - Prevents multiple simultaneous refresh requests
+   * - Returns existing promise if refresh already in progress
+   * - Clears tokens on failure (user must log in again)
+   * 
+   * @returns true if refresh successful, false otherwise
    */
   const refreshToken = async (): Promise<boolean> => {
     console.log('🔄 refreshToken called')
@@ -145,7 +185,9 @@ export const useAuth = () => {
   }
 
   /**
-   * Get current access token
+   * Get current access token from memory
+   * 
+   * @returns Access token string or null if not logged in
    */
   const getAccessToken = (): string | null => {
     return accessToken
