@@ -82,7 +82,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
  * - Product and accessory quantities
  * - Insurance flag
  * - Terms acceptance
- * - Delivery method and service point
+ * - Customer information
  * - Customer information
  */
 const bookingSchema = z.object({
@@ -99,8 +99,6 @@ const bookingSchema = z.object({
   })),
   insurance: z.boolean(),
   acceptedTerms: z.boolean().refine(val => val === true, { message: 'Rental conditions must be accepted' }),
-  deliveryMethod: z.enum(['home', 'servicepoint']).optional(),
-  selectedServicePoint: z.union([z.string(), z.object({}).passthrough()]).nullable().optional(),
   // Customer info (optional, will be set by payment API if not provided)
   fullName: z.string().optional(),
   email: z.string().email().optional(),
@@ -184,10 +182,6 @@ export default defineEventHandler(async (event) => {
     accessories: sanitizedAccessories,
     insurance: !!body.insurance,
     acceptedTerms: !!body.acceptedTerms,
-    deliveryMethod: body.deliveryMethod || null,
-    selectedServicePoint: body.selectedServicePoint 
-      ? (typeof body.selectedServicePoint === 'string' ? body.selectedServicePoint : JSON.stringify(body.selectedServicePoint))
-      : null,
     // Customer info
     fullName: body.fullName ? sanitizeString(body.fullName) : undefined,
     email: body.email ? sanitizeString(body.email) : undefined,
@@ -199,10 +193,6 @@ export default defineEventHandler(async (event) => {
   };
 
   console.log('\n=== BOOKING API RECEIVED DATA ===');
-  console.log('Raw deliveryMethod:', body.deliveryMethod);
-  console.log('Raw selectedServicePoint:', body.selectedServicePoint);
-  console.log('Sanitized deliveryMethod:', sanitizedBody.deliveryMethod);
-  console.log('Sanitized selectedServicePoint:', sanitizedBody.selectedServicePoint);
   console.log('================================\n');
 
   // --- Zod Validation ---
@@ -384,16 +374,12 @@ export default defineEventHandler(async (event) => {
         postalCode: '', // Will be set by payment API
         return_processed: false, // Boolean field for return process (corrected field name)
         accessoryInstanceIds: allocatedAccessoryInstances.length > 0 ? allocatedAccessoryInstances : null, // Add accessories to all bookings
-        deliveryMethod: booking.deliveryMethod || null, // Save delivery method
-        selectedServicePoint: booking.selectedServicePoint || null, // Save selected service point (JSON)
         createdAt: new Date().toISOString() // Timestamp when booking is created
       };
       
       console.log(`📦 Debug - Booking record ${i + 1}:`, {
         ...bookingRecord,
-        accessoryInstanceIds: allocatedAccessoryInstances,
-        deliveryMethod: booking.deliveryMethod,
-        selectedServicePoint: booking.selectedServicePoint ? 'JSON data present' : 'NULL'
+        accessoryInstanceIds: allocatedAccessoryInstances
       })
       
       bookingRecords.push(bookingRecord);

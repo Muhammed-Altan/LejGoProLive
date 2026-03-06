@@ -805,7 +805,7 @@
     <div v-if="showTestQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="closeTestQRModal">
         <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-bold text-gray-900">PostNord Test QR-kode</h3>
+                <h3 class="text-2xl font-bold text-gray-900">Test QR-kode</h3>
                 <button @click="closeTestQRModal" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
             </div>
             
@@ -1138,7 +1138,7 @@ async function generateTestQRCode() {
         // Import QRCode dynamically (client-side only)
         const QRCode = (await import('qrcode')).default;
         
-        // Generate a dummy PostNord tracking number
+        // Generate a dummy tracking number
         const dummyTrackingNumber = '12345678901234';
         
         // Generate QR code as data URL
@@ -2441,29 +2441,16 @@ async function createShippingQRCode(orderId: number) {
     creatingQRCode.value = orderId;
     
     try {
-        console.log('📱 Creating QR codes for order:', orderId);
-        
-        const response = await auth.authenticatedFetch('/api/postnord/create-booking', {
-            method: 'POST',
-            body: JSON.stringify({ orderId }),
-            headers: {
-                'Content-Type': 'application/json'
+        console.log('Shipping QR creation disabled for order:', orderId);
+        toast.add({
+            title: 'Fragtintegration er fjernet',
+            description: 'QR-koder kan ikke længere oprettes fra admin.',
+            color: 'warning',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
             }
         });
-        
-        if (response.success) {
-            toast.add({
-                title: 'QR koder oprettet!',
-                description: `QR koder sendt til admin email. Bring pakken til PostNord og de printer labelen når de scanner koden.`,
-                color: 'success',
-                ui: {
-                    title: 'text-gray-900 font-semibold',
-                    description: 'text-gray-700'
-                }
-            });
-        } else {
-            throw new Error('Kunne ikke oprette QR koder');
-        }
     } catch (error: any) {
         console.error('Error creating QR codes:', error);
         toast.add({
@@ -2480,35 +2467,22 @@ async function createShippingQRCode(orderId: number) {
     }
 }
 
-// Create PostNord invoice for entire order
-// Create PostNord shipping label
+// Shipping provider feature removed
+// Kept as disabled action to avoid broken UI bindings
 async function createShippingLabel(orderId: number) {
     creatingLabel.value = orderId;
     
     try {
-        console.log('📦 Creating shipping label for order:', orderId);
-        
-        const response = await auth.authenticatedFetch('/api/postnord/create-shipment', {
-            method: 'POST',
-            body: JSON.stringify({ orderId }),
-            headers: {
-                'Content-Type': 'application/json'
+        console.log('Shipping label creation disabled for order:', orderId);
+        toast.add({
+            title: 'Fragtintegration er fjernet',
+            description: 'Forsendelseslabels kan ikke længere oprettes fra admin.',
+            color: 'warning',
+            ui: {
+                title: 'text-gray-900 font-semibold',
+                description: 'text-gray-700'
             }
         });
-        
-        if (response.success) {
-            toast.add({
-                title: 'Forsendelseslabel oprettet!',
-                description: `Label sendt til admin email${response.trackingNumber ? `. Tracking: ${response.trackingNumber}` : ''}`,
-                color: 'success',
-                ui: {
-                    title: 'text-gray-900 font-semibold',
-                    description: 'text-gray-700'
-                }
-            });
-        } else {
-            throw new Error('Kunne ikke oprette forsendelseslabel');
-        }
     } catch (error: any) {
         console.error('Error creating shipping label:', error);
         toast.add({

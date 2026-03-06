@@ -6,7 +6,7 @@
  * Performance Impact:
  * - Products API: 350x faster (3500ms → 10ms for cached responses)
  * - Availability checks: 50x faster with cache hits
- * - Service points: 1 hour cache reduces PostNord API calls by 95%
+ * - Service endpoints: configurable cache windows reduce upstream API calls
  * 
  * How It Works:
  * - Map-based storage for O(1) lookups
@@ -33,7 +33,6 @@
  * Used by:
  * - /api/products.get.ts (5 min TTL)
  * - /api/availability/check.post.ts (5 min TTL)
- * - /api/postnord/service-points.get.ts (1 hour TTL)
  */
 
 /**
