@@ -443,20 +443,6 @@
                                         ➕ Tilføj kamera
                                     </button>
                                     <button 
-                                        class="bg-purple-600 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-purple-700 transition" 
-                                        @click="createShippingQRCode(order.baseOrderId)" 
-                                        :disabled="creatingQRCode === order.baseOrderId"
-                                    >
-                                        {{ creatingQRCode === order.baseOrderId ? 'Opretter...' : '📱 QR Kode' }}
-                                    </button>
-                                    <button 
-                                        class="bg-purple-500 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-purple-600 transition" 
-                                        @click="createShippingLabel(order.baseOrderId)" 
-                                        :disabled="creatingLabel === order.baseOrderId"
-                                    >
-                                        {{ creatingLabel === order.baseOrderId ? 'Opretter...' : '🖨️ Print Labels' }}
-                                    </button>
-                                    <button 
                                         class="bg-green-600 text-white px-3 py-2 rounded text-sm cursor-pointer hover:bg-green-700 transition" 
                                         @click="createOrderInvoice(order)" 
                                         :disabled="creatingInvoice === order.baseOrderId"
@@ -1869,8 +1855,6 @@ interface Booking {
 }
 const bookings = ref<Booking[]>([]);
 const creatingInvoice = ref<number | null>(null);
-const creatingLabel = ref<number | null>(null);
-const creatingQRCode = ref<number | null>(null);
 const testingOAuth = ref(false);
 const oauthTestResult = ref<any>(null);
 const showTestQRModal = ref(false);
@@ -2433,69 +2417,6 @@ async function deleteOrder(order: any) {
                 description: 'text-gray-700'
             }
         });
-    }
-}
-
-// Create combined booking with QR codes
-async function createShippingQRCode(orderId: number) {
-    creatingQRCode.value = orderId;
-    
-    try {
-        console.log('Shipping QR creation disabled for order:', orderId);
-        toast.add({
-            title: 'Fragtintegration er fjernet',
-            description: 'QR-koder kan ikke længere oprettes fra admin.',
-            color: 'warning',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    } catch (error: any) {
-        console.error('Error creating QR codes:', error);
-        toast.add({
-            title: 'Fejl ved oprettelse af QR koder',
-            description: error.data?.statusMessage || error.message || 'Kunne ikke oprette QR koder. Prøv igen.',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    } finally {
-        creatingQRCode.value = null;
-    }
-}
-
-// Shipping provider feature removed
-// Kept as disabled action to avoid broken UI bindings
-async function createShippingLabel(orderId: number) {
-    creatingLabel.value = orderId;
-    
-    try {
-        console.log('Shipping label creation disabled for order:', orderId);
-        toast.add({
-            title: 'Fragtintegration er fjernet',
-            description: 'Forsendelseslabels kan ikke længere oprettes fra admin.',
-            color: 'warning',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    } catch (error: any) {
-        console.error('Error creating shipping label:', error);
-        toast.add({
-            title: 'Fejl ved oprettelse af label',
-            description: error.data?.statusMessage || error.message || 'Kunne ikke oprette forsendelseslabel. Prøv igen.',
-            color: 'error',
-            ui: {
-                title: 'text-gray-900 font-semibold',
-                description: 'text-gray-700'
-            }
-        });
-    } finally {
-        creatingLabel.value = null;
     }
 }
 
