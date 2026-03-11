@@ -86,7 +86,7 @@ export const usePensoPay = () => {
   // Test mode flag - set to true for PensoPay test environment
   // Test mode uses test card numbers and doesn't process real payments
   // const isTestMode = process.env.NODE_ENV !== 'production' // Commented out for production
-  const isTestMode = true // Production mode (still in testing)
+    const isTestMode = false
 
   /**
    * Create a new PensoPay payment
